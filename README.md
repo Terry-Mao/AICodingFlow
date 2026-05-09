@@ -1,3 +1,3 @@
 # AICodingFlow
 
-Setup a AI Coding Flow, Using skills
+Setup a AI Coding Flow, Using skills for git
