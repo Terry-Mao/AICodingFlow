@@ -107,6 +107,7 @@ Detect issue ID from (in priority order):
 
 1. **User mention** - if the user explicitly says "fix #123" or "closes #456", use that
 2. **Branch name** - extract from common patterns:
+   - `<type>/<short-desc>-<issueID>` such as `fix/issueid-commit-message-4`
    - `fix-123-xxx`, `123-fix-xxx`
    - `issue-123`, `issue/123`
    - `GH-123`, `gh-123`
