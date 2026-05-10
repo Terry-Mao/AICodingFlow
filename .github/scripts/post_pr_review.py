@@ -91,13 +91,22 @@ def normalize_comments(
         position = positions.get(key)
         if position is None:
             raise SystemExit(f"comment target is missing from diff positions: {key[0]}/{key[1]}/{key[2]}")
-        normalized.append(
-            {
+        if "start_line" in comment:
+            normalized_comment = {
+                "path": comment["path"],
+                "line": comment["line"],
+                "side": comment["side"],
+                "start_line": comment["start_line"],
+                "start_side": comment["side"],
+                "body": comment["body"],
+            }
+        else:
+            normalized_comment = {
                 "path": comment["path"],
                 "position": position,
                 "body": comment["body"],
             }
-        )
+        normalized.append(normalized_comment)
     return normalized
 
 

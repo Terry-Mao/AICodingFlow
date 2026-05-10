@@ -65,7 +65,7 @@ class PostPrReviewTest(unittest.TestCase):
                 {("app.py", "RIGHT", 1): 1, ("app.py", "RIGHT", 20): 3},
             )
 
-    def test_normalize_comments_sends_position_payload(self) -> None:
+    def test_normalize_comments_preserves_range_payload(self) -> None:
         comments = [
             {
                 "path": "app.py",
@@ -78,7 +78,16 @@ class PostPrReviewTest(unittest.TestCase):
 
         self.assertEqual(
             post_pr_review.normalize_comments(comments, {("app.py", "RIGHT", 3): 4}),
-            [{"path": "app.py", "position": 4, "body": "⚠️ [IMPORTANT] issue"}],
+            [
+                {
+                    "path": "app.py",
+                    "line": 3,
+                    "side": "RIGHT",
+                    "start_line": 2,
+                    "start_side": "RIGHT",
+                    "body": "⚠️ [IMPORTANT] issue",
+                }
+            ],
         )
 
     def test_normalize_comments_rejects_missing_position(self) -> None:

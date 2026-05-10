@@ -57,7 +57,7 @@ def parse_diff(path: Path) -> dict[tuple[str, str], set[int]]:
 
 
 def require_type(value: Any, expected: type, label: str) -> None:
-    if not isinstance(value, expected):
+    if type(value) is not expected:
         fail(f"{label} must be {expected.__name__}")
 
 
