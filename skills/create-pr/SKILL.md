@@ -1,0 +1,67 @@
+---
+name: create-pr
+description: Create or update a GitHub pull request from a pushed branch after local review, base-branch sync, validation, and issue linking.
+---
+
+# create-pr
+
+Use this after `git-push` when the user asks to create, update, or open a GitHub pull request.
+
+## Goal
+
+Create or update a review-ready PR from the current branch after syncing the base branch, reviewing the diff locally, and linking the related task.
+
+## Workflow
+
+1. **Inspect and choose base**
+   Run:
+   ```bash
+   git status --short
+   git branch --show-current
+   git status -sb
+   ```
+   Prefer the repo's default PR base. If repo guidance names a different base, use that.
+   If the worktree is dirty, pause unless the changes are intentionally excluded from the PR.
+
+2. **Review and sync locally**
+   Run:
+   ```bash
+   git diff --stat <base>...HEAD
+   git diff <base>...HEAD
+   ```
+   Review the diff for accidental files, secrets, conflict markers, generated churn, and missing tests or docs.
+   Fetch the base branch and make sure it has been merged or rebased into the current branch before creating or updating the PR.
+   If conflicts occur, resolve them locally, rerun relevant validation, commit the resolution, and push through `git-push` so any configured `pre-push` hook runs.
+
+3. **Build title, body, and issue link**
+   Default the title from the issue title or the main commit subject.
+   Infer issue links from the user request, branch name, or commits. Do not invent issue IDs.
+   Keep the body concise and include:
+   - summary
+   - validation performed
+   - issue link such as `Closes #123`, `Fixes #123`, or `Refs #123` when known
+
+4. **Create or update PR**
+   Use GitHub CLI when available. If a PR already exists for the current branch, update it instead of creating a duplicate:
+   ```bash
+   gh pr view --json url,title,body,baseRefName,headRefName
+   gh pr edit --title "<title>" --body "<body>"
+   ```
+   If no PR exists, create one:
+   ```bash
+   gh pr create --base <base> --head <branch> --title "<title>" --body "<body>"
+   ```
+
+If `gh` is unavailable or not authenticated, report the exact title/body/base/head needed to create or update the PR manually.
+
+## Reporting
+
+After creating or finding a PR, report:
+
+- PR URL
+- base branch
+- head branch
+- title
+- validation included in the body
+- whether the base branch was merged or rebased locally
+- remind the user to watch CI, respond to review comments, and keep the PR current by regularly merging or rebasing the base branch
