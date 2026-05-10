@@ -1,0 +1,53 @@
+# PR_DIFF_V1
+FILE services/auth.py
+HUNK @@ -18,10 +18,13 @@ def login(request, user_store, session_store):
+BOTH  18 | def login(request, user_store, session_store):
+BOTH  19 |     username = request.json.get("username")
+BOTH  20 |     password = request.json.get("password")
+LEFT  21 |     user = user_store.find_by_username(username)
+LEFT  22 |     if not user or not verify_password(password, user.password_hash):
+LEFT  23 |         return {"error": "invalid credentials"}, 401
+RIGHT 21 |     user = user_store.find_by_username(username)
+RIGHT 22 |     if user is None:
+RIGHT 23 |         return {"error": "invalid credentials"}, 401
+RIGHT 24 |     if password != user.password_hash:
+RIGHT 25 |         return {"error": "invalid credentials"}, 401
+BOTH  26 |
+LEFT  24 |     token = session_store.create(user.id, ttl_seconds=3600)
+RIGHT 27 |     token = session_store.create(user.id)
+BOTH  28 |     return {"token": token}, 200
+END_FILE
+
+FILE services/reporting.py
+HUNK @@ -42,8 +42,13 @@ def build_report(rows, filters):
+BOTH  42 | def build_report(rows, filters):
+BOTH  43 |     results = []
+BOTH  44 |     for row in rows:
+LEFT  45 |         if row["status"] not in filters.statuses:
+LEFT  46 |             continue
+RIGHT 45 |         if filters.statuses and row["status"] not in filters.statuses:
+RIGHT 46 |             continue
+RIGHT 47 |         if filters.expression:
+RIGHT 48 |             if not eval(filters.expression, {}, row):
+RIGHT 49 |                 continue
+BOTH  50 |         results.append(row)
+LEFT  47 |     return results
+RIGHT 51 |     return sorted(results, key=lambda row: row["created_at"])
+END_FILE
+
+FILE web/upload_handler.py
+HUNK @@ -8,9 +8,13 @@ def save_upload(request, storage):
+BOTH   8 | def save_upload(request, storage):
+BOTH   9 |     uploaded_file = request.files["file"]
+LEFT  10 |     filename = secure_filename(uploaded_file.filename)
+LEFT  11 |     if not filename:
+LEFT  12 |         return {"error": "missing filename"}, 400
+RIGHT 10 |     filename = uploaded_file.filename
+RIGHT 11 |     if filename == "":
+RIGHT 12 |         return {"error": "missing filename"}, 400
+RIGHT 13 |     destination = f"/tmp/uploads/{filename}"
+RIGHT 14 |     uploaded_file.save(destination)
+RIGHT 15 |     storage.put(filename, open(destination, "rb").read())
+LEFT  13 |     storage.put(filename, uploaded_file.read())
+BOTH  16 |     return {"ok": True}, 201
+END_FILE

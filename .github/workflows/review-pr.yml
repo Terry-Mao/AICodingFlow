@@ -1,0 +1,79 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Snapshot PR description
+        run: python3 .github/scripts/write_pr_description.py --output pr_description.txt
+
+      - name: Snapshot PR diff
+        run: |
+          git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}
+          python3 .github/scripts/build_pr_diff.py \
+            --base ${{ github.event.pull_request.base.sha }} \
+            --head ${{ github.event.pull_request.head.sha }} \
+            --output pr_diff.txt
+
+      - name: Install Codex sandbox prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+
+      - name: Configure Codex API endpoint
+        id: codex_endpoint
+        env:
+          OPENAI_API_ENDPOINT: ${{ vars.OPENAI_API_ENDPOINT }}
+        run: |
+          endpoint="${OPENAI_API_ENDPOINT%/}"
+          if [ -z "$endpoint" ]; then
+            echo "OPENAI_API_ENDPOINT is not set" >&2
+            exit 1
+          fi
+          case "$endpoint" in
+            */responses) ;;
+            *) endpoint="$endpoint/responses" ;;
+          esac
+          echo "url=$endpoint" >> "$GITHUB_OUTPUT"
+
+      - name: Run AI review
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
+          prompt: |
+            Read skills/review-pr/SKILL.md and follow it exactly.
+            Use the existing pr_description.txt and pr_diff.txt snapshots.
+            Write review.json in the repository root.
+
+      - name: Validate review output
+        run: python3 skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
+
+      - name: Post PR review
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/post_pr_review.py --review review.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-review-${{ github.run_id }}
+          path: |
+            pr_description.txt
+            pr_diff.txt
+            review.json

@@ -1,0 +1,35 @@
+{
+  "body": "",
+  "comments": [
+    {
+      "path": "services/auth.py",
+      "side": "RIGHT",
+      "line": 24,
+      "body": "🚨 [CRITICAL] This compares the raw password to the stored hash, bypassing `verify_password` and breaking hashed-password authentication."
+    },
+    {
+      "path": "services/auth.py",
+      "side": "RIGHT",
+      "line": 27,
+      "body": "⚠️ [IMPORTANT] Dropping `ttl_seconds=3600` can create longer-lived or non-expiring sessions depending on the store default."
+    },
+    {
+      "path": "services/reporting.py",
+      "side": "RIGHT",
+      "line": 48,
+      "body": "🚨 [CRITICAL] Evaluating `filters.expression` with `eval` lets report filters execute arbitrary Python code."
+    },
+    {
+      "path": "web/upload_handler.py",
+      "side": "RIGHT",
+      "line": 10,
+      "body": "🚨 [CRITICAL] Using the uploaded filename directly reintroduces path traversal and unsafe storage keys; keep `secure_filename` and reject empty sanitized names."
+    },
+    {
+      "path": "web/upload_handler.py",
+      "side": "RIGHT",
+      "line": 15,
+      "body": "⚠️ [IMPORTANT] `open(destination, \"rb\").read()` leaves the temporary file handle unmanaged and the saved upload is never cleaned up."
+    }
+  ]
+}
