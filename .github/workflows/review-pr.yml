@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   review:
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
@@ -31,10 +31,13 @@ jobs:
             --output pr_diff.txt
 
       - name: Run AI review
-        run: |
-          # Replace this command with the repository's AI runner.
-          # It must read pr_description.txt and pr_diff.txt, then write review.json.
-          codex 'Use $review-pr'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            Read skills/review-pr/SKILL.md and follow it exactly.
+            Use the existing pr_description.txt and pr_diff.txt snapshots.
+            Write review.json in the repository root.
 
       - name: Validate review output
         run: python3 skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
