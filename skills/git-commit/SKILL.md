@@ -54,7 +54,7 @@ This skill is language-agnostic: decide commit boundaries from the diff and repo
    - unrelated docs + code
    - generated churn without clear source change
 
-4. **Propose**
+4. **Propose and approve**
    Before committing, show:
    - what changed
    - recommended commit boundary or boundaries
@@ -62,24 +62,23 @@ This skill is language-agnostic: decide commit boundaries from the diff and repo
    - risks / ambiguities
    - any repo-specific template or format that will be followed
 
-5. **Approve**
    Get user approval before staging or committing when boundaries are not already explicit.
 
-6. **Stage selectively**
+5. **Stage selectively**
    Prefer:
    ```bash
    git add -p
    ```
    Do not default to bulk staging. Stage only the intended hunks.
 
-7. **Validate deterministically**
-   If the repository has configured a native `git` pre-commit hook, it must run before creating the commit.
+6. **Validate deterministically**
+   If the repository has configured a native `git` pre-commit hook, it must run during commit creation.
    This is mandatory when configured; do not skip validation unless the user explicitly asks to commit without verification.
    Use the normal `git commit` path so Git invokes the configured hook automatically.
-   If validation fails, stop and report the failure before committing.
+   If validation fails, stop and report the failure without retrying with `--no-verify` unless the user explicitly asks.
    If no pre-commit hook is configured, say so explicitly instead of implying the check ran.
 
-8. **Commit**
+7. **Commit**
    Commit only after the above steps are satisfied.
 
 ## Commit message rules
@@ -103,57 +102,43 @@ Guidelines:
 
 ## Issue linking
 
-Detect issue ID from (in priority order):
+Detect issue ID in this order:
 
-1. **User mention** - if the user explicitly says "fix #123" or "closes #456", use that
+1. **User mention** - if the user explicitly says "fix #123" or "closes #456", use that.
 2. **Branch name** - extract from common patterns:
    - `<type>/<short-desc>-<issueID>` such as `fix/http-bug-4`
+   - `<type>/<short-desc>-gh-<issueID>` such as `fix/http-bug-gh-4`
    - `fix-123-xxx`, `123-fix-xxx`
    - `issue-123`, `issue/123`
    - `GH-123`, `gh-123`
    - `#123` anywhere in branch name
 
-Formats:
-- If the repo template expects a footer, prefer: `Fixes #123`
+Choose the link format from repo conventions:
+
+- If the user explicitly asked for auto-close semantics with words like "fix", "close", or "resolve", use `Fixes #123` or the repo's preferred closing keyword.
+- If the change only relates to an issue, prefer `Refs #123`.
+- If the repo template expects a footer, place the issue reference in the footer.
 - If the repo template expects inline linking, prefer: `fix(scope): description (#123)`
 - If no template is present, prefer a footer when auto-close semantics are desired
 
 If no issue ID is found, do not invent one. If the user rejects the detected ID, defer to the user.
+When the issue ID comes only from the branch name, use `Refs #123` by default unless the commit clearly fixes/closes that issue.
 
-Always:
-- inspect before staging or committing
-- keep one logical change per commit
-- keep fix + directly related tests together
-- split unrelated refactors, formatting, dependency churn, and generated noise
-- report validation status and whether the native `git` pre-commit hook actually ran
+## Guardrails
 
-Never:
-- commit blindly
-- assume all modified files belong together
-- auto-push, auto-force-push, or rewrite history unless explicitly asked
-- commit secrets, credentials, conflict markers, local artifacts, or accidental binaries
-- claim checks passed when they were not run
+- Inspect before staging or committing.
+- Keep one logical change per commit.
+- Keep fix + directly related tests together.
+- Split unrelated refactors, formatting, dependency churn, and generated noise.
+- Report validation status and whether the native `git` pre-commit hook actually ran.
+- Report the final commit hash after a successful commit.
+- Do not auto-push, auto-force-push, rewrite history, or use `--no-verify` unless explicitly asked.
+- Do not commit secrets, credentials, conflict markers, local artifacts, accidental binaries, or unrelated changes.
+- Do not claim checks passed when they were not run.
 
 ## Default response shape
 
-Before committing, respond roughly like this:
-
-### Commit analysis
-- changed files
-- staged files
-- unstaged files
-- untracked files
-- mixed concerns
-- risky files
-
-### Proposed commit plan
-1. `<type(scope): summary>`
-   - includes
-   - excludes
-   - rationale
-
-### Approval
-Ask the user to confirm before staging or committing.
+Before committing, summarize changed/staged/unstaged/untracked files, mixed concerns, risky files, proposed commit message(s), what each commit includes/excludes, and ask for approval when needed.
 
 ## Reference
 
