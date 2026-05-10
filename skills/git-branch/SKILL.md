@@ -9,30 +9,44 @@ description: Create branches that match the repo's naming rules, especially when
 
 Use this skill when you need to create a new working branch that must follow repository rules from `CONTRIBUTING.md` or nearby Git guidance.
 
+For issue-backed development, use this skill first to resolve the issue and create the branch, then implement the change and use `git-commit` after code changes are complete.
+
 ## Branch Rules
 
 - Prefer the repo's documented branch pattern.
-- For this repo, formal development branches use `<type>/<short-desc>-<issueID>`.
+- Issue-backed branches use `<type>/<short-desc>-<issueID>`.
+- Branches without a recognized IssueID use `<type>/<user-provided-name>` and must not invent or append an IssueID.
 - `type` should match Conventional Commits: `feat`, `fix`, `refactor`, `docs`, `test`, `perf`, `chore`.
 - `short-desc` should be lowercase, brief, and hyphen-separated.
-- Formal development branches must include an IssueID.
-- Temporary test branches may omit the IssueID if the user explicitly wants a throwaway branch.
+- Keep branch names under 80 characters when possible.
 - Do not use Chinese, uppercase letters, or multi-task branch names.
 
 ## Branch Name Resolution
 
-Use this order:
+Inspect repo guidance relevant to branch naming before choosing a name. Then choose one path:
 
-1. Read the IssueID from the user request or task context.
-2. Use the GitHub CLI to fetch the issue data:
-   - `gh issue view <issueID> --json title,body,number`
-3. Derive `short-desc` from the issue title.
-4. If the title is too short or too generic, fall back to the issue body/content fetched from GitHub.
-5. If the issue cannot be fetched, ask for the missing data instead of inventing a branch name.
+1. **IssueID recognized**
+   - Fetch issue data with `gh issue view <issueID> --json title,body,number`.
+   - Derive `short-desc` from the issue title, falling back to the body when the title is too short, too generic, or normalizes to an empty value.
+   - Build `<type>/<short-desc>-<issueID>`.
+   - Do not use a user-specified branch name as the primary source for issue-backed work. If issue data is unusable and the user supplied a better description, use it only as `short-desc` and keep the issue number.
+   - If the issue cannot be fetched, use the request/task context only when it is enough to name the branch and understand the work. State that GitHub issue data was not verified. Otherwise ask for the missing issue title, task summary, or GitHub CLI/authentication fix.
+2. **No IssueID recognized**
+   - Use the user-provided branch name as the primary source.
+   - Normalize it with the same branch-name rules.
+   - Do not ask for issue details.
+   - Build `<type>/<user-provided-name>`.
 
-Do not accept a user-specified branch name as the primary source. The branch should be generated from the issue data so naming stays consistent.
+Resolve `type` for a user-provided branch name without an IssueID in this order:
 
-Recognize IssueID from common user input forms, normalize it to the numeric issue number, and use that number for `gh issue view` and branch naming:
+1. Preserve a valid type prefix when the user provides a full branch name, such as `fix/login-error`.
+2. Use an explicitly requested type when the user separates it from the name, such as "type is fix, branch name is login-error" or "create fix branch login-error".
+3. Infer the type from the requested work when the user provides only a bare name and task context.
+4. Use `chore` when the request is only a bare branch name and no type or task context is available.
+
+Do not override an explicitly requested valid type just because the inferred task category is different. If the requested type is invalid, normalize only when the intended valid type is obvious; otherwise ask for clarification.
+
+Recognize IssueID from common forms:
 
 - plain number: `123`
 - hash form: `#123`
@@ -43,15 +57,18 @@ Recognize IssueID from common user input forms, normalize it to the numeric issu
 - branch-like references: `issue-123`, `issue/123`, `<type>/<short-desc>-123`
 
 If several issue numbers appear, prefer the one explicitly described as the issue or task ID. If the intended issue is ambiguous, ask the user to choose instead of guessing.
+Do not treat a pull request number as an IssueID unless the user explicitly says that PR is the task reference.
 
-Normalize `short-desc` with these rules:
+Normalize names with these rules:
 
 - convert to lowercase
-- replace spaces with `-`
-- remove punctuation, symbols, and Chinese characters
+- replace spaces, underscores, and repeated separators with `-`
+- remove punctuation, symbols, and Chinese characters, except the single `/` between `type` and branch name
 - remove filler words that do not help distinguish the branch, such as `the`, `a`, `an`, `update`, `change`, `task`, `fix`, `issue`
-- collapse repeated `-`
-- trim leading/trailing `-`
+- collapse repeated `/` and `-`
+- trim leading/trailing `/` and `-`
+- shorten long descriptions to the smallest meaningful phrase, preferably 2-5 words
+- verify the final branch name with `git check-ref-format --branch <branch-name>`
 
 ## Safety Checks
 
@@ -59,10 +76,11 @@ Before running `git switch -c <branch-name>`, verify the local repository state:
 
 - Check for uncommitted changes with `git status --short`. If the worktree is dirty, stop and ask whether to commit, stash, or continue from the current state.
 - Check whether the target branch already exists with `git branch --list <branch-name>` and `git branch --remotes --list "*/<branch-name>"`. If it exists, switch to it only after the user confirms that is intended.
-- Check the current branch with `git branch --show-current`. Prefer creating formal development branches from the repo's documented base branch, usually `main`, `master`, `develop`, or a release branch named by repo guidance.
+- Check the current branch with `git branch --show-current`. Prefer creating development branches from the repo's documented base branch, usually `main`, `master`, `develop`, or a release branch named by repo guidance.
 - If the current branch is not a suitable base, ask whether to switch to the expected base before creating the new branch.
 - If the repo has a remote and network access is available, run `git fetch --prune` before checking whether the base branch is current. If fetching is unavailable or not allowed, tell the user the base freshness was not verified.
 - Compare the local base with its upstream using `git status -sb` or `git rev-list --left-right --count <base>...<upstream>`. If the base is behind, ask whether to update it before branching.
+- If already on the target branch, do not recreate it; report that the branch is already active.
 
 ## Workflow
 
@@ -70,15 +88,19 @@ Before running `git switch -c <branch-name>`, verify the local repository state:
    - Check `CONTRIBUTING.md`
    - Check `.github/*` branch or workflow docs if present
    - Detect and normalize the issue number from the user request, issue title, or existing task context
-   - Fetch title/body with `gh issue view <issueID> --json title,body,number`
-2. Choose the branch type from the work being started.
-3. Build the branch name with the required format.
-4. Run the safety checks for uncommitted changes, existing branches, base branch suitability, and base freshness.
-5. Create the branch with `git switch -c <branch-name>` only after the checks pass or the user explicitly approves continuing.
-6. Verify the branch with `git branch --show-current`.
+   - Fetch title/body with `gh issue view <issueID> --json title,body,number` only when an IssueID is recognized
+2. Choose the branch type from the work being started or from the user's explicit type:
+   - `feat` for new user-visible behavior
+   - `fix` for bug fixes
+   - `docs` for documentation-only changes
+   - `test` for test-only changes
+   - `refactor`, `perf`, or `chore` only when those are the clearest purpose
+3. Build the branch name, using the issue-backed format when an IssueID is recognized and `<type>/<user-provided-name>` otherwise.
+4. Validate the final branch name with `git check-ref-format --branch <branch-name>`.
+5. Run the safety checks for uncommitted changes, existing branches, base branch suitability, and base freshness.
+6. Create the branch with `git switch -c <branch-name>` only after the checks pass or the user explicitly approves continuing.
+7. Verify the branch with `git branch --show-current`.
 
 ## Validation
 
-If the issue number is missing and the branch is temporary, create a clearly temporary name instead of inventing an IssueID.
-If `gh issue view` fails, stop and request the issue details or fix GitHub CLI/authentication first.
-If the target branch exists, the worktree is dirty, the current base looks wrong, or the base may be stale, pause and resolve that condition before creating a new formal development branch.
+If the target branch exists, the worktree is dirty, the current base looks wrong, or the base may be stale, pause and resolve that condition before creating a new development branch.

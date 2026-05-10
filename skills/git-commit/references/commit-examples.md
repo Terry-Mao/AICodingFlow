@@ -143,6 +143,14 @@ fix(router): avoid nil worker panic during reconnect
 Fixes #123
 ```
 
+### Related issue footer
+
+```text
+docs(skill): clarify branch naming safeguards
+
+Refs #123
+```
+
 ### Inline style
 
 ```text
