@@ -63,11 +63,11 @@ def convert(lines: list[str]) -> str:
             pending_new = None
             continue
 
-        if line.startswith("--- "):
+        if not in_hunk and line.startswith("--- "):
             pending_old = clean_path(line[4:].split("\t", 1)[0])
             continue
 
-        if line.startswith("+++ "):
+        if not in_hunk and line.startswith("+++ "):
             pending_new = clean_path(line[4:].split("\t", 1)[0])
             path = pending_new if pending_new != "/dev/null" else pending_old
             if path and path != "/dev/null":
