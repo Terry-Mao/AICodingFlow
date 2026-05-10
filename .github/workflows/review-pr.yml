@@ -30,6 +30,11 @@ jobs:
             --head ${{ github.event.pull_request.head.sha }} \
             --output pr_diff.txt
 
+      - name: Install Codex sandbox prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+
       - name: Run AI review
         uses: openai/codex-action@v1
         with:
