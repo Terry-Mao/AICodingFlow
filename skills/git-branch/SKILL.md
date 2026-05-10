@@ -46,18 +46,10 @@ Resolve `type` for a user-provided branch name without an IssueID in this order:
 
 Do not override an explicitly requested valid type just because the inferred task category is different. If the requested type is invalid, normalize only when the intended valid type is obvious; otherwise ask for clarification.
 
-Recognize IssueID from common forms:
-
-- plain number: `123`
-- hash form: `#123`
-- issue wording: `issue 123`, `issue #123`, `IssueID 123`, `IssueID: #123`
-- GitHub issue URL: `https://github.com/<owner>/<repo>/issues/123`
-- GitHub pull request URL when the user clearly identifies it as the task issue: `https://github.com/<owner>/<repo>/pull/123`
-- repository shorthand: `<owner>/<repo>#123`
-- branch-like references: `issue-123`, `issue/123`, `<type>/<short-desc>-123`
-
+Recognize IssueID from explicit user wording, GitHub issue URLs, repository issue shorthands, and branch-like issue references.
 If several issue numbers appear, prefer the one explicitly described as the issue or task ID. If the intended issue is ambiguous, ask the user to choose instead of guessing.
 Do not treat a pull request number as an IssueID unless the user explicitly says that PR is the task reference.
+See `references/issue-id-examples.md` for recognized IssueID examples.
 
 Normalize names with these rules:
 

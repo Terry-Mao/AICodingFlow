@@ -67,9 +67,10 @@ This skill is language-agnostic: decide commit boundaries from the diff and repo
 5. **Stage selectively**
    Prefer:
    ```bash
-   git add -p
+   git add <specific-files>
    ```
-   Do not default to bulk staging. Stage only the intended hunks.
+   Do not default to bulk staging. Stage only the intended files.
+   Use `git add -p` only when file-level staging is too broad and hunk-level staging is required.
 
 6. **Validate deterministically**
    If the repository has configured a native `git` pre-commit hook, it must run during commit creation.
