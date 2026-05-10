@@ -1,0 +1,54 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Snapshot PR description
+        run: python3 .github/scripts/write_pr_description.py --output pr_description.txt
+
+      - name: Snapshot PR diff
+        run: |
+          git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}
+          python3 .github/scripts/build_pr_diff.py \
+            --base ${{ github.event.pull_request.base.sha }} \
+            --head ${{ github.event.pull_request.head.sha }} \
+            --output pr_diff.txt
+
+      - name: Run AI review
+        run: |
+          # Replace this command with the repository's AI runner.
+          # It must read pr_description.txt and pr_diff.txt, then write review.json.
+          codex 'Use $review-pr'
+
+      - name: Validate review output
+        run: python3 skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
+
+      - name: Post PR review
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/post_pr_review.py --review review.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-review-${{ github.run_id }}
+          path: |
+            pr_description.txt
+            pr_diff.txt
+            review.json

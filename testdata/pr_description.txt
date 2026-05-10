@@ -1,0 +1,15 @@
+Title: Add flexible report filters and simplify session/upload handling
+
+Summary:
+- Simplifies login password handling and session creation.
+- Adds an optional expression filter to reports.
+- Saves uploads to disk before writing them to object storage.
+
+Validation:
+- Unit tests were not added yet.
+- Manual smoke testing passed for a happy-path login, report export, and small file upload.
+
+Reviewer focus:
+- Security implications of the expression filter and upload handling.
+- Authentication correctness and session expiration behavior.
+- Error handling and boundary cases in the changed code.
