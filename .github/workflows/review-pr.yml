@@ -35,11 +35,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
+      - name: Configure Codex API endpoint
+        id: codex_endpoint
+        env:
+          OPENAI_API_ENDPOINT: ${{ vars.OPENAI_API_ENDPOINT }}
+        run: |
+          endpoint="${OPENAI_API_ENDPOINT%/}"
+          if [ -z "$endpoint" ]; then
+            echo "OPENAI_API_ENDPOINT is not set" >&2
+            exit 1
+          fi
+          case "$endpoint" in
+            */responses) ;;
+            *) endpoint="$endpoint/responses" ;;
+          esac
+          echo "url=$endpoint" >> "$GITHUB_OUTPUT"
+
       - name: Run AI review
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          responses-api-endpoint: ${{ vars.OPENAI_API_ENDPOINT }}
+          responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
             Read skills/review-pr/SKILL.md and follow it exactly.
             Use the existing pr_description.txt and pr_diff.txt snapshots.
