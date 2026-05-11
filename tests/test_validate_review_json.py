@@ -9,7 +9,7 @@ from io import StringIO
 from tests.script_imports import import_script
 
 
-validate_review_json = import_script("skills/review-pr/scripts/validate_review_json.py", "validate_review_json")
+validate_review_json = import_script(".agents/skills/review-pr/scripts/validate_review_json.py", "validate_review_json")
 
 
 class ValidateReviewJsonTest(unittest.TestCase):

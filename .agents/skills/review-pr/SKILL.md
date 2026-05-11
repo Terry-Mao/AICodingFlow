@@ -114,6 +114,6 @@ Constraints:
 2. Parse `pr_diff.txt` and build the allowed changed-line targets.
 3. Inspect relevant repository files only when needed to understand changed code.
 4. Write `review.json`.
-5. Run `python3 skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
+5. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
 6. Fix `review.json` until validation passes.
 7. Finish with only the validated `review.json` content.
