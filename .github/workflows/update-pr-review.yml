@@ -1,0 +1,146 @@
+name: Update PR Review Guidance
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Look back N days"
+        required: false
+        default: "14"
+      pr:
+        description: "Single PR number, optional"
+        required: false
+        default: ""
+      agent_login:
+        description: "Agent login to exclude from human feedback"
+        required: false
+        default: "github-actions[bot]"
+      include_bots:
+        description: "Include non-agent bot comments as human feedback"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-pr-review
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Aggregate review feedback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(
+            --repo "${{ github.repository }}"
+            --days "${{ inputs.days }}"
+            --agent-login "${{ inputs.agent_login }}"
+            --output feedback.json
+          )
+
+          if [ -n "${{ inputs.pr }}" ]; then
+            args+=(--pr "${{ inputs.pr }}")
+          fi
+
+          if [ "${{ inputs.include_bots }}" = "true" ]; then
+            args+=(--include-bots)
+          fi
+
+          python3 .agents/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
+
+      - name: Configure Codex API endpoint
+        id: codex_endpoint
+        env:
+          OPENAI_API_ENDPOINT: ${{ vars.OPENAI_API_ENDPOINT }}
+        run: |
+          endpoint="${OPENAI_API_ENDPOINT%/}"
+          if [ -z "$endpoint" ]; then
+            echo "OPENAI_API_ENDPOINT is not set" >&2
+            exit 1
+          fi
+          case "$endpoint" in
+            */responses) ;;
+            *) endpoint="$endpoint/responses" ;;
+          esac
+          echo "url=$endpoint" >> "$GITHUB_OUTPUT"
+
+      - name: Update local review guidance
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
+          prompt: |
+            Read .agents/skills/update-pr-review/SKILL.md and follow it exactly.
+            Use feedback.json as the aggregated review feedback.
+            Update only:
+            - .agents/skills/review-pr-local/SKILL.md
+            - .agents/skills/review-spec-local/SKILL.md
+            Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
+            Do not modify core skills, workflow files, scripts, tests, or product code.
+
+      - name: Remove temporary feedback
+        run: rm -f feedback.json
+
+      - name: Validate write surface
+        run: python3 .agents/skills/update-pr-review/scripts/validate_write_surface.py
+
+      - name: Check for guidance changes
+        id: changes
+        run: |
+          if git diff --quiet -- .agents/skills/review-pr-local .agents/skills/review-spec-local; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="feat/update-pr-review"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
+          git switch -C "$branch"
+          git add .agents/skills/review-pr-local .agents/skills/review-spec-local
+          git commit -m "docs(skill): update PR review guidance"
+          git push --force-with-lease origin "$branch"
+
+          body="$(cat <<'EOF'
+          Updates repo-local PR review guidance from recent human review feedback.
+
+          Source:
+          - days: ${{ inputs.days }}
+          - pr: ${{ inputs.pr || 'all recent PRs' }}
+          - agent_login: ${{ inputs.agent_login }}
+          - include_bots: ${{ inputs.include_bots }}
+          EOF
+          )"
+
+          if gh pr view "$branch" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh pr edit "$branch" \
+              --repo "${{ github.repository }}" \
+              --title "Update PR review guidance" \
+              --body "$body"
+          else
+            gh pr create \
+              --repo "${{ github.repository }}" \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$branch" \
+              --title "Update PR review guidance" \
+              --body "$body"
+          fi
