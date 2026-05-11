@@ -116,14 +116,22 @@ Detect issue ID in this order:
 
 Choose the link format from repo conventions:
 
-- If the user explicitly asked for auto-close semantics with words like "fix", "close", or "resolve", use `Fixes #123` or the repo's preferred closing keyword.
-- If the change only relates to an issue, prefer `Refs #123`.
 - If the repo template expects a footer, place the issue reference in the footer.
 - If the repo template expects inline linking, prefer: `fix(scope): description (#123)`
-- If no template is present, prefer a footer when auto-close semantics are desired
+- If no template is present, use a footer.
+- Use `Fixes #123` only when the commit should close the issue.
+- Use `Refs #123` when the commit is related, partial, preparatory, docs-only, tests-only, cleanup-only, or ambiguous.
+
+Use auto-close semantics only when there is explicit closing intent or clear local evidence:
+
+- The user explicitly asks for closing behavior, such as "fixes #123", "closes #123", "resolves #123", "close the issue", or "this completes #123".
+- The issue title/body or task context clearly describes a bug and the staged diff directly fixes that bug.
+- The commit is the final implementation for a narrowly scoped issue, and the user or issue context makes completion unambiguous.
+
+Do not infer `Fixes` from a branch issue ID, `fix/...` branch, or `fix(...)` subject alone.
 
 If no issue ID is found, do not invent one. If the user rejects the detected ID, defer to the user.
-When the issue ID comes only from the branch name, use `Refs #123` by default unless the commit clearly fixes/closes that issue.
+When unsure, use `Refs #123` and mention the uncertainty before committing.
 
 ## Guardrails
 
