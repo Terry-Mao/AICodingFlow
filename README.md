@@ -58,12 +58,14 @@ Skills are installed into `~/.agents/skills/` and are intended to be used from C
 | `git-push` | Publishes committed branch work safely, sets upstream when needed, and avoids unsafe force pushes. |
 | `create-pr` | Creates or updates GitHub pull requests after local diff review, base sync, validation, and issue linking. |
 | `review-pr` | Reviews a PR from pinned local snapshots and writes a validated `review.json` for GitHub Actions. |
+| `review-pr-local` | Wraps `review-pr` with AICodingFlow-specific review guidance for this repository. |
 
 Reference files and validators live next to their skills:
 
 ```text
 .agents/skills/git-branch/references/issue-id-examples.md
 .agents/skills/git-commit/references/commit-examples.md
+.agents/skills/review-pr-local/SKILL.md
 .agents/skills/review-pr/scripts/validate_review_json.py
 ```
 
@@ -82,14 +84,14 @@ There is no separate `assets/.github/` template. Copy `.github/` directly into a
 
 ## GitHub Action: AI PR Review
 
-The included workflow runs on pull request events, snapshots the PR description and diff, invokes Codex with the `review-pr` skill, validates the generated `review.json`, and posts the review back to GitHub.
+The included workflow runs on pull request events, snapshots the PR description and diff, invokes Codex with the `review-pr-local` skill, validates the generated `review.json`, and posts the review back to GitHub.
 
 ### What It Does
 
 1. Checks out the PR head commit.
 2. Writes `pr_description.txt` from `GITHUB_EVENT_PATH`.
 3. Converts the PR diff into `PR_DIFF_V1` as `pr_diff.txt`.
-4. Runs `openai/codex-action@v1` with the `review-pr` skill.
+4. Runs `openai/codex-action@v1` with the `review-pr-local` skill.
 5. Validates `review.json` with `.agents/skills/review-pr/scripts/validate_review_json.py`.
 6. Posts body and inline comments with `.github/scripts/post_pr_review.py`.
 7. Uploads `pr_description.txt`, `pr_diff.txt`, and `review.json` as artifacts.
