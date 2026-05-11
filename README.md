@@ -19,7 +19,7 @@ git clone git@github.com:Terry-Mao/AICodingFlow.git
 cd AICodingFlow
 
 mkdir -p ~/.agents/skills
-for skill in skills/*; do
+for skill in .agents/skills/*; do
   [ -d "$skill" ] || continue
   rsync -a "$skill/" "$HOME/.agents/skills/$(basename "$skill")/"
 done
@@ -28,7 +28,7 @@ done
 Preview the install before writing files:
 
 ```bash
-for skill in skills/*; do
+for skill in .agents/skills/*; do
   [ -d "$skill" ] || continue
   rsync -ani "$skill/" "$HOME/.agents/skills/$(basename "$skill")/"
 done
@@ -62,9 +62,9 @@ Skills are installed into `~/.agents/skills/` and are intended to be used from C
 Reference files and validators live next to their skills:
 
 ```text
-skills/git-branch/references/issue-id-examples.md
-skills/git-commit/references/commit-examples.md
-skills/review-pr/scripts/validate_review_json.py
+.agents/skills/git-branch/references/issue-id-examples.md
+.agents/skills/git-commit/references/commit-examples.md
+.agents/skills/review-pr/scripts/validate_review_json.py
 ```
 
 ### GitHub Workflow Files
@@ -90,7 +90,7 @@ The included workflow runs on pull request events, snapshots the PR description 
 2. Writes `pr_description.txt` from `GITHUB_EVENT_PATH`.
 3. Converts the PR diff into `PR_DIFF_V1` as `pr_diff.txt`.
 4. Runs `openai/codex-action@v1` with the `review-pr` skill.
-5. Validates `review.json` with `skills/review-pr/scripts/validate_review_json.py`.
+5. Validates `review.json` with `.agents/skills/review-pr/scripts/validate_review_json.py`.
 6. Posts body and inline comments with `.github/scripts/post_pr_review.py`.
 7. Uploads `pr_description.txt`, `pr_diff.txt`, and `review.json` as artifacts.
 
@@ -133,7 +133,7 @@ Copy the workflow, scripts, and skills into the target repository:
 
 ```bash
 rsync -a .github/ /path/to/target-repo/.github/
-rsync -a skills/ /path/to/target-repo/skills/
+rsync -a .agents/ /path/to/target-repo/.agents/
 ```
 
 Commit the copied files in the target repository and configure the required GitHub secret and variable.
@@ -150,7 +150,7 @@ Useful files when changing the review workflow:
 
 - `.github/scripts/build_pr_diff.py`: converts `git diff` output into `PR_DIFF_V1`
 - `.github/scripts/post_pr_review.py`: posts validated review comments through the GitHub API
-- `skills/review-pr/scripts/validate_review_json.py`: validates review output before posting
+- `.agents/skills/review-pr/scripts/validate_review_json.py`: validates review output before posting
 - `tests/`: unit tests for diff conversion, review posting, and validation behavior
 
 ## Contributing
