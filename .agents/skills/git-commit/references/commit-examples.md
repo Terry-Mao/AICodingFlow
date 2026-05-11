@@ -135,13 +135,15 @@ fix: prevent duplicate retry scheduling on restart
 
 ## Issue linking examples
 
-### Footer style
+### Auto-closing footer
 
 ```text
 fix(router): avoid nil worker panic during reconnect
 
 Fixes #123
 ```
+
+Use this only when the commit should close the issue.
 
 ### Related issue footer
 
@@ -151,8 +153,13 @@ docs(skill): clarify branch naming safeguards
 Refs #123
 ```
 
+Use this for related, partial, preparatory, docs-only, tests-only, cleanup-only,
+or ambiguous work. Prefer it when the issue ID comes only from the branch name.
+
 ### Inline style
 
 ```text
 fix(router): avoid nil worker panic during reconnect (#123)
 ```
+
+Use inline style only when the repository convention requires it.
