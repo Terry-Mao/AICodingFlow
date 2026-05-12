@@ -62,6 +62,11 @@ jobs:
 
           python3 .agents/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
 
+      - name: Install Codex sandbox prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+
       - name: Configure Codex API endpoint
         id: codex_endpoint
         env:
