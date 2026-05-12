@@ -59,6 +59,8 @@ Skills are installed into `~/.agents/skills/` and are intended to be used from C
 | `create-pr` | Creates or updates GitHub pull requests after local diff review, base sync, validation, and issue linking. |
 | `review-pr` | Reviews a PR from pinned local snapshots and writes a validated `review.json` for GitHub Actions. |
 | `review-pr-local` | Wraps `review-pr` with AICodingFlow-specific review guidance for this repository. |
+| `review-spec-local` | Captures AICodingFlow-specific guidance for spec-only PR reviews. |
+| `update-pr-review` | Aggregates human feedback on bot reviews and updates repo-local review companion skills. |
 
 Reference files and validators live next to their skills:
 
@@ -66,6 +68,8 @@ Reference files and validators live next to their skills:
 .agents/skills/git-branch/references/issue-id-examples.md
 .agents/skills/git-commit/references/commit-examples.md
 .agents/skills/review-pr-local/SKILL.md
+.agents/skills/review-spec-local/SKILL.md
+.agents/skills/update-pr-review/scripts/aggregate_review_feedback.py
 .agents/skills/review-pr/scripts/validate_review_json.py
 ```
 
