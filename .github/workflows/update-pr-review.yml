@@ -12,7 +12,7 @@ on:
         required: false
         default: ""
       agent_login:
-        description: "Agent login to exclude from human feedback, optional"
+        description: "Comma-separated agent logins to exclude, optional"
         required: false
         default: ""
       include_bots:
@@ -48,8 +48,16 @@ jobs:
             --output feedback.json
           )
 
-          if [ -n "${{ inputs.agent_login }}" ]; then
-            args+=(--agent-login "${{ inputs.agent_login }}")
+          agent_login_input="${{ inputs.agent_login }}"
+          if [ -n "$agent_login_input" ]; then
+            IFS=',' read -ra agent_logins <<< "$agent_login_input"
+            for login in "${agent_logins[@]}"; do
+              login="${login#"${login%%[![:space:]]*}"}"
+              login="${login%"${login##*[![:space:]]}"}"
+              if [ -n "$login" ]; then
+                args+=(--agent-login "$login")
+              fi
+            done
           fi
 
           if [ -n "${{ inputs.pr }}" ]; then
