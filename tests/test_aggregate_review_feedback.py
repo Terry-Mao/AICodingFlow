@@ -16,6 +16,16 @@ class AggregateReviewFeedbackTest(unittest.TestCase):
         self.assertIn("github-actions", aggregate.DEFAULT_AGENT_LOGINS)
         self.assertIn("github-actions[bot]", aggregate.DEFAULT_AGENT_LOGINS)
 
+    def test_agent_login_set_adds_to_defaults(self) -> None:
+        self.assertEqual(
+            aggregate.agent_login_set(["oz-bot"]),
+            {"github-actions", "github-actions[bot]", "oz-bot"},
+        )
+
+    def test_default_agent_logins_stay_excluded_when_bots_are_included(self) -> None:
+        comment = {"author": {"__typename": "Bot", "login": "github-actions"}}
+        self.assertFalse(aggregate.is_human_comment(comment, aggregate.agent_login_set(["oz-bot"]), True))
+
     def test_classify_spec_only_files(self) -> None:
         self.assertEqual(aggregate.classify_review_type(["specs/a.md", "specs/nested/b.md"]), "spec")
 

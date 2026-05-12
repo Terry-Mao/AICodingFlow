@@ -329,6 +329,10 @@ def is_human_comment(node: dict[str, Any], excluded_logins: set[str], include_bo
     return author_type(node) != "Bot"
 
 
+def agent_login_set(extra_logins: list[str] | None) -> set[str]:
+    return set(DEFAULT_AGENT_LOGINS).union(extra_logins or [])
+
+
 def classify_review_type(files: list[str]) -> str:
     return "spec" if files and all(path.startswith("specs/") for path in files) else "code"
 
@@ -450,7 +454,7 @@ def main() -> None:
     repo = args.repo or default_repo()
     owner, name = split_repo(repo)
     numbers = list_pr_numbers(repo, args.days, args.pr)
-    agent_logins = set(args.agent_logins or DEFAULT_AGENT_LOGINS)
+    agent_logins = agent_login_set(args.agent_logins)
     prs = [
         normalize_pr(graphql_pr(owner, name, number), agent_logins, args.include_bots)
         for number in numbers
