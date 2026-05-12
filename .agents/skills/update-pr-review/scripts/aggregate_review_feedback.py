@@ -12,13 +12,35 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_AGENT_LOGIN = "github-actions[bot]"
+DEFAULT_AGENT_LOGINS = ("github-actions", "github-actions[bot]")
+PAGE_SIZE = 100
+
+
+PAGE_INFO = "pageInfo { hasNextPage endCursor }"
+AUTHOR_FIELDS = "author { __typename login }"
+THREAD_COMMENT_FIELDS = f"""
+  {AUTHOR_FIELDS}
+  body
+  createdAt
+  url
+  path
+  line
+  pullRequestReview {{ {AUTHOR_FIELDS} state }}
+"""
+REVIEW_COMMENT_FIELDS = f"{AUTHOR_FIELDS} body path line url"
 
 
 def run_gh_json(args: list[str]) -> Any:
     result = subprocess.run(["gh", *args], check=True, capture_output=True, text=True)
     text = result.stdout.strip()
     return json.loads(text) if text else None
+
+
+def run_graphql(query: str, variables: dict[str, Any]) -> Any:
+    args = ["api", "graphql", "-f", f"query={query}"]
+    for key, value in variables.items():
+        args.extend(["-F", f"{key}={value}"])
+    return run_gh_json(args)
 
 
 def default_repo() -> str:
@@ -68,38 +90,42 @@ query($owner: String!, $repo: String!, $number: Int!) {
       url
       state
       updatedAt
-      author { __typename login }
-      files(first: 100) { nodes { path } }
-      comments(first: 100) {
-        nodes { author { __typename login } body createdAt url }
+      __AUTHOR_FIELDS__
+      files(first: __PAGE_SIZE__) {
+        __PAGE_INFO__
+        nodes { path }
       }
-      reviewThreads(first: 100) {
+      comments(first: __PAGE_SIZE__) {
+        __PAGE_INFO__
+        nodes { __AUTHOR_FIELDS__ body createdAt url }
+      }
+      reviewThreads(first: __PAGE_SIZE__) {
+        __PAGE_INFO__
         nodes {
+          id
           isResolved
           isOutdated
           path
           line
-          comments(first: 100) {
+          comments(first: __PAGE_SIZE__) {
+            __PAGE_INFO__
             nodes {
-              author { __typename login }
-              body
-              createdAt
-              url
-              path
-              line
-              pullRequestReview { author { __typename login } state }
+              __THREAD_COMMENT_FIELDS__
             }
           }
         }
       }
-      reviews(first: 100) {
+      reviews(first: __PAGE_SIZE__) {
+        __PAGE_INFO__
         nodes {
-          author { __typename login }
+          id
+          __AUTHOR_FIELDS__
           state
           body
           submittedAt
-          comments(first: 100) {
-            nodes { author { __typename login } body path line url }
+          comments(first: __PAGE_SIZE__) {
+            __PAGE_INFO__
+            nodes { __REVIEW_COMMENT_FIELDS__ }
           }
         }
       }
@@ -107,24 +133,172 @@ query($owner: String!, $repo: String!, $number: Int!) {
   }
 }
 """
-    data = run_gh_json(
-        [
-            "api",
-            "graphql",
-            "-f",
-            f"query={query}",
-            "-F",
-            f"owner={owner}",
-            "-F",
-            f"repo={repo}",
-            "-F",
-            f"number={number}",
-        ]
+    query = (
+        query.replace("__PAGE_SIZE__", str(PAGE_SIZE))
+        .replace("__PAGE_INFO__", PAGE_INFO)
+        .replace("__AUTHOR_FIELDS__", AUTHOR_FIELDS)
+        .replace("__THREAD_COMMENT_FIELDS__", THREAD_COMMENT_FIELDS)
+        .replace("__REVIEW_COMMENT_FIELDS__", REVIEW_COMMENT_FIELDS)
     )
+    data = run_graphql(query, {"owner": owner, "repo": repo, "number": number})
     pr = data["data"]["repository"]["pullRequest"]
     if pr is None:
         raise SystemExit(f"PR not found: {number}")
+    paginate_pr(owner, repo, number, pr)
     return pr
+
+
+def extend_connection(connection: dict[str, Any], page: dict[str, Any]) -> None:
+    connection["nodes"].extend(page["nodes"])
+    connection["pageInfo"] = page["pageInfo"]
+
+
+def paginate_pull_request_connection(
+    owner: str,
+    repo: str,
+    number: int,
+    pr: dict[str, Any],
+    name: str,
+    node_fields: str,
+) -> None:
+    connection = pr[name]
+    while connection["pageInfo"]["hasNextPage"]:
+        query = """
+query($owner: String!, $repo: String!, $number: Int!, $after: String!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      __NAME__(first: __PAGE_SIZE__, after: $after) {
+        __PAGE_INFO__
+        nodes { __NODE_FIELDS__ }
+      }
+    }
+  }
+}
+"""
+        query = (
+            query.replace("__NAME__", name)
+            .replace("__PAGE_SIZE__", str(PAGE_SIZE))
+            .replace("__PAGE_INFO__", PAGE_INFO)
+            .replace("__NODE_FIELDS__", node_fields)
+        )
+        data = run_graphql(
+            query,
+            {
+                "owner": owner,
+                "repo": repo,
+                "number": number,
+                "after": connection["pageInfo"]["endCursor"],
+            },
+        )
+        page = data["data"]["repository"]["pullRequest"][name]
+        extend_connection(connection, page)
+
+
+def paginate_thread_comments(thread: dict[str, Any]) -> None:
+    connection = thread["comments"]
+    while connection["pageInfo"]["hasNextPage"]:
+        query = """
+query($id: ID!, $after: String!) {
+  node(id: $id) {
+    ... on PullRequestReviewThread {
+      comments(first: __PAGE_SIZE__, after: $after) {
+        __PAGE_INFO__
+        nodes {
+          __THREAD_COMMENT_FIELDS__
+        }
+      }
+    }
+  }
+}
+"""
+        query = (
+            query.replace("__PAGE_SIZE__", str(PAGE_SIZE))
+            .replace("__PAGE_INFO__", PAGE_INFO)
+            .replace("__THREAD_COMMENT_FIELDS__", THREAD_COMMENT_FIELDS)
+        )
+        data = run_graphql(query, {"id": thread["id"], "after": connection["pageInfo"]["endCursor"]})
+        page = data["data"]["node"]["comments"]
+        extend_connection(connection, page)
+
+
+def paginate_review_comments(review: dict[str, Any]) -> None:
+    connection = review["comments"]
+    while connection["pageInfo"]["hasNextPage"]:
+        query = """
+query($id: ID!, $after: String!) {
+  node(id: $id) {
+    ... on PullRequestReview {
+      comments(first: __PAGE_SIZE__, after: $after) {
+        __PAGE_INFO__
+        nodes { __REVIEW_COMMENT_FIELDS__ }
+      }
+    }
+  }
+}
+"""
+        query = (
+            query.replace("__PAGE_SIZE__", str(PAGE_SIZE))
+            .replace("__PAGE_INFO__", PAGE_INFO)
+            .replace("__REVIEW_COMMENT_FIELDS__", REVIEW_COMMENT_FIELDS)
+        )
+        data = run_graphql(query, {"id": review["id"], "after": connection["pageInfo"]["endCursor"]})
+        page = data["data"]["node"]["comments"]
+        extend_connection(connection, page)
+
+
+def paginate_pr(owner: str, repo: str, number: int, pr: dict[str, Any]) -> None:
+    paginate_pull_request_connection(owner, repo, number, pr, "files", "path")
+    paginate_pull_request_connection(
+        owner,
+        repo,
+        number,
+        pr,
+        "comments",
+        f"{AUTHOR_FIELDS} body createdAt url",
+    )
+    paginate_pull_request_connection(
+        owner,
+        repo,
+        number,
+        pr,
+        "reviewThreads",
+        f"""
+          id
+          isResolved
+          isOutdated
+          path
+          line
+          comments(first: {PAGE_SIZE}) {{
+            {PAGE_INFO}
+            nodes {{
+              {THREAD_COMMENT_FIELDS}
+            }}
+          }}
+        """,
+    )
+    for thread in pr["reviewThreads"]["nodes"]:
+        paginate_thread_comments(thread)
+
+    paginate_pull_request_connection(
+        owner,
+        repo,
+        number,
+        pr,
+        "reviews",
+        f"""
+          id
+          {AUTHOR_FIELDS}
+          state
+          body
+          submittedAt
+          comments(first: {PAGE_SIZE}) {{
+            {PAGE_INFO}
+            nodes {{ {REVIEW_COMMENT_FIELDS} }}
+          }}
+        """,
+    )
+    for review in pr["reviews"]["nodes"]:
+        paginate_review_comments(review)
 
 
 def author_login(node: dict[str, Any] | None) -> str | None:
@@ -276,7 +450,7 @@ def main() -> None:
     repo = args.repo or default_repo()
     owner, name = split_repo(repo)
     numbers = list_pr_numbers(repo, args.days, args.pr)
-    agent_logins = set(args.agent_logins or [DEFAULT_AGENT_LOGIN])
+    agent_logins = set(args.agent_logins or DEFAULT_AGENT_LOGINS)
     prs = [
         normalize_pr(graphql_pr(owner, name, number), agent_logins, args.include_bots)
         for number in numbers

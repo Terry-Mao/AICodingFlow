@@ -12,9 +12,9 @@ on:
         required: false
         default: ""
       agent_login:
-        description: "Agent login to exclude from human feedback"
+        description: "Agent login to exclude from human feedback, optional"
         required: false
-        default: "github-actions[bot]"
+        default: ""
       include_bots:
         description: "Include non-agent bot comments as human feedback"
         required: false
@@ -45,9 +45,12 @@ jobs:
           args=(
             --repo "${{ github.repository }}"
             --days "${{ inputs.days }}"
-            --agent-login "${{ inputs.agent_login }}"
             --output feedback.json
           )
+
+          if [ -n "${{ inputs.agent_login }}" ]; then
+            args+=(--agent-login "${{ inputs.agent_login }}")
+          fi
 
           if [ -n "${{ inputs.pr }}" ]; then
             args+=(--pr "${{ inputs.pr }}")
@@ -126,7 +129,7 @@ jobs:
           Source:
           - days: ${{ inputs.days }}
           - pr: ${{ inputs.pr || 'all recent PRs' }}
-          - agent_login: ${{ inputs.agent_login }}
+          - agent_login: ${{ inputs.agent_login || 'default' }}
           - include_bots: ${{ inputs.include_bots }}
           EOF
           )"
