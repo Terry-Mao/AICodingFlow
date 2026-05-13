@@ -1,15 +1,24 @@
 ---
 name: review-spec-local
-description: Repo-specific companion guidance for reviewing AICodingFlow spec-only pull requests.
+description: Repo-specific guidance for reviewing AICodingFlow spec changes.
 ---
 
 # review-spec-local
 
-Use this companion for PRs whose changed files are all under `specs/`.
+Use this skill for reviewing PRs whose changed files are all under `specs/`.
+When a PR mixes `specs/` files with non-spec files, `review-pr-local` may also
+use this file as companion guidance for the `specs/` changes.
 
-Keep this file focused on repository-specific spec review preferences. Do not
-define or override core review schema, severity labels, diff-line targeting, or
-validation rules.
+This is a repository-local wrapper around the core `review-pr` skill for
+spec-only pull requests. The core skill remains authoritative for the workflow,
+snapshot contract, output schema, severity labels, validation rules, and safety
+rules.
+
+## Required Wrapper Flow
+
+1. Read `.agents/skills/review-pr/SKILL.md`.
+2. Follow the core `review-pr` workflow exactly.
+3. Apply the spec review focus below when choosing findings.
 
 ## Review Focus
 
