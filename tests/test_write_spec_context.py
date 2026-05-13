@@ -194,6 +194,15 @@ class WriteSpecContextTest(unittest.TestCase):
             42,
         )
 
+    def test_issue_number_token_boundaries_avoid_matching_words(self) -> None:
+        self.assertIsNone(write_spec_context.issue_number_from_text("walk through 42 cases"))
+        self.assertIsNone(write_spec_context.issue_number_from_text("highlight gh42 as text"))
+
+    def test_issue_number_accepts_explicit_issue_tokens(self) -> None:
+        self.assertEqual(write_spec_context.issue_number_from_text("Refs #42"), 42)
+        self.assertEqual(write_spec_context.issue_number_from_text("GH-42"), 42)
+        self.assertEqual(write_spec_context.issue_number_from_text("issue 42"), 42)
+
     def test_formats_approved_pr_context(self) -> None:
         text = write_spec_context.format_spec_context_text(
             {

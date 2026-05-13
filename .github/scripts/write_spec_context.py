@@ -36,10 +36,10 @@ def load_event(path: str) -> dict[str, Any]:
 
 def issue_number_from_text(text: str) -> int | None:
     patterns = [
-        r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)",
-        r"(?:issue|gh)[-/\s#]*(\d+)",
+        r"(?<![A-Za-z0-9-])(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)",
+        r"(?<![A-Za-z0-9-])(?:issue|gh)(?![A-Za-z0-9-])[-/\s#]*(\d+)",
         r"(?:^|/)[A-Za-z0-9-]+-(\d+)$",
-        r"#(\d+)",
+        r"(?<![A-Za-z0-9-])#(\d+)",
     ]
     for pattern in patterns:
         match = re.search(pattern, text or "", re.IGNORECASE)
