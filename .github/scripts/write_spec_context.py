@@ -177,8 +177,10 @@ def resolve_spec_context(repo: str, event: dict[str, Any]) -> dict[str, Any]:
             context["spec_entries"] = entries
             return context
 
-    default_branch = ((pr.get("base") or {}).get("repo") or {}).get("default_branch") or (pr.get("base") or {}).get("ref") or "main"
-    entries = collect_spec_entries(repo, paths, default_branch)
+    base = pr.get("base") or {}
+    default_branch = (base.get("repo") or {}).get("default_branch") or "main"
+    fallback_ref = base.get("sha") or base.get("ref") or default_branch
+    entries = collect_spec_entries(repo, paths, fallback_ref)
     if entries:
         context["spec_context_source"] = "directory"
         context["spec_entries"] = entries

@@ -20,7 +20,7 @@ def pr_event(body: str = "Refs #42", head_ref: str = "feat/thing-42") -> dict:
             "title": "feat: implement thing",
             "body": body,
             "head": {"ref": head_ref},
-            "base": {"ref": "main", "repo": {"default_branch": "main"}},
+            "base": {"ref": "main", "sha": "base-sha", "repo": {"default_branch": "main"}},
         }
     }
 
@@ -152,7 +152,31 @@ class WriteSpecContextTest(unittest.TestCase):
         collect_spec_entries.assert_called_once_with(
             "owner/repo",
             ["specs/issue-42/product.md", "specs/issue-42/tech.md"],
-            "main",
+            "base-sha",
+        )
+
+    def test_directory_fallback_uses_base_ref_before_default_branch_when_base_sha_missing(self) -> None:
+        event = pr_event()
+        event["pull_request"]["base"].pop("sha")
+        event["pull_request"]["base"]["ref"] = "release/1.0"
+        event["pull_request"]["base"]["repo"]["default_branch"] = "main"
+
+        with (
+            mock.patch.object(write_spec_context, "fetch_pr_files", return_value=[]),
+            mock.patch.object(write_spec_context, "fetch_spec_prs", return_value=[]),
+            mock.patch.object(
+                write_spec_context,
+                "collect_spec_entries",
+                return_value=[{"path": "specs/issue-42/product.md", "content": "# Product\n"}],
+            ) as collect_spec_entries,
+        ):
+            context = write_spec_context.resolve_spec_context("owner/repo", event)
+
+        self.assertEqual(context["spec_context_source"], "directory")
+        collect_spec_entries.assert_called_once_with(
+            "owner/repo",
+            ["specs/issue-42/product.md", "specs/issue-42/tech.md"],
+            "release/1.0",
         )
 
     def test_returns_empty_context_without_issue_number(self) -> None:
