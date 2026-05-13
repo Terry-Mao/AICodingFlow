@@ -31,6 +31,8 @@ Prioritize findings that affect AICodingFlow's skills and PR-review automation:
   regenerate snapshots while the review skill is running.
 - Repository-managed skill paths must use `.agents/skills/...`.
 - Documentation examples must match the actual repository layout and commands.
+- When multiple changed lines show the same root cause, prefer one actionable
+  finding at the clearest line and mention the broader scope there.
 
 ## Self-Evolution Boundary
 
