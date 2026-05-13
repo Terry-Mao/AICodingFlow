@@ -135,10 +135,10 @@ jobs:
         if: steps.issue.outputs.should_run == 'true'
         id: changes
         run: |
-          if git diff --quiet -- "${{ steps.issue.outputs.product_spec }}" "${{ steps.issue.outputs.tech_spec }}"; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
+          if [ -n "$(git status --porcelain --untracked-files=all -- "${{ steps.issue.outputs.product_spec }}" "${{ steps.issue.outputs.tech_spec }}")" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Write PR metadata files
