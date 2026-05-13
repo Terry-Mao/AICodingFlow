@@ -122,6 +122,32 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 (True, "ready-to-spec comment mentioned @codex"),
             )
 
+    def test_should_not_run_for_partial_or_quoted_agent_mention(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(
+                json.dumps({"comment": {"body": "@codex-action should handle this\n> @codex old text"}}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                force=False,
+                event_name="issue_comment",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": []}
+
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (False, "ready-to-spec issue is not assigned to or mentioning the configured agent"),
+            )
+
+    def test_comment_mentions_login_uses_login_boundaries(self) -> None:
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("please @codex.", "codex"))
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("please @codex[bot]", "codex[bot]"))
+        self.assertFalse(prepare_issue_spec_context.comment_mentions_login("please @codex-action", "codex"))
+        self.assertFalse(prepare_issue_spec_context.comment_mentions_login("> @codex quoted", "codex"))
+
     def test_should_not_run_without_ready_to_spec(self) -> None:
         args = argparse.Namespace(
             force=False,
