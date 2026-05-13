@@ -106,6 +106,15 @@ def event_comment_body(event_path: str | None) -> str:
     return comment.get("body") or ""
 
 
+def comment_mentions_login(comment: str, login: str) -> bool:
+    if not login:
+        return False
+    visible_lines = [line for line in comment.splitlines() if not line.lstrip().startswith(">")]
+    visible_comment = "\n".join(visible_lines)
+    pattern = re.compile(rf"(?<![A-Za-z0-9-])@{re.escape(login)}(?![A-Za-z0-9-])")
+    return bool(pattern.search(visible_comment))
+
+
 def triggering_comment(event_path: str | None) -> dict[str, Any] | None:
     if not event_path:
         return None
@@ -172,9 +181,8 @@ def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, s
         return True, f"ready-to-spec assigned to {agent_login}"
 
     comment = event_comment_body(args.event_path)
-    mention = f"@{agent_login}"
-    if args.event_name == "issue_comment" and mention in comment:
-        return True, f"ready-to-spec comment mentioned {mention}"
+    if args.event_name == "issue_comment" and comment_mentions_login(comment, agent_login):
+        return True, f"ready-to-spec comment mentioned @{agent_login}"
 
     return False, "ready-to-spec issue is not assigned to or mentioning the configured agent"
 
