@@ -74,8 +74,15 @@ def changed_paths() -> set[str]:
     return paths
 
 
+def is_ignored_generated_path(path: str) -> bool:
+    parts = Path(path).parts
+    return "__pycache__" in parts or path.endswith((".pyc", ".pyo"))
+
+
 def validate_write_surface(allowed_paths: set[str]) -> None:
-    unexpected = sorted(changed_paths() - allowed_paths)
+    unexpected = sorted(
+        path for path in changed_paths() - allowed_paths if not is_ignored_generated_path(path)
+    )
     if unexpected:
         raise SystemExit("unexpected files changed: " + ", ".join(unexpected))
 

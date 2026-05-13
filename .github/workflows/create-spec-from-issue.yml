@@ -28,6 +28,8 @@ jobs:
   create-spec:
     if: github.event_name == 'workflow_dispatch' || github.event.issue.pull_request == null
     runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
 
     steps:
       - uses: actions/checkout@v4

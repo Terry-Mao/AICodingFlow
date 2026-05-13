@@ -168,6 +168,27 @@ class ValidateSpecOutputTest(unittest.TestCase):
                     }
                 )
 
+    def test_validate_write_surface_ignores_python_cache_files(self) -> None:
+        result = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=(
+                " M specs/example/product.md\n"
+                "?? .github/scripts/__pycache__/validate_spec_output.cpython-312.pyc\n"
+                "?? tests/__pycache__/script_imports.cpython-312.pyc\n"
+            ),
+        )
+
+        with mock.patch.object(validate_spec_output.subprocess, "run", return_value=result):
+            validate_spec_output.validate_write_surface(
+                {
+                    "specs/example/product.md",
+                    "specs/example/tech.md",
+                    "pr-metadata.json",
+                    "issue_context.json",
+                }
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
