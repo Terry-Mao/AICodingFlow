@@ -57,15 +57,9 @@ Skills are installed into `~/.agents/skills/` and are intended to be used from C
 | `git-commit` | Builds clean commits from actual diffs, checks repo conventions, stages only intended files or hunks, and reports validation status. |
 | `git-push` | Publishes committed branch work safely, sets upstream when needed, and avoids unsafe force pushes. |
 | `create-pr` | Creates or updates GitHub pull requests after local diff review, base sync, validation, and issue linking. |
-| `create-product-spec` | Wraps product spec writing for GitHub issues and writes `specs/issue-<issue-number>/product.md`. |
-| `create-tech-spec` | Wraps tech spec writing for GitHub issues and writes `specs/issue-<issue-number>/tech.md`. |
 | `review-pr` | Reviews a PR from pinned local snapshots and writes a validated `review.json` for GitHub Actions. |
 | `review-pr-local` | Wraps `review-pr` with AICodingFlow-specific review guidance for this repository. |
 | `review-spec-local` | Captures AICodingFlow-specific guidance for spec-only PR reviews. |
-| `spec-driven-implementation` | Guides substantial feature work with pragmatic product and tech specs under `specs/`. |
-| `write-product-spec` | Drafts behavior-oriented `product.md` specs for users, maintainers, contributors, and agents. |
-| `write-tech-spec` | Drafts implementation-oriented `tech.md` specs grounded in the current codebase. |
-| `implement-specs` | Implements approved product and tech specs while keeping them current with code changes. |
 | `update-pr-review` | Aggregates human feedback on bot reviews and updates repo-local review companion skills. |
 
 Reference files and validators live next to their skills:
@@ -85,12 +79,9 @@ The GitHub Actions workflow and helper scripts live in the repository root `.git
 
 ```text
 .github/workflows/review-pr.yml
-.github/workflows/create-spec-from-issue.yml
 .github/scripts/write_pr_description.py
 .github/scripts/build_pr_diff.py
 .github/scripts/post_pr_review.py
-.github/scripts/prepare_issue_spec_context.py
-.github/scripts/validate_spec_output.py
 ```
 
 There is no separate `assets/.github/` template. Copy `.github/` directly into a target repository when enabling the PR review workflow there.
@@ -204,49 +195,3 @@ review.json
 ```
 
 These files make review output and line-number issues reproducible.
-
-## GitHub Action: Create Spec From Issue
-
-The `create-spec-from-issue.yml` workflow turns ready GitHub issues into spec
-pull requests. It can be run manually with an issue number, or from issue events
-when an issue has `ready-to-spec` and is assigned to the configured agent login.
-It also supports comment-triggered runs on `ready-to-spec` issues when the
-comment mentions that agent login.
-
-Set repository variable `SPEC_AGENT_LOGIN` to the GitHub login that maintainers
-will assign or mention, such as a dedicated machine user or installed app bot.
-`github-actions[bot]` is only the workflow actor used for commits and API calls;
-do not use it as the product trigger Bot unless it is actually assignable and
-mentionable in the repository.
-
-The workflow prepares stable issue context, runs Codex with the spec skills in
-this order, validates the outputs, pushes `spec/issue-<N>`, and creates or
-updates the spec PR:
-
-1. `spec-driven-implementation`
-2. `write-product-spec`
-3. `create-product-spec`
-4. `write-tech-spec`
-5. `create-tech-spec`
-
-Expected generated files:
-
-```text
-specs/issue-<N>/product.md
-specs/issue-<N>/tech.md
-pr-metadata.json
-```
-
-`pr-metadata.json` is used by the workflow to title and describe the PR. Its
-`pr_title` must use conventional commit style, and its markdown `pr_summary`
-must include `Refs #<N>`. Only the spec files are committed.
-
-This workflow is spec-only. It must not implement the feature or modify
-production code; implementation is handled by a separate workflow.
-
-The generated `issue_context.json` includes issue number, title, body, labels,
-assignees, comment count, triggering comment when present, default branch,
-target branch, normalized spec paths, and coauthor directives.
-The separate `issue_comments.txt` contains historical issue discussion; when a
-comment triggers the run, that triggering comment is excluded from
-`issue_comments.txt` and kept only in `issue_context.json.triggering_comment`.
