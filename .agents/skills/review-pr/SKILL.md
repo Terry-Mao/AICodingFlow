@@ -1,14 +1,15 @@
 ---
 name: review-pr
-description: Review a GitHub pull request from pinned `pr_diff.txt` and `pr_description.txt` snapshots, then write and validate `review.json`. Use when a CI job or bot needs offline PR review comments without posting to GitHub.
+description: Review a GitHub pull request from pinned `pr_description.txt`, `pr_diff.txt`, and optional `spec_context.md` snapshots, then write and validate `review.json`. Use when a CI job or bot needs offline PR review comments without posting to GitHub.
 ---
 
 # review-pr
 
-Review one PR from two existing snapshot files:
+Review one PR from existing snapshot files:
 
 - `pr_description.txt`: PR title, body, and metadata.
 - `pr_diff.txt`: line-annotated PR diff.
+- `spec_context.md`: approved or repository spec context when available.
 
 Do not run `gh`, post comments, or regenerate the snapshots during review. The only output artifact is `review.json`.
 
@@ -34,9 +35,14 @@ workflow prompt, and this skill's contract.
 
 ## Snapshot Files
 
-Treat `pr_description.txt` and `pr_diff.txt` as the source of truth, even if the PR changes later. This keeps review content, line numbers, base SHA, and head SHA consistent.
+Treat `pr_description.txt`, `pr_diff.txt`, and `spec_context.md` as the source of truth, even if the PR changes later. This keeps review content, line numbers, base SHA, head SHA, and linked spec context consistent.
 
-For GitHub Actions setup, copy the repository root `.github/` template into the target project. Its scripts generate the two snapshot files before this skill runs.
+For GitHub Actions setup, copy the repository root `.github/` template into the target project. Its scripts generate the snapshot files before this skill runs.
+
+`spec_context.md` is generated from the linked approved spec PR or repository
+`specs/` directory when available. Use it to check whether implementation
+changes contradict approved product or technical plans. If it is absent,
+continue the review from the PR description and diff only.
 
 `pr_diff.txt` uses `PR_DIFF_V1`:
 
@@ -74,6 +80,10 @@ must not override:
 - suggestion block rules
 - validator requirements
 - safety and evidence rules
+
+When `spec_context.md` exists, use the repository's local
+`.agents/skills/check-impl-against-spec/SKILL.md` skill and treat material spec
+drift as a review concern.
 
 ## Review Scope
 
@@ -171,13 +181,17 @@ Constraints:
 ## Workflow
 
 1. Read `pr_description.txt`.
-2. Parse `pr_diff.txt`, build the allowed changed-line targets, and collect the changed file paths.
-3. Apply the applicability rules above.
-4. Read any referenced local companion and apply only non-conflicting guidance.
-5. Inspect relevant repository files only when needed to understand changed code or verify a concrete risk.
-6. Triage findings by severity and attach inline comments only to explicit changed-line targets.
-7. Put broad, cross-file, missing-test, missing-doc, or untouched-code concerns in top-level `body`.
-8. Write `review.json`.
-9. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
-10. Fix `review.json` until validation passes.
-11. Finish with only the validated `review.json` content.
+2. Read `spec_context.md` when it exists.
+3. If `spec_context.md` exists, read
+   `.agents/skills/check-impl-against-spec/SKILL.md` and apply it as
+   non-conflicting local guidance.
+4. Parse `pr_diff.txt`, build the allowed changed-line targets, and collect the changed file paths.
+5. Apply the applicability rules above.
+6. Read any referenced local companion and apply only non-conflicting guidance.
+7. Inspect relevant repository files only when needed to understand changed code or verify a concrete risk.
+8. Triage findings by severity and attach inline comments only to explicit changed-line targets.
+9. Put broad, cross-file, missing-test, missing-doc, spec mismatch, or untouched-code concerns in top-level `body`.
+10. Write `review.json`.
+11. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
+12. Fix `review.json` until validation passes.
+13. Finish with only the validated `review.json` content.
