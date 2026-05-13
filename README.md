@@ -91,6 +91,7 @@ The GitHub Actions workflow and helper scripts live in the repository root `.git
 .github/scripts/write_pr_description.py
 .github/scripts/build_pr_diff.py
 .github/scripts/select_review_skill.py
+.github/scripts/write_spec_context.py
 .github/scripts/post_pr_review.py
 .github/scripts/prepare_issue_spec_context.py
 .github/scripts/validate_spec_output.py
@@ -100,7 +101,7 @@ There is no separate `assets/.github/` template. Copy `.github/` directly into a
 
 ## GitHub Action: AI PR Review
 
-The included workflow runs on pull request events, snapshots the PR description and diff, selects `review-spec-local` for pure `specs/` PRs and `review-pr-local` for all other PRs, validates the generated `review.json`, and posts the review back to GitHub.
+The included workflow runs on pull request events, snapshots the PR description, diff, and available spec context, selects `review-spec-local` for pure `specs/` PRs and `review-pr-local` for all other PRs, validates the generated `review.json`, and posts the review back to GitHub.
 
 ### What It Does
 
@@ -108,10 +109,11 @@ The included workflow runs on pull request events, snapshots the PR description 
 2. Writes `pr_description.txt` from `GITHUB_EVENT_PATH`.
 3. Converts the PR diff into `PR_DIFF_V1` as `pr_diff.txt`.
 4. Selects the review skill with `.github/scripts/select_review_skill.py`.
-5. Runs `openai/codex-action@v1` with the selected review skill.
-6. Validates `review.json` with `.agents/skills/review-pr/scripts/validate_review_json.py`.
-7. Posts body and inline comments with `.github/scripts/post_pr_review.py`.
-8. Uploads `pr_description.txt`, `pr_diff.txt`, and `review.json` as artifacts.
+5. Writes `spec_context.md` from an approved linked spec PR or repository `specs/` directory when available.
+6. Runs `openai/codex-action@v1` with the selected review skill.
+7. Validates `review.json` with `.agents/skills/review-pr/scripts/validate_review_json.py`.
+8. Posts body and inline comments with `.github/scripts/post_pr_review.py`.
+9. Uploads `pr_description.txt`, `pr_diff.txt`, `review.json`, and `spec_context.md` when present as artifacts.
 
 The workflow intentionally reviews only non-draft pull requests from the same repository:
 

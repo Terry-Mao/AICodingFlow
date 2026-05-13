@@ -34,6 +34,12 @@ jobs:
         id: review_skill
         run: python3 .github/scripts/select_review_skill.py --diff pr_diff.txt
 
+      - name: Snapshot spec context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/write_spec_context.py --output spec_context.md
+
       - name: Install Codex sandbox prerequisites
         run: |
           sudo apt-get update
@@ -63,6 +69,7 @@ jobs:
           prompt: |
             Read ${{ steps.review_skill.outputs.path }} and follow it exactly.
             Use the existing pr_description.txt and pr_diff.txt snapshots.
+            Use spec_context.md only when the selected review skill instructs you to.
             Write review.json in the repository root.
 
       - name: Validate review output
@@ -80,4 +87,5 @@ jobs:
           path: |
             pr_description.txt
             pr_diff.txt
+            spec_context.md
             review.json
