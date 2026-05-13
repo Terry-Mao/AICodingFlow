@@ -30,6 +30,10 @@ jobs:
             --head ${{ github.event.pull_request.head.sha }} \
             --output pr_diff.txt
 
+      - name: Select review skill
+        id: review_skill
+        run: python3 .github/scripts/select_review_skill.py --diff pr_diff.txt
+
       - name: Install Codex sandbox prerequisites
         run: |
           sudo apt-get update
@@ -57,7 +61,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
-            Read .agents/skills/review-pr-local/SKILL.md and follow it exactly.
+            Read ${{ steps.review_skill.outputs.path }} and follow it exactly.
             Use the existing pr_description.txt and pr_diff.txt snapshots.
             Write review.json in the repository root.
 

@@ -60,8 +60,9 @@ Skills are installed into `~/.agents/skills/` and are intended to be used from C
 | `create-product-spec` | Wraps product spec writing for GitHub issues and writes `specs/issue-<issue-number>/product.md`. |
 | `create-tech-spec` | Wraps tech spec writing for GitHub issues and writes `specs/issue-<issue-number>/tech.md`. |
 | `review-pr` | Reviews a PR from pinned local snapshots and writes a validated `review.json` for GitHub Actions. |
-| `review-pr-local` | Wraps `review-pr` with AICodingFlow-specific review guidance for this repository. |
-| `review-spec-local` | Captures AICodingFlow-specific guidance for spec-only PR reviews. |
+| `review-pr-local` | Wraps `review-pr` with AICodingFlow-specific review guidance. |
+| `review-spec` | Reviews spec-only PRs from pinned local snapshots and writes a validated `review.json` focused on document quality. |
+| `review-spec-local` | Wraps `review-spec` with AICodingFlow-specific guidance for spec-only PR reviews. |
 | `spec-driven-implementation` | Guides substantial feature work with pragmatic product and tech specs under `specs/`. |
 | `write-product-spec` | Drafts behavior-oriented `product.md` specs for users, maintainers, contributors, and agents. |
 | `write-tech-spec` | Drafts implementation-oriented `tech.md` specs grounded in the current codebase. |
@@ -74,6 +75,7 @@ Reference files and validators live next to their skills:
 .agents/skills/git-branch/references/issue-id-examples.md
 .agents/skills/git-commit/references/commit-examples.md
 .agents/skills/review-pr-local/SKILL.md
+.agents/skills/review-spec/SKILL.md
 .agents/skills/review-spec-local/SKILL.md
 .agents/skills/update-pr-review/scripts/aggregate_review_feedback.py
 .agents/skills/review-pr/scripts/validate_review_json.py
@@ -88,6 +90,7 @@ The GitHub Actions workflow and helper scripts live in the repository root `.git
 .github/workflows/create-spec-from-issue.yml
 .github/scripts/write_pr_description.py
 .github/scripts/build_pr_diff.py
+.github/scripts/select_review_skill.py
 .github/scripts/post_pr_review.py
 .github/scripts/prepare_issue_spec_context.py
 .github/scripts/validate_spec_output.py
@@ -97,17 +100,18 @@ There is no separate `assets/.github/` template. Copy `.github/` directly into a
 
 ## GitHub Action: AI PR Review
 
-The included workflow runs on pull request events, snapshots the PR description and diff, invokes Codex with the `review-pr-local` skill, validates the generated `review.json`, and posts the review back to GitHub.
+The included workflow runs on pull request events, snapshots the PR description and diff, selects `review-spec-local` for pure `specs/` PRs and `review-pr-local` for all other PRs, validates the generated `review.json`, and posts the review back to GitHub.
 
 ### What It Does
 
 1. Checks out the PR head commit.
 2. Writes `pr_description.txt` from `GITHUB_EVENT_PATH`.
 3. Converts the PR diff into `PR_DIFF_V1` as `pr_diff.txt`.
-4. Runs `openai/codex-action@v1` with the `review-pr-local` skill.
-5. Validates `review.json` with `.agents/skills/review-pr/scripts/validate_review_json.py`.
-6. Posts body and inline comments with `.github/scripts/post_pr_review.py`.
-7. Uploads `pr_description.txt`, `pr_diff.txt`, and `review.json` as artifacts.
+4. Selects the review skill with `.github/scripts/select_review_skill.py`.
+5. Runs `openai/codex-action@v1` with the selected review skill.
+6. Validates `review.json` with `.agents/skills/review-pr/scripts/validate_review_json.py`.
+7. Posts body and inline comments with `.github/scripts/post_pr_review.py`.
+8. Uploads `pr_description.txt`, `pr_diff.txt`, and `review.json` as artifacts.
 
 The workflow intentionally reviews only non-draft pull requests from the same repository:
 
