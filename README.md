@@ -60,9 +60,9 @@ Skills are installed into `~/.agents/skills/` and are intended to be used from C
 | `create-product-spec` | Wraps product spec writing for GitHub issues and writes `specs/issue-<issue-number>/product.md`. |
 | `create-tech-spec` | Wraps tech spec writing for GitHub issues and writes `specs/issue-<issue-number>/tech.md`. |
 | `review-pr` | Reviews a PR from pinned local snapshots and writes a validated `review.json` for GitHub Actions. |
-| `review-pr-local` | Wraps `review-pr` with AICodingFlow-specific review guidance for code and mixed PRs. |
+| `review-pr-local` | Wraps `review-pr` with AICodingFlow-specific review guidance. |
 | `review-spec` | Reviews spec-only PRs from pinned local snapshots and writes a validated `review.json` focused on document quality. |
-| `review-spec-local` | Wraps `review-pr` with AICodingFlow-specific guidance for spec changes. |
+| `review-spec-local` | Wraps `review-spec` with AICodingFlow-specific guidance for spec-only PR reviews. |
 | `spec-driven-implementation` | Guides substantial feature work with pragmatic product and tech specs under `specs/`. |
 | `write-product-spec` | Drafts behavior-oriented `product.md` specs for users, maintainers, contributors, and agents. |
 | `write-tech-spec` | Drafts implementation-oriented `tech.md` specs grounded in the current codebase. |
@@ -100,7 +100,7 @@ There is no separate `assets/.github/` template. Copy `.github/` directly into a
 
 ## GitHub Action: AI PR Review
 
-The included workflow runs on pull request events, snapshots the PR description and diff, selects `review-spec-local` for PRs whose changed files are all under `specs/`, otherwise selects `review-pr-local`, validates the generated `review.json`, and posts the review back to GitHub.
+The included workflow runs on pull request events, snapshots the PR description and diff, selects `review-spec-local` for pure `specs/` PRs and `review-pr-local` for all other PRs, validates the generated `review.json`, and posts the review back to GitHub.
 
 ### What It Does
 

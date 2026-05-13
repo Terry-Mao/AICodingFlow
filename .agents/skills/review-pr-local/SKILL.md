@@ -15,16 +15,8 @@ severity labels, validation rules, and safety rules.
 ## Required Wrapper Flow
 
 1. Read `.agents/skills/review-pr/SKILL.md`.
-2. Inspect the `FILE ...` entries in `pr_diff.txt`.
-3. If every changed file is under `specs/`, read
-   `.agents/skills/review-spec-local/SKILL.md` and apply its spec-review focus.
-   Do not stop at a handoff note; complete the review and write `review.json`.
-4. If the PR mixes `specs/` files with non-spec files, read
-   `.agents/skills/review-spec-local/SKILL.md` and apply its spec-review focus
-   to the `specs/` changes while applying the repository review focus below to
-   the rest of the PR.
-5. Follow the core `review-pr` workflow exactly.
-6. Apply the repository-specific review focus below when choosing findings.
+2. Follow the core `review-pr` workflow exactly.
+3. Apply the repository-specific review focus below when choosing findings.
 
 ## Repository Review Focus
 

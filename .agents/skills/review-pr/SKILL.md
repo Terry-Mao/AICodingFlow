@@ -14,13 +14,9 @@ Do not run `gh`, post comments, or regenerate the snapshots during review. The o
 
 ## Applicability
 
-Use this skill for code PRs and mixed PRs where implementation correctness,
-security, error handling, performance, maintainability, tests, or docs-vs-code
-consistency need review.
-
-If every changed file is under `specs/`, prefer `review-spec` instead. If this
-skill is still invoked for a spec-only PR, do not force code-review findings onto
-spec text; put a top-level `body` note that `review-spec` is the better fit.
+Use this skill for PRs where implementation correctness, security, error
+handling, performance, maintainability, tests, or docs-vs-code consistency need
+review.
 
 For docs-only PRs outside `specs/`, review whether the docs match code,
 examples, defaults, behavior, and validation instructions. Do not invent
@@ -176,7 +172,7 @@ Constraints:
 
 1. Read `pr_description.txt`.
 2. Parse `pr_diff.txt`, build the allowed changed-line targets, and collect the changed file paths.
-3. Apply the applicability rules above, including the `review-spec` handoff for spec-only PRs.
+3. Apply the applicability rules above.
 4. Read any referenced local companion and apply only non-conflicting guidance.
 5. Inspect relevant repository files only when needed to understand changed code or verify a concrete risk.
 6. Triage findings by severity and attach inline comments only to explicit changed-line targets.
