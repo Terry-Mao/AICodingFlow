@@ -23,12 +23,15 @@ The differences are:
 - `issue_comments.txt` contains prior issue discussion, excluding the explicit triggering comment
 - a workflow may also request a structured PR metadata file in `pr-metadata.json`
 - do not create or edit Linear issues as part of this workflow
+- the spec language should follow the primary natural language of the GitHub issue context
 
 ## Inputs
 
 Expect issue details in `issue_context.json`, including the issue number, title, description, labels, assignees, triggering comment when present, and exact `product_spec` path.
 
 Use `issue_comments.txt` as prior discussion context when present. Treat comments as additional context, not as a silent override of the issue body. Resolved decisions from comments can refine the spec; unresolved disagreements should remain explicit open questions.
+
+Write the product spec in the primary natural language of the issue title, issue body, and explicit triggering comment. For primarily Chinese issues, write Chinese. For primarily English issues, write English. Keep code identifiers, file paths, labels, branch names, and API names unchanged.
 
 ## Workflow
 

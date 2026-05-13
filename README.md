@@ -237,6 +237,9 @@ specs/issue-<N>/tech.md
 pr-metadata.json
 ```
 
+The generated `product.md` and `tech.md` should use the primary natural language
+of the issue context, while keeping code identifiers and paths unchanged.
+
 `pr-metadata.json` is used by the workflow to title and describe the PR. Its
 `pr_title` must use conventional commit style, and its markdown `pr_summary`
 must include `Refs #<N>`. Only the spec files are committed.
