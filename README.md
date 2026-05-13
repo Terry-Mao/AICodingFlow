@@ -213,11 +213,11 @@ when an issue has `ready-to-spec` and is assigned to the configured agent login.
 It also supports comment-triggered runs on `ready-to-spec` issues when the
 comment mentions that agent login.
 
-By default, the workflow listens for `kratos-ci-bot`. Set repository variable
-`SPEC_AGENT_LOGIN` when a different dedicated machine user or installed app bot
-should be assigned or mentioned. `github-actions[bot]` is only the workflow
-actor used for commits and API calls; do not use it as the product trigger Bot
-unless it is actually assignable and mentionable in the repository.
+Set repository variable `SPEC_AGENT_LOGIN` to the GitHub login that maintainers
+will assign or mention, such as a dedicated machine user or installed app bot.
+`github-actions[bot]` is only the workflow actor used for commits and API calls;
+do not use it as the product trigger Bot unless it is actually assignable and
+mentionable in the repository.
 
 The workflow prepares stable issue context, runs Codex with the spec skills in
 this order, validates the outputs, pushes `spec/issue-<N>`, and creates or

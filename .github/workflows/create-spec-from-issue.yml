@@ -7,7 +7,7 @@ on:
         description: "GitHub issue number"
         required: true
       agent_login:
-        description: "Agent login that can be assigned or mentioned; defaults to SPEC_AGENT_LOGIN or kratos-ci-bot"
+        description: "Agent login that can be assigned or mentioned; defaults to SPEC_AGENT_LOGIN"
         required: false
         default: ""
   issues:
@@ -40,7 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
-          AGENT_LOGIN: ${{ inputs.agent_login || vars.SPEC_AGENT_LOGIN || 'kratos-ci-bot' }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.SPEC_AGENT_LOGIN }}
         run: |
           python3 .github/scripts/prepare_issue_spec_context.py \
             --repo "${{ github.repository }}" \
