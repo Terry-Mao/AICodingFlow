@@ -114,6 +114,12 @@ jobs:
             tech.md, and pr-metadata.json only. Do not implement the feature,
             modify production code, or begin the implement-specs phase.
 
+            Write product.md and tech.md in the primary natural language of
+            the issue title, issue body, and explicit triggering comment.
+            For example, use Chinese for primarily Chinese issues and English
+            for primarily English issues. Keep code identifiers, file paths,
+            labels, branch names, and API names unchanged.
+
             Write pr-metadata.json as a JSON object with:
             - branch_name: issue_context.json.target_branch
             - pr_title: concise conventional-commit style PR title, such as
