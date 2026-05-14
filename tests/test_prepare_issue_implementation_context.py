@@ -224,6 +224,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
             output = Path(directory) / "issue_context.json"
             comments_output = Path(directory) / "issue_comments.txt"
             spec_output = Path(directory) / "spec_context.md"
+            github_output = Path(directory) / "github_output.txt"
             with (
                 mock.patch.object(prepare_impl, "fetch_issue", return_value=issue),
                 mock.patch.object(prepare_impl, "fetch_comments", return_value=[]),
@@ -250,6 +251,8 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
                         str(comments_output),
                         "--spec-context-output",
                         str(spec_output),
+                        "--github-output",
+                        str(github_output),
                     ],
                 ),
             ):
@@ -276,6 +279,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
             output = Path(directory) / "issue_context.json"
             comments_output = Path(directory) / "issue_comments.txt"
             spec_output = Path(directory) / "spec_context.md"
+            github_output = Path(directory) / "github_output.txt"
             with (
                 mock.patch.object(prepare_impl, "fetch_issue", return_value=issue),
                 mock.patch.object(prepare_impl, "fetch_comments", return_value=[]),
@@ -306,6 +310,8 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
                         str(comments_output),
                         "--spec-context-output",
                         str(spec_output),
+                        "--github-output",
+                        str(github_output),
                     ],
                 ),
             ):

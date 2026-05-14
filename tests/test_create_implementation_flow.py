@@ -40,6 +40,7 @@ class CreateImplementationFlowTest(unittest.TestCase):
             issue_comments = Path(directory) / "issue_comments.txt"
             spec_context = Path(directory) / "spec_context.md"
             metadata = Path(directory) / "pr-metadata.json"
+            github_output = Path(directory) / "github_output.txt"
             with (
                 mock.patch.object(prepare_impl, "fetch_issue", return_value=issue),
                 mock.patch.object(prepare_impl, "fetch_comments", return_value=[]),
@@ -73,6 +74,8 @@ class CreateImplementationFlowTest(unittest.TestCase):
                         str(issue_comments),
                         "--spec-context-output",
                         str(spec_context),
+                        "--github-output",
+                        str(github_output),
                     ],
                 ),
             ):
