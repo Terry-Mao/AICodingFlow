@@ -198,10 +198,54 @@ Spec PR 只负责规划，不应该实现功能或修改生产代码。
 ### 流程二：Issue + Spec 到实现 PR
 
 ```text
-issue + approved spec -> develop -> implementation PR -> AI review -> comments -> merge
+issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI review -> comments -> merge
 ```
 
-实现阶段可以在本地完成，也可以由后续自动化 workflow 驱动。关键点是：实现 PR 的 review 会尽量带上已批准或仓库已有的 spec context。
+实现阶段可以在本地完成，也可以由 `create-implementation-from-issue` workflow 驱动。关键点是：实现必须从稳定的 issue/spec context 出发，agent 负责写代码和推送分支，外层 workflow 负责校验输出、创建或更新 PR、更新 issue progress comment。
+
+对应 workflow：
+
+```text
+.github/workflows/create-implementation-from-issue.yml
+```
+
+它会：
+
+1. 读取 issue、labels、assignees、comments、默认分支和 spec PR 状态。
+2. 准备稳定的 `issue_context.json`、`issue_comments.txt`，有 spec context 时生成 `spec_context.md`。
+3. 只在 issue 满足 `ready-to-implement` 且已 assign 给配置的 bot 时启动实现。手动触发也不会绕过这两个守卫。
+4. 按优先级解析 spec context：
+   - 带 `plan-approved` label 的 `spec/issue-<N>` PR。
+   - 默认分支上的 `specs/issue-<N>/product.md` 和 `tech.md`。
+   - 没有 spec context 时仍可保守实现。
+5. 如果发现未批准 spec PR 且默认分支没有 specs，则 noop，并在 progress comment 中提示先批准计划。
+6. 运行实现相关 SKILL：
+   - `implement-specs`
+   - `spec-driven-implementation`
+   - `implement-issue`
+7. agent 产出实现 diff 时，写 `implementation_summary.md` 和 `pr-metadata.json`，commit 并 push branch。
+8. workflow 校验 metadata、检查 branch 是否真的更新，再创建或更新 PR。
+
+目标分支规则：
+
+- 有 approved spec PR：实现直接追加到该 spec PR 的 head branch，让 spec 和实现留在同一个 PR。
+- 没有 approved spec PR：默认使用 `spec/implement-issue-<N>`，也允许 metadata 中使用 `spec/implement-issue-<N>-<slug>`。
+
+外层 workflow 会记录 run 开始时 `spec/implement-issue-<N>` 及其 slugged branches 的 SHA。这样即使 agent 输出了一个已存在的 slugged branch，也不会把旧内容误判为本次新实现。
+
+`pr-metadata.json` 必须包含：
+
+```json
+{
+  "branch_name": "spec/implement-issue-42-add-retry-logic",
+  "pr_title": "fix: add retry logic for transient API failures",
+  "pr_summary": "Closes #42\n\n## Summary\n..."
+}
+```
+
+`pr_summary` 第一行必须是 `Closes #<issue-number>`。metadata 缺失或无效时，workflow 会先更新 issue progress comment，再让 job 失败，避免用户只看到静默失败。
+
+### 实现 PR Review
 
 AI PR Review 会：
 
@@ -237,6 +281,7 @@ AI PR Review 会：
 | `create-tech-spec` | GitHub issue 场景下的 tech spec 包装器。 |
 | `spec-driven-implementation` | 组织 spec-first 的开发流程。 |
 | `implement-specs` | 从已批准 spec 推进实现，并保持 spec 与实现一致。 |
+| `implement-issue` | GitHub issue 实现场景包装器，约束 target branch、summary、metadata 和 push 边界。 |
 | `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`。 |
 | `review-pr-local` | AICodingFlow 仓库的普通 PR review 包装器。 |
 | `review-spec` | 审查纯 spec PR 的文档质量。 |
@@ -300,6 +345,37 @@ permissions:
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint。 |
 
+### Create Implementation From Issue
+
+文件：
+
+```text
+.github/workflows/create-implementation-from-issue.yml
+```
+
+这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee、comment mention 或 spec PR 的 `plan-approved` label 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。
+
+需要配置：
+
+| 名称 | 类型 | 说明 |
+| --- | --- | --- |
+| `IMPLEMENT_AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发实现的 agent 登录名。 |
+| `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
+| `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint。 |
+
+主要输出 artifact：
+
+```text
+issue_context.json
+issue_comments.txt
+spec_context.md
+branch-start-shas.json
+implementation_summary.md
+pr-metadata.json
+validation-output.txt
+validation-error.txt
+```
+
 ### Update PR Review
 
 文件：
@@ -337,7 +413,12 @@ tests/                           # Python unittest 测试
 | `write_spec_context.py` | 为实现 PR 解析并格式化 spec context。 |
 | `post_pr_review.py` | 把 `review.json` 发布成 GitHub PR review。 |
 | `prepare_issue_spec_context.py` | 为 spec 生成准备稳定 issue context。 |
+| `prepare_issue_implementation_context.py` | 为 issue 实现准备稳定 context、spec context 和 target branch。 |
 | `validate_spec_output.py` | 校验 spec workflow 输出。 |
+| `validate_implementation_output.py` | 校验 implementation workflow 的 `pr-metadata.json`。 |
+| `read_branch_sha.py` | 读取 implementation branch SHA，并记录 run-start snapshot。 |
+| `finalize_implementation_pr.py` | 创建或更新 implementation PR 或 approved spec PR。 |
+| `update_implementation_progress.py` | 创建或更新 issue implementation progress comment。 |
 | `validate_review_json.py` | 校验 AI review 输出结构和 inline 目标。 |
 
 ## 在其他仓库中使用
@@ -354,7 +435,8 @@ rsync -a .github/ /path/to/target-repo/.github/
 1. 提交复制后的文件。
 2. 配置 `OPENAI_API_KEY` 和 `OPENAI_API_ENDPOINT`。
 3. 如果启用 spec workflow，配置 `SPEC_AGENT_LOGIN`。
-4. 根据目标仓库调整 `review-pr-local` 和 `review-spec-local` 的 repo-specific guidance。
+4. 如果启用 implementation workflow，配置 `IMPLEMENT_AGENT_LOGIN`。
+5. 根据目标仓库调整 `review-pr-local` 和 `review-spec-local` 的 repo-specific guidance。
 
 ## 本地开发与测试
 
@@ -369,6 +451,7 @@ python3 -m unittest discover -s tests
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/aicodingflow-pycache python3 -m py_compile \
   .github/scripts/*.py \
+  .agents/skills/implement-specs/scripts/*.py \
   .agents/skills/review-pr/scripts/validate_review_json.py \
   .agents/skills/update-pr-review/scripts/*.py
 ```
@@ -397,6 +480,17 @@ pr_description.txt
 pr_diff.txt
 spec_context.md
 review.json
+```
+
+对 implementation workflow 问题，优先附上：
+
+```text
+issue_context.json
+spec_context.md
+branch-start-shas.json
+implementation_summary.md
+pr-metadata.json
+validation-error.txt
 ```
 
 这些快照能帮助复现 line number、inline comment 和 spec context 相关问题。
