@@ -77,6 +77,20 @@ def event_comment_body(event: dict[str, Any]) -> str:
     return comment.get("body") or ""
 
 
+def event_action(event: dict[str, Any]) -> str:
+    return event.get("action") or ""
+
+
+def event_label_name(event: dict[str, Any]) -> str:
+    label = event.get("label") or {}
+    return label.get("name") or ""
+
+
+def event_assignee_login(event: dict[str, Any]) -> str:
+    assignee = event.get("assignee") or {}
+    return assignee.get("login") or ""
+
+
 def triggering_comment(event: dict[str, Any]) -> dict[str, Any] | None:
     comment = event.get("comment")
     if not comment:
@@ -193,7 +207,21 @@ def should_run(args: argparse.Namespace, event: dict[str, Any], issue: dict[str,
             return False, f"{READY_LABEL} issue is not assigned to {agent_login}"
         return True, f"{APPROVED_LABEL} spec PR label added for ready issue assigned to {agent_login}"
 
-    if agent_login in assignees:
+    if args.event_name == "issues":
+        action = event_action(event)
+        if action == "labeled":
+            if event_label_name(event) != READY_LABEL:
+                return False, f"issue label event is not {READY_LABEL}"
+            if agent_login not in assignees:
+                return False, f"{READY_LABEL} issue is not assigned to {agent_login}"
+            return True, f"{READY_LABEL} label added to issue assigned to {agent_login}"
+        if action == "assigned":
+            if event_assignee_login(event) != agent_login:
+                return False, f"issue assignment event is not for {agent_login}"
+            return True, f"{READY_LABEL} issue assigned to {agent_login}"
+        return False, f"issue event action is not an implementation trigger: {action or 'unknown'}"
+
+    if args.event_name == "workflow_dispatch" and agent_login in assignees:
         return True, f"{READY_LABEL} assigned to {agent_login}"
 
     if args.event_name == "issue_comment" and comment_mentions_login(event_comment_body(event), agent_login):

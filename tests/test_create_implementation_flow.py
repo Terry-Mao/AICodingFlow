@@ -41,6 +41,11 @@ class CreateImplementationFlowTest(unittest.TestCase):
             spec_context = Path(directory) / "spec_context.md"
             metadata = Path(directory) / "pr-metadata.json"
             github_output = Path(directory) / "github_output.txt"
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(
+                json.dumps({"action": "labeled", "label": {"name": "ready-to-implement"}}),
+                encoding="utf-8",
+            )
             with (
                 mock.patch.object(prepare_impl, "fetch_issue", return_value=issue),
                 mock.patch.object(prepare_impl, "fetch_comments", return_value=[]),
@@ -66,6 +71,8 @@ class CreateImplementationFlowTest(unittest.TestCase):
                         "18",
                         "--event-name",
                         "issues",
+                        "--event-path",
+                        str(event_path),
                         "--agent-login",
                         "codex",
                         "--output",

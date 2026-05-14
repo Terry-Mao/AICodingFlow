@@ -20,20 +20,80 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
     def test_implementation_target_branch_uses_issue_number(self) -> None:
         self.assertEqual(prepare_impl.implementation_target_branch(18), "spec/implement-issue-18")
 
-    def test_should_run_for_ready_to_implement_assigned_agent(self) -> None:
+    def test_should_run_when_ready_label_is_added_to_assigned_issue(self) -> None:
         args = argparse.Namespace(
             force=False,
             event_name="issues",
             agent_login="codex[bot]",
         )
+        event = {"action": "labeled", "label": {"name": "ready-to-implement"}}
         issue = {
             "labels": [{"name": "ready-to-implement"}],
             "assignees": [{"login": "codex[bot]"}],
         }
 
         self.assertEqual(
-            prepare_impl.should_run(args, {}, issue),
-            (True, "ready-to-implement assigned to codex[bot]"),
+            prepare_impl.should_run(args, event, issue),
+            (True, "ready-to-implement label added to issue assigned to codex[bot]"),
+        )
+
+    def test_should_not_run_for_unrelated_issue_label_event(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="issues",
+            agent_login="codex",
+        )
+        event = {"action": "labeled", "label": {"name": "bug"}}
+        issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
+
+        self.assertEqual(
+            prepare_impl.should_run(args, event, issue),
+            (False, "issue label event is not ready-to-implement"),
+        )
+
+    def test_should_run_when_agent_is_assigned_to_ready_issue(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="issues",
+            agent_login="codex",
+        )
+        event = {"action": "assigned", "assignee": {"login": "codex"}}
+        issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
+
+        self.assertEqual(
+            prepare_impl.should_run(args, event, issue),
+            (True, "ready-to-implement issue assigned to codex"),
+        )
+
+    def test_should_not_run_when_issue_assignment_is_for_someone_else(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="issues",
+            agent_login="codex",
+        )
+        event = {"action": "assigned", "assignee": {"login": "alice"}}
+        issue = {
+            "labels": [{"name": "ready-to-implement"}],
+            "assignees": [{"login": "codex"}, {"login": "alice"}],
+        }
+
+        self.assertEqual(
+            prepare_impl.should_run(args, event, issue),
+            (False, "issue assignment event is not for codex"),
+        )
+
+    def test_should_not_run_for_reopened_ready_assigned_issue(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="issues",
+            agent_login="codex",
+        )
+        event = {"action": "reopened"}
+        issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
+
+        self.assertEqual(
+            prepare_impl.should_run(args, event, issue),
+            (False, "issue event action is not an implementation trigger: reopened"),
         )
 
     def test_workflow_dispatch_still_requires_ready_label_and_assignment(self) -> None:
