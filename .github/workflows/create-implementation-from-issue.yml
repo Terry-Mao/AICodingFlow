@@ -182,7 +182,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Stop when implementation produced no branch update
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && (steps.branch_end.outputs.sha == '' || steps.branch_end.outputs.sha == steps.branch_end.outputs.start_sha)
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.changed != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -193,7 +193,7 @@ jobs:
             --message "I analyzed this issue but did not produce an implementation diff."
 
       - name: Validate implementation output
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.changed == 'true'
         id: validate
         continue-on-error: true
         run: |
@@ -215,7 +215,7 @@ jobs:
             --message-file validation-error.txt
 
       - name: Create or update implementation pull request
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha && steps.validate.outcome == 'success'
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.changed == 'true' && steps.validate.outcome == 'success'
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -227,7 +227,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Update progress comment
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha && steps.validate.outcome == 'success'
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.changed == 'true' && steps.validate.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

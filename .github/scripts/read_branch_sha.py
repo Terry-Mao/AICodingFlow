@@ -73,6 +73,35 @@ def metadata_branch(path: Path) -> str:
     return branch.strip() if isinstance(branch, str) else ""
 
 
+def changed_branches(start_shas: dict[str, str], end_shas: dict[str, str]) -> list[str]:
+    return sorted(
+        branch
+        for branch, sha in end_shas.items()
+        if sha and sha != start_shas.get(branch, "")
+    )
+
+
+def end_state(repo: str, branch_prefix: str, metadata_path: Path | None, snapshot_path: Path | None) -> dict[str, str]:
+    start_shas = read_snapshot(snapshot_path) if snapshot_path else {}
+    end_shas = matching_branch_shas(repo, branch_prefix)
+
+    metadata_ref = metadata_branch(metadata_path) if metadata_path else ""
+    changed = changed_branches(start_shas, end_shas)
+    branch = metadata_ref or branch_prefix
+    sha = end_shas.get(branch, "")
+    if metadata_ref and not sha:
+        sha = read_branch_sha(repo, metadata_ref)
+    start_sha = start_shas.get(branch, "")
+
+    return {
+        "branch": branch,
+        "sha": sha,
+        "start_sha": start_sha,
+        "changed": "true" if (sha and sha != start_sha) or (not metadata_ref and changed) else "false",
+        "changed_branches": ",".join(changed),
+    }
+
+
 def write_github_output(path: str | None, values: dict[str, str]) -> None:
     if not path:
         return
@@ -102,13 +131,14 @@ def main() -> None:
         print(shas.get(args.branch, ""))
         return
 
-    branch = metadata_branch(Path(args.metadata)) if args.metadata else ""
-    if not branch:
-        branch = args.branch
-    sha = read_branch_sha(args.repo, branch)
-    start_sha = read_snapshot(Path(args.snapshot)).get(branch, "") if args.snapshot else ""
-    print(sha)
-    write_github_output(args.github_output, {"branch": branch, "sha": sha, "start_sha": start_sha})
+    state = end_state(
+        args.repo,
+        args.branch,
+        Path(args.metadata) if args.metadata else None,
+        Path(args.snapshot) if args.snapshot else None,
+    )
+    print(state["sha"])
+    write_github_output(args.github_output, state)
 
 
 if __name__ == "__main__":

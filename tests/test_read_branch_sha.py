@@ -65,6 +65,59 @@ class ReadBranchShaTest(unittest.TestCase):
                 {"spec/implement-issue-18-workflow": "old"},
             )
 
+    def test_end_state_detects_changed_slug_branch_without_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "branch-start-shas.json"
+            read_branch_sha.write_snapshot(
+                snapshot,
+                {
+                    "spec/implement-issue-18": "base",
+                    "spec/implement-issue-18-workflow": "old",
+                },
+            )
+            with mock.patch.object(
+                read_branch_sha,
+                "matching_branch_shas",
+                return_value={
+                    "spec/implement-issue-18": "base",
+                    "spec/implement-issue-18-workflow": "new",
+                },
+            ):
+                state = read_branch_sha.end_state(
+                    "owner/repo",
+                    "spec/implement-issue-18",
+                    None,
+                    snapshot,
+                )
+
+        self.assertEqual(state["branch"], "spec/implement-issue-18")
+        self.assertEqual(state["sha"], "base")
+        self.assertEqual(state["changed"], "true")
+        self.assertEqual(state["changed_branches"], "spec/implement-issue-18-workflow")
+
+    def test_end_state_uses_metadata_branch_when_present(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "branch-start-shas.json"
+            metadata = Path(directory) / "pr-metadata.json"
+            read_branch_sha.write_snapshot(snapshot, {"spec/implement-issue-18-workflow": "old"})
+            metadata.write_text(json.dumps({"branch_name": "spec/implement-issue-18-workflow"}), encoding="utf-8")
+            with mock.patch.object(
+                read_branch_sha,
+                "matching_branch_shas",
+                return_value={"spec/implement-issue-18-workflow": "new"},
+            ):
+                state = read_branch_sha.end_state(
+                    "owner/repo",
+                    "spec/implement-issue-18",
+                    metadata,
+                    snapshot,
+                )
+
+        self.assertEqual(state["branch"], "spec/implement-issue-18-workflow")
+        self.assertEqual(state["sha"], "new")
+        self.assertEqual(state["start_sha"], "old")
+        self.assertEqual(state["changed"], "true")
+
 
 if __name__ == "__main__":
     unittest.main()
