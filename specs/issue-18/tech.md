@@ -108,6 +108,7 @@ workflow 主步骤：
 实现细节：
 
 - trigger 判断复用 `prepare_issue_spec_context.py` 的 label、assignment、mention boundary 模式，但 label 改为 `ready-to-implement`。
+- `workflow_dispatch` 只手动检查指定 issue，不绕过 `ready-to-implement` 和 bot assignment 守卫。
 - `pull_request.labeled` 场景只在 label 为 `plan-approved` 时继续，并从 PR title/body/head ref 解析 issue number，再 fetch issue 确认 `ready-to-implement` 且 bot assigned。
 - best-effort assignee 恢复可以封装为独立函数，失败只记录 warning。
 - coauthor directives 复用现有 `collect_coauthor_directives` 规则。
@@ -217,6 +218,7 @@ resolver 优先级：
 
 - 新增 `tests/test_prepare_issue_implementation_context.py`：
   - `ready-to-implement` + assigned bot 返回 `should_run = true`。
+  - `workflow_dispatch` 仍要求 `ready-to-implement` 和 bot assignment。
   - assigned 后新增 label 返回 true。
   - issue comment mention 只匹配非引用块、完整 login。
   - 缺少 label、缺少 agent login、未 mention 均返回 false。

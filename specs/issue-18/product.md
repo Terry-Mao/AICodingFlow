@@ -56,6 +56,7 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 ### 默认触发与守卫
 
 - 如果 issue 没有 `ready-to-implement`，workflow 不启动实现。
+- 手动触发也必须满足 `ready-to-implement` 和 bot assignment，不作为跳过 triage/spec 的 override。
 - 如果 issue 没有 assign 给配置的 bot，且触发评论没有显式 mention bot，workflow 不启动实现。
 - 如果触发来自 spec PR 的 `plan-approved` label，workflow 必须能解析关联 issue，并确认该 issue 已 `ready-to-implement` 且 bot assigned。
 - workflow 会 best-effort 把 bot 加回 issue assignee；失败不应阻止后续实现，除非后续权限或上下文缺失导致无法继续。

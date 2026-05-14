@@ -194,10 +194,28 @@ jobs:
 
       - name: Validate implementation output
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha
-        run: python3 .github/scripts/validate_implementation_output.py --context issue_context.json --metadata pr-metadata.json
+        id: validate
+        continue-on-error: true
+        run: |
+          python3 .github/scripts/validate_implementation_output.py \
+            --context issue_context.json \
+            --metadata pr-metadata.json \
+            > validation-output.txt \
+            2> validation-error.txt
+
+      - name: Update progress comment for invalid implementation output
+        if: steps.validate.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/update_implementation_progress.py \
+            --repo "${{ github.repository }}" \
+            --context issue_context.json \
+            --status "failed" \
+            --message-file validation-error.txt
 
       - name: Create or update implementation pull request
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha && steps.validate.outcome == 'success'
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -209,7 +227,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Update progress comment
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha && steps.validate.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -219,6 +237,10 @@ jobs:
             --status "ready for review" \
             --message "Review the implementation changes in the PR. Complete any manual verification needed before merging." \
             --pr-url "${{ steps.pr.outputs.pr_url }}"
+
+      - name: Fail after reporting invalid implementation output
+        if: steps.validate.outcome == 'failure'
+        run: exit 1
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -231,3 +253,5 @@ jobs:
             branch-start-shas.json
             implementation_summary.md
             pr-metadata.json
+            validation-output.txt
+            validation-error.txt

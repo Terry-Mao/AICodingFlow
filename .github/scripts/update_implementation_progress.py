@@ -74,11 +74,15 @@ def main() -> None:
     parser.add_argument("--context", default="issue_context.json")
     parser.add_argument("--status", required=True)
     parser.add_argument("--message", default="")
+    parser.add_argument("--message-file", default="")
     parser.add_argument("--pr-url", default="")
     args = parser.parse_args()
 
     context = json.loads(Path(args.context).read_text(encoding="utf-8"))
-    body = build_body(context, args.status, args.message, args.pr_url)
+    message = args.message
+    if args.message_file:
+        message = Path(args.message_file).read_text(encoding="utf-8").strip()
+    body = build_body(context, args.status, message, args.pr_url)
     upsert_progress_comment(args.repo, int(context["issue_number"]), body)
 
 

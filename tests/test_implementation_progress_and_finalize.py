@@ -30,6 +30,16 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
         self.assertIn("Review the implementation changes.", body)
         self.assertIn("Pull request: https://github.test/owner/repo/pull/123", body)
 
+    def test_progress_body_can_report_validation_failure(self) -> None:
+        body = progress.build_body(
+            {"issue_number": 18},
+            "failed",
+            "pr-metadata.json was not created",
+        )
+
+        self.assertIn("Implementation status for issue #18: **failed**.", body)
+        self.assertIn("pr-metadata.json was not created", body)
+
     def test_finalize_edits_selected_spec_pr_for_approved_context(self) -> None:
         context = {
             "spec_context_source": "approved-pr",

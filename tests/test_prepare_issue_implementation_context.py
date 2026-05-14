@@ -36,6 +36,34 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
             (True, "ready-to-implement assigned to codex[bot]"),
         )
 
+    def test_workflow_dispatch_still_requires_ready_label_and_assignment(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="workflow_dispatch",
+            agent_login="codex",
+        )
+
+        self.assertEqual(
+            prepare_impl.should_run(args, {}, {"labels": [], "assignees": [{"login": "codex"}]}),
+            (False, "issue is missing ready-to-implement"),
+        )
+        self.assertEqual(
+            prepare_impl.should_run(
+                args,
+                {},
+                {"labels": [{"name": "ready-to-implement"}], "assignees": []},
+            ),
+            (False, "ready-to-implement issue is not assigned to or mentioning the configured agent"),
+        )
+        self.assertEqual(
+            prepare_impl.should_run(
+                args,
+                {},
+                {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]},
+            ),
+            (True, "ready-to-implement assigned to codex"),
+        )
+
     def test_should_run_for_ready_to_implement_comment_mention(self) -> None:
         args = argparse.Namespace(
             force=False,

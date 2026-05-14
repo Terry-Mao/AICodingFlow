@@ -176,9 +176,6 @@ def pull_request_event_should_run(event: dict[str, Any]) -> bool:
 
 
 def should_run(args: argparse.Namespace, event: dict[str, Any], issue: dict[str, Any]) -> tuple[bool, str]:
-    if args.force or args.event_name == "workflow_dispatch":
-        return True, "manual dispatch"
-
     labels = set(label_names(issue))
     if READY_LABEL not in labels:
         return False, f"issue is missing {READY_LABEL}"
