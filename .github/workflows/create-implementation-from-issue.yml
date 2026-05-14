@@ -54,7 +54,8 @@ jobs:
             --agent-login "$AGENT_LOGIN" \
             --output issue_context.json \
             --comments-output issue_comments.txt \
-            --spec-context-output spec_context.md
+            --spec-context-output spec_context.md \
+            --github-output "$GITHUB_OUTPUT"
 
       - name: Stop when issue is not ready
         if: steps.issue.outputs.should_run != 'true'
