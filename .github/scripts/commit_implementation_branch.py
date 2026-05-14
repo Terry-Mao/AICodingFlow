@@ -81,9 +81,7 @@ def switch_to_branch(branch: str, base_ref: str) -> None:
         run(["git", "switch", "-C", branch, base_ref])
 
 
-def stash_paths(paths: list[str]) -> bool:
-    if not paths:
-        return False
+def stash_worktree() -> bool:
     output = run(
         [
             "git",
@@ -92,8 +90,6 @@ def stash_paths(paths: list[str]) -> bool:
             "--include-untracked",
             "-m",
             "implementation workflow handoff",
-            "--",
-            *paths,
         ],
         capture=True,
     )
@@ -120,12 +116,16 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     if not paths:
         return {"changed": "false", "branch": branch, "sha": ""}
 
-    if not stash_paths(paths):
+    if not stash_worktree():
         return {"changed": "false", "branch": branch, "sha": ""}
 
     run(["git", "fetch", "origin", default_branch])
     switch_to_branch(branch, "HEAD")
     restore_stash()
+    paths = implementation_paths(status_paths())
+    if not paths:
+        return {"changed": "false", "branch": branch, "sha": ""}
+
     configure_git(author_name, author_email)
     run(["git", "add", "--", *paths])
     staged = run(["git", "diff", "--cached", "--name-only"], capture=True)

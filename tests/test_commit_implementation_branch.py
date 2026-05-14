@@ -64,10 +64,14 @@ class CommitImplementationBranchTest(unittest.TestCase):
 
         self.assertEqual(calls, [["git", "switch", "-C", "feature", "origin/main"]])
 
-    def test_stash_paths_saves_only_given_paths(self) -> None:
+    def test_stash_worktree_saves_all_changes(self) -> None:
         calls: list[list[str]] = []
-        with mock.patch.object(commit_impl, "run", side_effect=lambda args, **_: calls.append(args) or "Saved working directory"):
-            self.assertTrue(commit_impl.stash_paths(["file.py", "tests/test_file.py"]))
+        with mock.patch.object(
+            commit_impl,
+            "run",
+            side_effect=lambda args, **_: calls.append(args) or "Saved working directory",
+        ):
+            self.assertTrue(commit_impl.stash_worktree())
 
         self.assertEqual(
             calls,
@@ -79,16 +83,13 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "--include-untracked",
                     "-m",
                     "implementation workflow handoff",
-                    "--",
-                    "file.py",
-                    "tests/test_file.py",
                 ]
             ],
         )
 
-    def test_stash_paths_returns_false_when_git_has_nothing_to_save(self) -> None:
+    def test_stash_worktree_returns_false_when_git_has_nothing_to_save(self) -> None:
         with mock.patch.object(commit_impl, "run", return_value="No local changes to save"):
-            self.assertFalse(commit_impl.stash_paths(["file.py"]))
+            self.assertFalse(commit_impl.stash_worktree())
 
     def test_commit_and_push_stashes_before_switching_branch(self) -> None:
         calls: list[list[str]] = []
@@ -97,7 +98,10 @@ class CommitImplementationBranchTest(unittest.TestCase):
                 {"default_branch": "main"},
                 {"branch_name": "spec/implement-issue-18-workflow", "pr_title": "feat: add workflow"},
             ]),
-            mock.patch.object(commit_impl, "status_paths", return_value=["app.py", "pr-metadata.json"]),
+            mock.patch.object(commit_impl, "status_paths", side_effect=[
+                ["app.py", "pr-metadata.json"],
+                ["app.py", "pr-metadata.json"],
+            ]),
             mock.patch.object(commit_impl, "implementation_paths", wraps=commit_impl.implementation_paths),
             mock.patch.object(commit_impl, "has_remote_branch", return_value=False),
             mock.patch.object(
@@ -119,8 +123,38 @@ class CommitImplementationBranchTest(unittest.TestCase):
             )
 
         self.assertEqual(result, {"changed": "true", "branch": "spec/implement-issue-18-workflow", "sha": "abc123"})
-        self.assertLess(calls.index(["git", "stash", "push", "--include-untracked", "-m", "implementation workflow handoff", "--", "app.py"]), calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]))
-        self.assertLess(calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]), calls.index(["git", "stash", "pop"]))
+        self.assertLess(
+            calls.index(["git", "stash", "push", "--include-untracked", "-m", "implementation workflow handoff"]),
+            calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]),
+        )
+        self.assertLess(
+            calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]),
+            calls.index(["git", "stash", "pop"]),
+        )
+
+    def test_commit_and_push_recomputes_paths_after_restore(self) -> None:
+        with (
+            mock.patch.object(commit_impl, "load_json", side_effect=[
+                {"default_branch": "main"},
+                {"branch_name": "spec/implement-issue-18", "pr_title": "fix: update workflow"},
+            ]),
+            mock.patch.object(commit_impl, "status_paths", side_effect=[
+                ["app.py"],
+                ["issue_context.json", "pr-metadata.json"],
+            ]),
+            mock.patch.object(commit_impl, "stash_worktree", return_value=True),
+            mock.patch.object(commit_impl, "switch_to_branch"),
+            mock.patch.object(commit_impl, "restore_stash"),
+            mock.patch.object(commit_impl, "run", return_value=""),
+        ):
+            result = commit_impl.commit_and_push(
+                mock.Mock(),
+                mock.Mock(),
+                "github-actions[bot]",
+                "41898282+github-actions[bot]@users.noreply.github.com",
+            )
+
+        self.assertEqual(result, {"changed": "false", "branch": "spec/implement-issue-18", "sha": ""})
 
 
 if __name__ == "__main__":
