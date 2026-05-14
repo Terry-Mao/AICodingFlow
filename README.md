@@ -239,16 +239,22 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
 {
   "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n..."
+  "pr_summary": "Closes #42\n\n## Summary\n...",
+  "intended_files": [
+    "src/api/client.py",
+    "tests/test_client.py"
+  ]
 }
 ```
 
-`pr_summary` 第一行必须是 `Closes #<issue-number>`。metadata 缺失或无效时，workflow 会先更新 issue progress comment，再让 job 失败，避免用户只看到静默失败。
+`pr_summary` 第一行必须是 `Closes #<issue-number>`。`intended_files` 必须精确列出外层 workflow 应提交的实现文件，不包含 workflow 临时文件、validation logs、生成缓存或未变化文件。metadata 缺失或无效时，workflow 会先更新 issue progress comment，再让 job 失败，避免用户只看到静默失败。
 
 ### 实现 PR Review
 
 AI PR Review 会：
 
+- 在 PR `opened` / `reopened` 时自动运行。
+- 其他场景默认不自动重跑；需要重新 review 时，在 PR comment 中 `@AGENT_LOGIN` 或使用手动 workflow dispatch。
 - 生成稳定的 `pr_description.txt`。
 - 生成带行号的 `pr_diff.txt`。
 - 如果能找到相关 spec，生成 `spec_context.md`。
@@ -317,6 +323,7 @@ AI PR Review 会：
 | --- | --- | --- |
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可填写 base URL 或 `/responses` URL。 |
+| `AGENT_LOGIN` | Actions variable | PR comment 中 mention 该账号时手动触发 AI review。 |
 | `GITHUB_TOKEN` | GitHub 内置 token | workflow 自动提供，用于发布 PR review。 |
 
 Workflow 权限：

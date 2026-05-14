@@ -9,17 +9,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-
-TEMP_WORKFLOW_PATHS = {
-    "issue_context.json",
-    "issue_comments.txt",
-    "spec_context.md",
-    "branch-start-shas.json",
-    "implementation_summary.md",
-    "pr-metadata.json",
-    "validation-output.txt",
-    "validation-error.txt",
-}
+from implementation_file_filters import TEMP_WORKFLOW_PATHS, is_generated_path
 
 
 def run(args: list[str], *, capture: bool = False, check: bool = True) -> str:
@@ -60,7 +50,45 @@ def status_paths() -> list[str]:
 
 
 def implementation_paths(paths: list[str]) -> list[str]:
-    return sorted(path for path in paths if path not in TEMP_WORKFLOW_PATHS)
+    return sorted(path for path in paths if path not in TEMP_WORKFLOW_PATHS and not is_generated_path(path))
+
+
+def intended_files(metadata: dict[str, Any]) -> list[str]:
+    files = metadata.get("intended_files") or []
+    return sorted(dict.fromkeys(path.strip() for path in files if isinstance(path, str) and path.strip()))
+
+
+def staged_paths() -> list[str]:
+    output = run(["git", "diff", "--cached", "--name-only"], capture=True)
+    return [line for line in output.splitlines() if line]
+
+
+def existing_temp_workflow_paths() -> list[str]:
+    return sorted(path for path in TEMP_WORKFLOW_PATHS if Path(path).exists())
+
+
+def stage_implementation_changes(paths: list[str]) -> None:
+    run(["git", "add", "-A", "--", *paths])
+    temp_paths = existing_temp_workflow_paths()
+    if temp_paths:
+        run(["git", "reset", "--", *temp_paths])
+
+
+def validate_staged_paths(paths: list[str]) -> None:
+    generated = sorted(path for path in paths if is_generated_path(path))
+    if generated:
+        raise SystemExit("refusing to commit generated files: " + ", ".join(generated))
+
+
+def validate_intended_files(candidate_paths: list[str], intended_paths: list[str]) -> None:
+    candidate_set = set(candidate_paths)
+    intended_set = set(intended_paths)
+    missing = sorted(intended_set - candidate_set)
+    unexpected = sorted(candidate_set - intended_set)
+    if missing:
+        raise SystemExit("intended_files contains files without implementation changes: " + ", ".join(missing))
+    if unexpected:
+        raise SystemExit("implementation changed files not listed in intended_files: " + ", ".join(unexpected))
 
 
 def has_remote_branch(branch: str) -> bool:
@@ -111,6 +139,7 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     branch = metadata["branch_name"].strip()
     title = metadata["pr_title"].strip()
     default_branch = str(context.get("default_branch") or "main")
+    intended_paths = intended_files(metadata)
 
     paths = implementation_paths(status_paths())
     if not paths:
@@ -125,12 +154,14 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     paths = implementation_paths(status_paths())
     if not paths:
         return {"changed": "false", "branch": branch, "sha": ""}
+    validate_intended_files(paths, intended_paths)
 
     configure_git(author_name, author_email)
-    run(["git", "add", "--", *paths])
-    staged = run(["git", "diff", "--cached", "--name-only"], capture=True)
+    stage_implementation_changes(paths)
+    staged = staged_paths()
     if not staged:
         return {"changed": "false", "branch": branch, "sha": ""}
+    validate_staged_paths(staged)
 
     run(["git", "commit", "-m", title])
     run(["git", "push", "-u", "origin", branch])

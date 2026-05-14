@@ -23,15 +23,15 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         triggers = data[True]
 
         self.assertIn("pull_request", triggers)
-        self.assertEqual(
-            triggers["pull_request"]["types"],
-            ["opened", "synchronize", "reopened", "ready_for_review", "edited"],
-        )
+        self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review"])
+        self.assertEqual(triggers["issue_comment"]["types"], ["created"])
         self.assertTrue(triggers["workflow_dispatch"]["inputs"]["pr_number"]["required"])
-        self.assertEqual(
-            data["jobs"]["review"]["if"],
-            "github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository)",
-        )
+        job_gate = data["jobs"]["review"]["if"]
+        self.assertIn("github.event_name == 'workflow_dispatch'", job_gate)
+        self.assertIn("github.event_name == 'pull_request'", job_gate)
+        self.assertIn("github.event_name == 'issue_comment'", job_gate)
+        self.assertIn("github.event.issue.pull_request != null", job_gate)
+        self.assertIn("contains(github.event.comment.body, format('@{0}', vars.AGENT_LOGIN))", job_gate)
 
     def test_review_workflow_resolves_pr_before_checkout_and_uses_normalized_event(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")
@@ -59,8 +59,25 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         dispatch = next(step for step in create_steps if step.get("name") == "Dispatch AI PR review")
 
         self.assertEqual(create_pr["id"], "pr")
-        self.assertEqual(create_pr["run"].count("--json number --jq .number"), 1)
+        self.assertIn("--state open", create_pr["run"])
+        self.assertIn("if [ -n \"$pr_number\" ]; then", create_pr["run"])
+        self.assertIn("gh pr edit \"$pr_number\"", create_pr["run"])
         self.assertIn("echo \"pr_number=$pr_number\" >> \"$GITHUB_OUTPUT\"", create_pr["run"])
+        self.assertIn("steps.pr.outputs.pr_number != ''", dispatch["if"])
+        self.assertIn("gh workflow run review-pr.yml", dispatch["run"])
+        self.assertIn("-f pr_number=\"$PR_NUMBER\"", dispatch["run"])
+        self.assertEqual(dispatch["env"]["PR_NUMBER"], "${{ steps.pr.outputs.pr_number }}")
+
+    def test_create_implementation_workflow_dispatches_review_after_pr_creation(self) -> None:
+        data = workflow(".github/workflows/create-implementation-from-issue.yml")
+        self.assertEqual(data["permissions"]["actions"], "write")
+
+        create_steps = steps(data, "create-implementation")
+        create_pr = next(step for step in create_steps if step.get("name") == "Create or update implementation pull request")
+        dispatch = next(step for step in create_steps if step.get("name") == "Dispatch AI PR review")
+
+        self.assertEqual(create_pr["id"], "pr")
+        self.assertIn("--github-output \"$GITHUB_OUTPUT\"", create_pr["run"])
         self.assertIn("steps.pr.outputs.pr_number != ''", dispatch["if"])
         self.assertIn("gh workflow run review-pr.yml", dispatch["run"])
         self.assertIn("-f pr_number=\"$PR_NUMBER\"", dispatch["run"])

@@ -5,9 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
+
+PR_URL_RE = re.compile(r"/pull/(\d+)(?:$|[/?#])")
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -37,7 +40,14 @@ def open_pr_for_branch(repo: str, branch_name: str) -> dict[str, Any] | None:
     return prs[0] if prs else None
 
 
-def edit_pr(repo: str, pr_number_or_branch: str, title: str, body: str) -> str:
+def pr_number_from_url(url: str) -> str:
+    match = PR_URL_RE.search(url)
+    if not match:
+        raise SystemExit(f"could not determine pull request number from URL: {url}")
+    return match.group(1)
+
+
+def edit_pr(repo: str, pr_number_or_branch: str, title: str, body: str) -> dict[str, str]:
     subprocess.run(
         [
             "gh",
@@ -53,11 +63,11 @@ def edit_pr(repo: str, pr_number_or_branch: str, title: str, body: str) -> str:
         ],
         check=True,
     )
-    pr = run_gh_json(["pr", "view", pr_number_or_branch, "--repo", repo, "--json", "url"])
-    return pr["url"]
+    pr = run_gh_json(["pr", "view", pr_number_or_branch, "--repo", repo, "--json", "number,url"])
+    return {"number": str(pr["number"]), "url": pr["url"]}
 
 
-def create_pr(repo: str, base: str, head: str, title: str, body: str) -> str:
+def create_pr(repo: str, base: str, head: str, title: str, body: str) -> dict[str, str]:
     result = subprocess.run(
         [
             "gh",
@@ -79,10 +89,11 @@ def create_pr(repo: str, base: str, head: str, title: str, body: str) -> str:
         stdout=subprocess.PIPE,
         text=True,
     )
-    return result.stdout.strip()
+    url = result.stdout.strip()
+    return {"number": pr_number_from_url(url), "url": url}
 
 
-def finalize(repo: str, context: dict[str, Any], metadata: dict[str, Any]) -> str:
+def finalize(repo: str, context: dict[str, Any], metadata: dict[str, Any]) -> dict[str, str]:
     title = metadata["pr_title"]
     body = metadata["pr_summary"]
     branch_name = metadata["branch_name"]
@@ -115,9 +126,9 @@ def main() -> None:
 
     context = json.loads(Path(args.context).read_text(encoding="utf-8"))
     metadata = json.loads(Path(args.metadata).read_text(encoding="utf-8"))
-    pr_url = finalize(args.repo, context, metadata)
-    print(pr_url)
-    write_github_output(args.github_output, {"pr_url": pr_url})
+    pr = finalize(args.repo, context, metadata)
+    print(pr["url"])
+    write_github_output(args.github_output, {"pr_url": pr["url"], "pr_number": pr["number"]})
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from subprocess import CompletedProcess
 from unittest import mock
 
 from tests.script_imports import import_script
@@ -52,10 +53,11 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
             "pr_summary": "Closes #18\n\n## Summary\n- Done",
         }
 
-        with mock.patch.object(finalize, "edit_pr", return_value="https://github.test/pr/123") as edit_pr:
-            pr_url = finalize.finalize("owner/repo", context, metadata)
+        with mock.patch.object(finalize, "edit_pr", return_value={"number": "123", "url": "https://github.test/pr/123"}) as edit_pr:
+            pr = finalize.finalize("owner/repo", context, metadata)
 
-        self.assertEqual(pr_url, "https://github.test/pr/123")
+        self.assertEqual(pr["url"], "https://github.test/pr/123")
+        self.assertEqual(pr["number"], "123")
         edit_pr.assert_called_once_with(
             "owner/repo",
             "123",
@@ -76,11 +78,16 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
 
         with (
             mock.patch.object(finalize, "open_pr_for_branch", return_value=None),
-            mock.patch.object(finalize, "create_pr", return_value="https://github.test/pr/124") as create_pr,
+            mock.patch.object(
+                finalize,
+                "create_pr",
+                return_value={"number": "124", "url": "https://github.test/pr/124"},
+            ) as create_pr,
         ):
-            pr_url = finalize.finalize("owner/repo", context, metadata)
+            pr = finalize.finalize("owner/repo", context, metadata)
 
-        self.assertEqual(pr_url, "https://github.test/pr/124")
+        self.assertEqual(pr["url"], "https://github.test/pr/124")
+        self.assertEqual(pr["number"], "124")
         create_pr.assert_called_once_with(
             "owner/repo",
             "main",
@@ -88,6 +95,19 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
             "feat: implement issue",
             "Closes #18\n\n## Summary\n- Done",
         )
+
+    def test_create_pr_creates_draft_pr(self) -> None:
+        with mock.patch.object(
+            finalize.subprocess,
+            "run",
+            return_value=CompletedProcess(args=[], returncode=0, stdout="https://github.test/owner/repo/pull/124\n"),
+        ) as run:
+            pr = finalize.create_pr("owner/repo", "main", "feature-branch", "feat: title", "Body")
+
+        args = run.call_args.args[0]
+        self.assertEqual(pr, {"number": "124", "url": "https://github.test/owner/repo/pull/124"})
+        self.assertIn("create", args)
+        self.assertIn("--draft", args)
 
 
 if __name__ == "__main__":

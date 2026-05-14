@@ -101,6 +101,7 @@ class CreateImplementationFlowTest(unittest.TestCase):
                         "branch_name": "spec/implement-issue-18",
                         "pr_title": "feat: implement issue workflow",
                         "pr_summary": "Closes #18\n\n## Summary\n- Implemented",
+                        "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                     }
                 ),
                 encoding="utf-8",
@@ -112,16 +113,17 @@ class CreateImplementationFlowTest(unittest.TestCase):
                 mock.patch.object(
                     finalize_impl,
                     "create_pr",
-                    return_value="https://github.test/owner/repo/pull/125",
+                    return_value={"number": "125", "url": "https://github.test/owner/repo/pull/125"},
                 ) as create_pr,
             ):
-                pr_url = finalize_impl.finalize(
+                pr = finalize_impl.finalize(
                     "owner/repo",
                     context,
                     json.loads(metadata.read_text(encoding="utf-8")),
                 )
 
-        self.assertEqual(pr_url, "https://github.test/owner/repo/pull/125")
+        self.assertEqual(pr["url"], "https://github.test/owner/repo/pull/125")
+        self.assertEqual(pr["number"], "125")
         create_pr.assert_called_once_with(
             "owner/repo",
             "main",
