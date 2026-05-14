@@ -22,6 +22,7 @@ def issue_event_gate(
     assignees: list[str] | None = None,
     comment: str = "",
     ready_label: str,
+    superseded_by_label: str = "",
     input_login: str = "",
     variable_login: str = "codex",
     is_pull_request_issue: bool = False,
@@ -29,6 +30,10 @@ def issue_event_gate(
     if event_name == "workflow_dispatch":
         return True
     if is_pull_request_issue:
+        return False
+    if ready_label not in (labels or []):
+        return False
+    if superseded_by_label and superseded_by_label in (labels or []):
         return False
 
     login = configured_login(input_login, variable_login)
@@ -48,8 +53,10 @@ class WorkflowTriggerGateTest(unittest.TestCase):
                 event_name="issues",
                 action="labeled",
                 label="ready-to-spec",
+                labels=["ready-to-spec"],
                 assignees=["codex"],
                 ready_label="ready-to-spec",
+                superseded_by_label="ready-to-implement",
             )
         )
         self.assertTrue(
@@ -59,6 +66,7 @@ class WorkflowTriggerGateTest(unittest.TestCase):
                 assignee="codex",
                 labels=["ready-to-spec"],
                 ready_label="ready-to-spec",
+                superseded_by_label="ready-to-implement",
             )
         )
         self.assertFalse(
@@ -66,8 +74,10 @@ class WorkflowTriggerGateTest(unittest.TestCase):
                 event_name="issues",
                 action="labeled",
                 label="ready-to-implement",
+                labels=["ready-to-implement"],
                 assignees=["codex"],
                 ready_label="ready-to-spec",
+                superseded_by_label="ready-to-implement",
             )
         )
         self.assertFalse(
@@ -78,6 +88,17 @@ class WorkflowTriggerGateTest(unittest.TestCase):
                 labels=["ready-to-spec"],
                 assignees=["codex", "alice"],
                 ready_label="ready-to-spec",
+                superseded_by_label="ready-to-implement",
+            )
+        )
+        self.assertFalse(
+            issue_event_gate(
+                event_name="issues",
+                action="assigned",
+                assignee="codex",
+                labels=["ready-to-spec", "ready-to-implement"],
+                ready_label="ready-to-spec",
+                superseded_by_label="ready-to-implement",
             )
         )
 
@@ -87,6 +108,7 @@ class WorkflowTriggerGateTest(unittest.TestCase):
                 event_name="issues",
                 action="labeled",
                 label="ready-to-implement",
+                labels=["ready-to-implement"],
                 assignees=["codex"],
                 ready_label="ready-to-implement",
             )
@@ -105,6 +127,7 @@ class WorkflowTriggerGateTest(unittest.TestCase):
                 event_name="issues",
                 action="labeled",
                 label="plan-approved",
+                labels=["ready-to-implement"],
                 assignees=["codex"],
                 ready_label="ready-to-implement",
             )
@@ -115,6 +138,7 @@ class WorkflowTriggerGateTest(unittest.TestCase):
             issue_event_gate(
                 event_name="issue_comment",
                 comment="@codex please continue",
+                labels=["ready-to-spec"],
                 ready_label="ready-to-spec",
             )
         )
@@ -122,6 +146,7 @@ class WorkflowTriggerGateTest(unittest.TestCase):
             issue_event_gate(
                 event_name="issue_comment",
                 comment="please continue",
+                labels=["ready-to-spec"],
                 ready_label="ready-to-spec",
             )
         )
@@ -129,8 +154,17 @@ class WorkflowTriggerGateTest(unittest.TestCase):
             issue_event_gate(
                 event_name="issue_comment",
                 comment="@codex please continue",
+                labels=["ready-to-spec"],
                 ready_label="ready-to-spec",
                 is_pull_request_issue=True,
+            )
+        )
+        self.assertFalse(
+            issue_event_gate(
+                event_name="issue_comment",
+                comment="@codex please continue",
+                labels=[],
+                ready_label="ready-to-spec",
             )
         )
 
@@ -139,6 +173,7 @@ class WorkflowTriggerGateTest(unittest.TestCase):
             issue_event_gate(
                 event_name="issue_comment",
                 comment="@codex please continue",
+                labels=["ready-to-spec"],
                 ready_label="ready-to-spec",
                 variable_login="",
             )

@@ -76,6 +76,8 @@ jobs:
             Use the existing pr_description.txt and pr_diff.txt snapshots.
             Use spec_context.md only when the selected review skill instructs you to.
             Write review.json in the repository root.
+            Do not run git commands, call GitHub APIs, post reviews, or modify files
+            other than review.json.
 
       - name: Validate review output
         run: python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
