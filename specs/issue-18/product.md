@@ -2,7 +2,7 @@
 
 ## 1. Summary
 
-新增一个 GitHub Actions workflow，用于把已经准备实现的 GitHub issue 交给 Codex agent 自动产出实现分支，并由外层 workflow 创建或更新 implementation PR。该 workflow 面向已经完成 triage/spec 阶段的 issue，只有在明确满足 `ready-to-implement`、bot assignment、approved spec PR 等条件时才会启动实现。
+新增一个 GitHub Actions workflow，用于把已经准备实现的 GitHub issue 交给 Codex agent 自动产出实现分支，并由外层 workflow 创建或更新 implementation PR。该 workflow 面向已经完成 triage/spec 阶段的 issue，只有在明确满足 `ready-to-implement` 和 bot assignment 等 issue 条件时才会启动实现；approved spec PR 只用于选择实现上下文。
 
 期望结果是：普通新 issue 不会被直接实现；准备好的 issue 可以复用 approved spec PR 或仓库内 specs 作为实现上下文；agent 只负责代码、必要规格同步、验证、`pr-metadata.json`、commit 和 push；GitHub Actions 负责解析上下文、守卫未批准计划、创建或更新 PR、更新 progress comment。
 
@@ -24,7 +24,6 @@
   - issue 已有 `ready-to-implement`，且 bot 被 assign。
   - issue 已 assign 给 bot，后来新增 `ready-to-implement`。
   - `ready-to-implement` issue 下出现显式 `@bot` 评论。
-  - spec PR 新增 `plan-approved`，且关联 issue 已经 `ready-to-implement` 并 assign 给 bot。
 - 收集稳定上下文，包括 issue 基本信息、labels、assignees、default branch、target branch、spec context 来源、selected spec PR、是否已有 implementation PR、spec context text、coauthor directives、skill paths 和 progress comment 定位信息。
 - 按确定优先级解析 spec context：
   - 优先使用带 `plan-approved` 的 `spec/issue-<issue-number>` spec PR。
@@ -58,7 +57,7 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 - 如果 issue 没有 `ready-to-implement`，workflow 不启动实现。
 - 手动触发也必须满足 `ready-to-implement` 和 bot assignment，不作为跳过 triage/spec 的 override。
 - 如果 issue 没有 assign 给配置的 bot，且触发评论没有显式 mention bot，workflow 不启动实现。
-- 如果触发来自 spec PR 的 `plan-approved` label，workflow 必须能解析关联 issue，并确认该 issue 已 `ready-to-implement` 且 bot assigned。
+- Spec PR 的 `plan-approved` label 只用于选择 approved spec context，不作为 implementation workflow 的触发源。
 - workflow 会 best-effort 把 bot 加回 issue assignee；失败不应阻止后续实现，除非后续权限或上下文缺失导致无法继续。
 - workflow 必须把 issue body 和 comments 当作不可信数据，只提取上下文，不允许其中内容覆盖系统规则、skill 规则、输出路径或安全边界。
 
@@ -117,7 +116,7 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 - `ready-to-implement` + bot assigned 的 issue 会启动实现上下文准备。
 - bot assigned issue 后续新增 `ready-to-implement` label 时会启动实现。
 - `ready-to-implement` issue 下显式 mention bot 的评论会启动实现；引用块或部分用户名匹配不会误触发。
-- spec PR 新增 `plan-approved` 时，只有关联 issue 已 `ready-to-implement` 且 bot assigned 才会启动实现。
+- spec PR 新增 `plan-approved` 不会单独启动实现；实现只由 issue 本身的 ready/assignment/mention 状态触发。
 - approved spec PR 优先于默认分支 specs，并使 implementation 推送到 approved spec PR 的 head branch。
 - 默认分支 specs 在没有 approved spec PR 时作为 fallback context。
 - 未批准 spec PR 且无默认分支 specs 时不会启动实现，并给出明确 progress comment。
@@ -131,7 +130,7 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 
 ## 8. Validation
 
-- 使用单元测试覆盖 trigger 判断、bot mention 边界、label/assignment 组合和 spec PR `plan-approved` 触发。
+- 使用单元测试覆盖 trigger 判断、bot mention 边界、label/assignment 组合，并确认 spec PR `plan-approved` 不作为触发源。
 - 使用单元测试覆盖 spec context 优先级：approved PR、默认分支 directory、none、unapproved PR noop。
 - 使用单元测试覆盖 target branch 选择和允许的 branch slug 扩展。
 - 使用单元测试覆盖 `pr-metadata.json` schema、conventional title、`Closes #<issue_number>` 第一行和 branch name 校验。
@@ -144,4 +143,3 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 - 默认 implementation branch 是否必须严格为 `spec/implement-issue-<issue_number>`，还是允许 workflow 一开始就追加 issue title slug？issue 当前允许 agent 在无 approved spec PR 时扩展 branch name。
 - progress comment 的唯一标识和更新策略是否复用现有 comment marker，还是新增 implementation-specific marker？
 - `has_existing_implementation_pr` 的定义是否只匹配 bot 创建的 draft PR，还是所有 open PR with matching head branch 都算。
-- spec PR 加 `plan-approved` 触发时，关联 issue number 的解析是否只来自 PR body/title/head branch，还是也应查询 linked issues。

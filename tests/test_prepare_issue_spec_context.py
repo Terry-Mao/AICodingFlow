@@ -88,22 +88,99 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             ],
         )
 
-    def test_should_run_for_ready_to_spec_assigned_agent(self) -> None:
-        args = argparse.Namespace(
-            force=False,
-            event_name="issues",
-            event_path="",
-            agent_login="codex[bot]",
-        )
-        issue = {
-            "labels": [{"name": "ready-to-spec"}],
-            "assignees": [{"login": "codex[bot]"}],
-        }
+    def test_should_run_when_ready_to_spec_label_is_added_to_assigned_issue(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(
+                json.dumps({"action": "labeled", "label": {"name": "ready-to-spec"}}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                force=False,
+                event_name="issues",
+                event_path=str(event_path),
+                agent_login="codex[bot]",
+            )
+            issue = {
+                "labels": [{"name": "ready-to-spec"}],
+                "assignees": [{"login": "codex[bot]"}],
+            }
 
-        self.assertEqual(
-            prepare_issue_spec_context.should_run(args, issue),
-            (True, "ready-to-spec assigned to codex[bot]"),
-        )
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (True, "ready-to-spec label added to issue assigned to codex[bot]"),
+            )
+
+    def test_should_not_run_for_unrelated_issue_label_event(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(json.dumps({"action": "labeled", "label": {"name": "bug"}}), encoding="utf-8")
+            args = argparse.Namespace(
+                force=False,
+                event_name="issues",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": [{"login": "codex"}]}
+
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (False, "issue label event is not ready-to-spec"),
+            )
+
+    def test_should_run_when_agent_is_assigned_to_ready_to_spec_issue(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(json.dumps({"action": "assigned", "assignee": {"login": "codex"}}), encoding="utf-8")
+            args = argparse.Namespace(
+                force=False,
+                event_name="issues",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": [{"login": "codex"}]}
+
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (True, "ready-to-spec issue assigned to codex"),
+            )
+
+    def test_should_not_run_when_issue_assignment_is_for_someone_else(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(json.dumps({"action": "assigned", "assignee": {"login": "alice"}}), encoding="utf-8")
+            args = argparse.Namespace(
+                force=False,
+                event_name="issues",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {
+                "labels": [{"name": "ready-to-spec"}],
+                "assignees": [{"login": "codex"}, {"login": "alice"}],
+            }
+
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (False, "issue assignment event is not for codex"),
+            )
+
+    def test_should_not_run_for_reopened_ready_to_spec_assigned_issue(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(json.dumps({"action": "reopened"}), encoding="utf-8")
+            args = argparse.Namespace(
+                force=False,
+                event_name="issues",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": [{"login": "codex"}]}
+
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (False, "issue event action is not a spec trigger: reopened"),
+            )
 
     def test_should_run_for_ready_to_spec_comment_mention(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

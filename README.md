@@ -335,13 +335,13 @@ permissions:
 .github/workflows/create-spec-from-issue.yml
 ```
 
-这个 workflow 用于把 ready issue 转成 spec PR。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发。
+这个 workflow 用于把 ready issue 转成 spec PR。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发。对于 issue label / assignee 事件，只有 `ready-to-spec` 和目标 agent assignment 同时满足时才会继续执行后续步骤。
 
 需要配置：
 
 | 名称 | 类型 | 说明 |
 | --- | --- | --- |
-| `SPEC_AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发 spec 创建的 agent 登录名。 |
+| `AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发 AI workflow 的 agent 登录名。 |
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint。 |
 
@@ -353,13 +353,13 @@ permissions:
 .github/workflows/create-implementation-from-issue.yml
 ```
 
-这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee、comment mention 或 spec PR 的 `plan-approved` label 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。
+这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。
 
 需要配置：
 
 | 名称 | 类型 | 说明 |
 | --- | --- | --- |
-| `IMPLEMENT_AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发实现的 agent 登录名。 |
+| `AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发 AI workflow 的 agent 登录名。 |
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint。 |
 
@@ -434,9 +434,8 @@ rsync -a .github/ /path/to/target-repo/.github/
 
 1. 提交复制后的文件。
 2. 配置 `OPENAI_API_KEY` 和 `OPENAI_API_ENDPOINT`。
-3. 如果启用 spec workflow，配置 `SPEC_AGENT_LOGIN`。
-4. 如果启用 implementation workflow，配置 `IMPLEMENT_AGENT_LOGIN`。
-5. 根据目标仓库调整 `review-pr-local` 和 `review-spec-local` 的 repo-specific guidance。
+3. 配置 `AGENT_LOGIN`，用于 spec 和 implementation workflow 的 assignment / mention gate。
+4. 根据目标仓库调整 `review-pr-local` 和 `review-spec-local` 的 repo-specific guidance。
 
 ## 本地开发与测试
 

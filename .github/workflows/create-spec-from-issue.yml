@@ -7,11 +7,11 @@ on:
         description: "GitHub issue number"
         required: true
       agent_login:
-        description: "Agent login that can be assigned or mentioned; defaults to SPEC_AGENT_LOGIN"
+        description: "Agent login that can be assigned or mentioned; defaults to AGENT_LOGIN"
         required: false
         default: ""
   issues:
-    types: [opened, reopened, labeled, assigned]
+    types: [labeled, assigned]
   issue_comment:
     types: [created]
 
@@ -22,11 +22,20 @@ permissions:
 
 concurrency:
   group: create-spec-from-issue-${{ inputs.issue || github.event.issue.number }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   create-spec:
-    if: github.event_name == 'workflow_dispatch' || github.event.issue.pull_request == null
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.issue.pull_request == null &&
+        (
+          (github.event_name == 'issue_comment' && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
+          (github.event.action == 'labeled' && github.event.label.name == 'ready-to-spec' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
+          (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-spec'))
+        )
+      )
     runs-on: ubuntu-latest
     env:
       PYTHONDONTWRITEBYTECODE: "1"
@@ -42,7 +51,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
-          AGENT_LOGIN: ${{ inputs.agent_login || vars.SPEC_AGENT_LOGIN }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.AGENT_LOGIN }}
         run: |
           python3 .github/scripts/prepare_issue_spec_context.py \
             --repo "${{ github.repository }}" \
@@ -51,7 +60,8 @@ jobs:
             --event-path "$GITHUB_EVENT_PATH" \
             --agent-login "$AGENT_LOGIN" \
             --output issue_context.json \
-            --comments-output issue_comments.txt
+            --comments-output issue_comments.txt \
+            --github-output "$GITHUB_OUTPUT"
 
       - name: Stop when issue is not ready
         if: steps.issue.outputs.should_run != 'true'

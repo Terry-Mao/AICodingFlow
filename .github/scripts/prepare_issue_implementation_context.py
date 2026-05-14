@@ -21,7 +21,6 @@ from write_spec_context import (  # noqa: E402
     fetch_spec_prs,
     format_spec_context_text,
     label_names as pr_label_names,
-    resolve_issue_number as resolve_issue_number_from_pr,
     spec_file_paths,
     spec_pr_summary,
 )
@@ -176,17 +175,7 @@ def extract_issue_number(args_issue: str, event: dict[str, Any]) -> int:
     issue = event.get("issue")
     if issue and issue.get("number"):
         return int(issue["number"])
-    pr = event.get("pull_request")
-    if pr:
-        issue_number = resolve_issue_number_from_pr(pr)
-        if issue_number is not None:
-            return issue_number
     raise SystemExit("could not determine issue number from input")
-
-
-def pull_request_event_should_run(event: dict[str, Any]) -> bool:
-    label = event.get("label") or {}
-    return (label.get("name") or "") == APPROVED_LABEL
 
 
 def should_run(args: argparse.Namespace, event: dict[str, Any], issue: dict[str, Any]) -> tuple[bool, str]:
@@ -199,13 +188,6 @@ def should_run(args: argparse.Namespace, event: dict[str, Any], issue: dict[str,
         return False, "agent login is not configured"
 
     assignees = set(assignee_logins(issue))
-
-    if args.event_name == "pull_request":
-        if not pull_request_event_should_run(event):
-            return False, f"pull request event is not {APPROVED_LABEL}"
-        if agent_login not in assignees:
-            return False, f"{READY_LABEL} issue is not assigned to {agent_login}"
-        return True, f"{APPROVED_LABEL} spec PR label added for ready issue assigned to {agent_login}"
 
     if args.event_name == "issues":
         action = event_action(event)
@@ -406,9 +388,6 @@ def main() -> None:
     args = parser.parse_args()
 
     event = load_event(args.event_path)
-    if args.event_name == "pull_request" and not pull_request_event_should_run(event):
-        write_skipped_outputs(args, f"pull request event is not {APPROVED_LABEL}")
-        return
 
     issue_number = extract_issue_number(args.issue, event)
     issue = fetch_issue(args.repo, issue_number)

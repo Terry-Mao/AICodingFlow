@@ -31,6 +31,10 @@ def select_skill(pr_diff_text: str) -> str:
     return SPEC_REVIEW_SKILL if is_spec_only(files) else CODE_REVIEW_SKILL
 
 
+def needs_spec_context(skill: str) -> bool:
+    return skill == CODE_REVIEW_SKILL
+
+
 def write_github_output(name: str, value: str) -> None:
     output_path = os.environ.get("GITHUB_OUTPUT")
     if not output_path:
@@ -46,6 +50,7 @@ def main() -> int:
 
     skill = select_skill(Path(args.diff).read_text(encoding="utf-8"))
     write_github_output("path", skill)
+    write_github_output("needs_spec_context", "true" if needs_spec_context(skill) else "false")
     print(skill)
     return 0
 
