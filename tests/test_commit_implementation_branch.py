@@ -32,6 +32,14 @@ class CommitImplementationBranchTest(unittest.TestCase):
         with mock.patch.object(commit_impl, "run", return_value=output):
             self.assertEqual(commit_impl.status_paths(), ["file.py", "new.py", "renamed.py"])
 
+    def test_run_preserves_porcelain_status_spacing(self) -> None:
+        result = mock.Mock(stdout=" M .github/scripts/post_pr_review.py\0")
+        with mock.patch("subprocess.run", return_value=result):
+            self.assertEqual(
+                commit_impl.run(["git", "status", "--porcelain=v1", "-z"], capture=True),
+                " M .github/scripts/post_pr_review.py\0",
+            )
+
     def test_has_remote_branch_uses_ls_remote_exit_status(self) -> None:
         with mock.patch("subprocess.run", return_value=mock.Mock(returncode=0)):
             self.assertTrue(commit_impl.has_remote_branch("feature"))
