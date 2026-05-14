@@ -201,7 +201,7 @@ Spec PR 只负责规划，不应该实现功能或修改生产代码。
 issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI review -> comments -> merge
 ```
 
-实现阶段可以在本地完成，也可以由 `create-implementation-from-issue` workflow 驱动。关键点是：实现必须从稳定的 issue/spec context 出发，agent 负责写代码和推送分支，外层 workflow 负责校验输出、创建或更新 PR、更新 issue progress comment。
+实现阶段可以在本地完成，也可以由 `create-implementation-from-issue` workflow 驱动。关键点是：实现必须从稳定的 issue/spec context 出发，agent 负责写代码、同步必要 spec、运行验证并写出 summary/metadata；外层 workflow 负责校验输出、提交并推送分支、创建或更新 PR、更新 issue progress comment。
 
 对应 workflow：
 
@@ -223,8 +223,8 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
    - `implement-specs`
    - `spec-driven-implementation`
    - `implement-issue`
-7. agent 产出实现 diff 时，写 `implementation_summary.md` 和 `pr-metadata.json`，commit 并 push branch。
-8. workflow 校验 metadata、检查 branch 是否真的更新，再创建或更新 PR。
+7. agent 产出实现 diff 时，写 `implementation_summary.md` 和 `pr-metadata.json`，并把代码变更留在工作区。
+8. workflow 校验 metadata，提交并推送 `pr-metadata.json.branch_name`，确认 branch 更新后创建或更新 PR。
 
 目标分支规则：
 
@@ -335,7 +335,7 @@ permissions:
 .github/workflows/create-spec-from-issue.yml
 ```
 
-这个 workflow 用于把 ready issue 转成 spec PR。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发。对于 issue label / assignee 事件，只有 `ready-to-spec` 和目标 agent assignment 同时满足时才会继续执行后续步骤。
+这个 workflow 用于把 ready issue 转成 spec PR。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 `ready-to-spec` 和目标 agent assignment / mention 守卫。若 issue 已经带有 `ready-to-implement`，spec workflow 不再启动，避免同一个 issue 同时进入 spec 和 implementation 阶段。
 
 需要配置：
 
@@ -416,6 +416,7 @@ tests/                           # Python unittest 测试
 | `prepare_issue_implementation_context.py` | 为 issue 实现准备稳定 context、spec context 和 target branch。 |
 | `validate_spec_output.py` | 校验 spec workflow 输出。 |
 | `validate_implementation_output.py` | 校验 implementation workflow 的 `pr-metadata.json`。 |
+| `commit_implementation_branch.py` | 把 Codex 留在工作区的实现 diff 提交并推送到 metadata 指定分支。 |
 | `read_branch_sha.py` | 读取 implementation branch SHA，并记录 run-start snapshot。 |
 | `finalize_implementation_pr.py` | 创建或更新 implementation PR 或 approved spec PR。 |
 | `update_implementation_progress.py` | 创建或更新 issue implementation progress comment。 |

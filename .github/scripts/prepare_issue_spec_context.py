@@ -181,10 +181,12 @@ def remove_triggering_comment(
 
 
 def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, str]:
-    if args.force or args.event_name == "workflow_dispatch":
-        return True, "manual dispatch"
+    if args.force:
+        return True, "forced"
 
     labels = set(label_names(issue))
+    if "ready-to-implement" in labels:
+        return False, "issue is already ready-to-implement"
     if "ready-to-spec" not in labels:
         return False, "issue is missing ready-to-spec"
 
@@ -208,6 +210,9 @@ def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, s
                 return False, f"issue assignment event is not for {agent_login}"
             return True, f"ready-to-spec issue assigned to {agent_login}"
         return False, f"issue event action is not a spec trigger: {action or 'unknown'}"
+
+    if args.event_name == "workflow_dispatch" and agent_login in assignees:
+        return True, f"ready-to-spec assigned to {agent_login}"
 
     comment = event_comment_body(args.event_path)
     if args.event_name == "issue_comment" and comment_mentions_login(comment, agent_login):

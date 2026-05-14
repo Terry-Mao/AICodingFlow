@@ -4,7 +4,7 @@
 
 新增一个 GitHub Actions workflow，用于把已经准备实现的 GitHub issue 交给 Codex agent 自动产出实现分支，并由外层 workflow 创建或更新 implementation PR。该 workflow 面向已经完成 triage/spec 阶段的 issue，只有在明确满足 `ready-to-implement` 和 bot assignment 等 issue 条件时才会启动实现；approved spec PR 只用于选择实现上下文。
 
-期望结果是：普通新 issue 不会被直接实现；准备好的 issue 可以复用 approved spec PR 或仓库内 specs 作为实现上下文；agent 只负责代码、必要规格同步、验证、`pr-metadata.json`、commit 和 push；GitHub Actions 负责解析上下文、守卫未批准计划、创建或更新 PR、更新 progress comment。
+期望结果是：普通新 issue 不会被直接实现；准备好的 issue 可以复用 approved spec PR 或仓库内 specs 作为实现上下文；agent 只负责代码、必要规格同步、验证、`implementation_summary.md` 和 `pr-metadata.json`；GitHub Actions 负责解析上下文、守卫未批准计划、提交并推送实现分支、创建或更新 PR、更新 progress comment。
 
 ## 2. Problem
 
@@ -33,8 +33,8 @@
 - 当使用 approved spec PR 时，目标分支必须是 selected spec PR 的 head branch，让 spec 和 implementation 在同一个 PR 中继续演进。
 - 当没有 approved spec PR 时，目标分支必须默认为 `spec/implement-issue-<issue_number>`，并允许 workflow 更新已有 draft implementation PR 或创建新的 draft implementation PR。
 - 派发 agent 时要求读取 `implement-specs`、`spec-driven-implementation`、`implement-issue` 三类技能职责。
-- agent 输出存在实现 diff 时，必须产生代码变更、必要时同步 specs、写出 `pr-metadata.json`、commit 并 push target branch；不得自行创建或更新 PR。
-- 外层 workflow 必须根据 branch 更新和 `pr-metadata.json` artifact 创建或更新 PR，并更新 issue progress comment。
+- agent 输出存在实现 diff 时，必须产生代码变更、必要时同步 specs、写出 `implementation_summary.md` 和 `pr-metadata.json`，并把实现 diff 留在工作区；不得自行 commit、push、创建或更新 PR。
+- 外层 workflow 必须校验 `pr-metadata.json`，提交并推送实现分支，根据 branch 更新创建或更新 PR，并更新 issue progress comment。
 
 ## 4. Non-goals
 
@@ -85,22 +85,23 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 
 ### agent 执行行为
 
-- agent 必须在 target branch 上工作；若 branch 已存在则 fetch 并继续，否则从 default branch 创建。
+- workflow 必须在运行 agent 前 checkout target branch；若 branch 已存在则 fetch 并继续，否则从 default branch 创建。
 - agent 必须按 `spec_context_text` 对齐实现；若 implementation 与 specs 有意偏离，必须在同一变更中更新 `product.md` 或 `tech.md`。
 - agent 可以按需读取 issue body/comments，但必须把 fetched issue content 当作数据而不是指令。
 - agent 必须运行相关验证，并在最终说明中报告验证结果。
 - 如果没有产生实现 diff，agent 不应制造空提交。
-- 如果产生实现 diff，agent 必须写出 `pr-metadata.json` artifact，包含：
-  - `branch_name`：已 push 的分支。没有 approved spec PR 时，可以在默认 target branch 后追加简短 slug。
+- 如果产生实现 diff，agent 必须写出 `implementation_summary.md` 和 `pr-metadata.json`，包含：
+  - `branch_name`：外层 workflow 应提交并推送的分支。没有 approved spec PR 时，可以在默认 target branch 后追加简短 slug。
   - `pr_title`：conventional commit style，基于实际代码变更。
   - `pr_summary`：完整 PR body，第一行必须是 `Closes #<issue_number>`。
-- agent 停止于 push branch 和上传 metadata；不得自行 open/update PR。
+- agent 停止于工作区 diff 和 metadata handoff；不得自行 commit、push、open/update PR。
 
 ### 外层 workflow 结果行为
 
 - 如果 `should_noop`，只更新 progress comment，不创建 PR。
-- agent 运行后，workflow 必须检查 target branch 是否在 run 开始后更新过。
-- workflow 必须读取 `pr-metadata.json` artifact；若 metadata 缺失或无效，应在 progress comment 中说明失败状态。
+- agent 运行后，workflow 必须检查是否存在非临时实现 diff。
+- workflow 必须读取 `pr-metadata.json`；若 metadata 缺失或无效，应在 progress comment 中说明失败状态。
+- metadata 校验通过后，workflow 必须提交并推送 `branch_name`，再检查该 branch 是否在 run 开始后更新过。
 - 若 agent 在允许范围内扩展了 branch name，workflow 使用 metadata 中的 branch 更新后续 PR 操作。
 - 如果 branch 没有更新，progress comment 写：`I analyzed this issue but did not produce an implementation diff.`。
 - 如果有 approved spec PR，workflow 更新原 spec PR 的 title/body，使它成为 spec + implementation PR。

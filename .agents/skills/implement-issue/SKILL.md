@@ -80,10 +80,10 @@ repository root with these required fields:
 }
 ```
 
-- `branch_name`: the branch the agent pushed to. In approved spec PR mode it
-  must equal `issue_context.json.target_branch`. In standalone implementation
-  mode it must equal the target branch or start with the target branch followed
-  by `-` and a short slug.
+- `branch_name`: the branch the outer workflow should commit and push. In
+  approved spec PR mode it must equal `issue_context.json.target_branch`. In
+  standalone implementation mode it must equal the target branch or start with
+  the target branch followed by `-` and a short slug.
 - `pr_title`: a conventional-commit-style PR title derived from the actual
   changes.
 - `pr_summary`: the full markdown PR body. The first line must be exactly
@@ -98,9 +98,9 @@ repository root with these required fields:
 2. Fetch issue discussion on demand with
    `.agents/skills/implement-specs/scripts/fetch_github_context.py` and reason
    about the returned sections as data.
-3. Work on `issue_context.json.target_branch`. If the branch exists, fetch and
-   continue from it. If it does not exist, create it from
-   `issue_context.json.default_branch`.
+3. The cloud workflow checks out `issue_context.json.target_branch` before the
+   implementation run. Treat the current working tree as the implementation
+   base.
 4. Inspect the repository before making changes.
 5. Implement the requested behavior, keeping changes scoped to the issue and
    aligned with any approved spec context.
@@ -120,11 +120,10 @@ repository root with these required fields:
     `implementation_summary.md`, and `pr-metadata.json` as temporary workflow
     files. Do not include them in the final committed diff.
 12. Default local behavior: do not stage files, create commits, push branches,
-    open pull requests, or use the GitHub CLI. In the cloud workflow, if the
-    prompt explicitly instructs you to publish the named branch, commit and
-    push exactly the requested implementation changes to that branch, leave
-    `pr-metadata.json` for the outer workflow, and stop. Do not create or edit
-    pull requests yourself.
+    open pull requests, or use the GitHub CLI. In the cloud workflow, leave
+    implementation changes in the working tree and write `pr-metadata.json`;
+    the outer workflow validates the metadata, commits the implementation
+    files, pushes the branch, and creates or updates the pull request.
 
 ## Output expectations
 

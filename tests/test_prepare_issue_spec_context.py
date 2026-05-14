@@ -182,6 +182,50 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 (False, "issue event action is not a spec trigger: reopened"),
             )
 
+    def test_workflow_dispatch_still_requires_ready_label_and_assignment(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="workflow_dispatch",
+            event_path="",
+            agent_login="codex",
+        )
+
+        self.assertEqual(
+            prepare_issue_spec_context.should_run(args, {"labels": [], "assignees": [{"login": "codex"}]}),
+            (False, "issue is missing ready-to-spec"),
+        )
+        self.assertEqual(
+            prepare_issue_spec_context.should_run(
+                args,
+                {"labels": [{"name": "ready-to-spec"}], "assignees": []},
+            ),
+            (False, "ready-to-spec issue is not assigned to or mentioning the configured agent"),
+        )
+        self.assertEqual(
+            prepare_issue_spec_context.should_run(
+                args,
+                {"labels": [{"name": "ready-to-spec"}], "assignees": [{"login": "codex"}]},
+            ),
+            (True, "ready-to-spec assigned to codex"),
+        )
+
+    def test_should_not_run_when_issue_is_already_ready_to_implement(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="issues",
+            event_path="",
+            agent_login="codex",
+        )
+        issue = {
+            "labels": [{"name": "ready-to-spec"}, {"name": "ready-to-implement"}],
+            "assignees": [{"login": "codex"}],
+        }
+
+        self.assertEqual(
+            prepare_issue_spec_context.should_run(args, issue),
+            (False, "issue is already ready-to-implement"),
+        )
+
     def test_should_run_for_ready_to_spec_comment_mention(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"

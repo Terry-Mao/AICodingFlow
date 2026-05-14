@@ -35,6 +35,10 @@ jobs:
           (github.event.action == 'labeled' && github.event.label.name == 'ready-to-spec' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
           (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-spec'))
         )
+        &&
+        contains(github.event.issue.labels.*.name, 'ready-to-spec')
+        &&
+        !contains(github.event.issue.labels.*.name, 'ready-to-implement')
       )
     runs-on: ubuntu-latest
     env:
