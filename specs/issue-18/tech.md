@@ -148,7 +148,7 @@ resolver 优先级：
 
 ```json
 {
-  "branch_name": "oz-agent/implement-issue-42-add-retry-logic",
+  "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
   "pr_summary": "Closes #42\n\n## Summary\n..."
 }
@@ -244,5 +244,5 @@ resolver 优先级：
 
 - 将 `implement-specs` 从 placeholder 扩展为完整实现技能，减少 `implement-issue` 需要重复描述的通用实现规则。
 - 如果多个自动化 workflow 都需要 approved spec resolver，可进一步抽取共享 GitHub spec context module。
-- 后续可增加 branch naming slug 规则，统一 `oz-agent/implement-issue-<issue_number>-<slug>` 的最大长度和字符集。
+- 后续可增加 branch naming slug 规则，统一 `spec/implement-issue-<issue_number>-<slug>` 的最大长度和字符集。
 - 后续可把 progress comment marker 标准化，避免不同 issue workflow 之间互相覆盖。
