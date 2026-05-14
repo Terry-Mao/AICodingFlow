@@ -30,7 +30,7 @@ def run(args: list[str], *, capture: bool = False, check: bool = True) -> str:
         stderr=subprocess.PIPE if capture else None,
         text=True,
     )
-    return result.stdout.strip() if capture else ""
+    return result.stdout.rstrip("\n") if capture else ""
 
 
 def load_json(path: Path) -> dict[str, Any]:
