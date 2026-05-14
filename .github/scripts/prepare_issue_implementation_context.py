@@ -183,16 +183,19 @@ def should_run(args: argparse.Namespace, event: dict[str, Any], issue: dict[str,
     if READY_LABEL not in labels:
         return False, f"issue is missing {READY_LABEL}"
 
-    if args.event_name == "pull_request":
-        if pull_request_event_should_run(event):
-            return True, f"{APPROVED_LABEL} spec PR label added for ready issue"
-        return False, f"pull request event is not {APPROVED_LABEL}"
-
     agent_login = args.agent_login.strip()
     if not agent_login:
         return False, "agent login is not configured"
 
     assignees = set(assignee_logins(issue))
+
+    if args.event_name == "pull_request":
+        if not pull_request_event_should_run(event):
+            return False, f"pull request event is not {APPROVED_LABEL}"
+        if agent_login not in assignees:
+            return False, f"{READY_LABEL} issue is not assigned to {agent_login}"
+        return True, f"{APPROVED_LABEL} spec PR label added for ready issue assigned to {agent_login}"
+
     if agent_login in assignees:
         return True, f"{READY_LABEL} assigned to {agent_login}"
 

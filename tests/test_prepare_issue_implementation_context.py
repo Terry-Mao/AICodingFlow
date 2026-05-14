@@ -68,24 +68,38 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         args = argparse.Namespace(
             force=False,
             event_name="pull_request",
-            agent_login="",
+            agent_login="codex",
+        )
+        event = {"label": {"name": "plan-approved"}}
+        issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
+
+        self.assertEqual(
+            prepare_impl.should_run(args, event, issue),
+            (True, "plan-approved spec PR label added for ready issue assigned to codex"),
+        )
+
+    def test_should_not_run_plan_approved_pull_request_when_bot_is_not_assigned(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="pull_request",
+            agent_login="codex",
         )
         event = {"label": {"name": "plan-approved"}}
         issue = {"labels": [{"name": "ready-to-implement"}], "assignees": []}
 
         self.assertEqual(
             prepare_impl.should_run(args, event, issue),
-            (True, "plan-approved spec PR label added for ready issue"),
+            (False, "ready-to-implement issue is not assigned to codex"),
         )
 
     def test_should_not_run_pull_request_for_other_label(self) -> None:
         args = argparse.Namespace(
             force=False,
             event_name="pull_request",
-            agent_login="",
+            agent_login="codex",
         )
         event = {"label": {"name": "bug"}}
-        issue = {"labels": [{"name": "ready-to-implement"}], "assignees": []}
+        issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
 
         self.assertEqual(
             prepare_impl.should_run(args, event, issue),

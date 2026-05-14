@@ -97,7 +97,7 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Capture target branch start SHA
+      - name: Capture implementation branch start SHAs
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         id: branch_start
         env:
@@ -106,6 +106,7 @@ jobs:
           python3 .github/scripts/read_branch_sha.py \
             --repo "${{ github.repository }}" \
             --branch "${{ steps.issue.outputs.target_branch }}" \
+            --snapshot-output branch-start-shas.json \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Implement issue
@@ -116,6 +117,13 @@ jobs:
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
             Implement the GitHub issue from the stable local context files.
+
+            This workflow is the implementation phase of the spec-driven
+            workflow, not the spec-writing phase. Do not create a new product
+            or tech spec plan from scratch. Implement against spec_context.md
+            when it exists, and update specs only when the implementation
+            materially changes behavior, edge cases, validation expectations,
+            or technical design.
 
             Inputs:
             - issue_context.json
@@ -170,10 +178,11 @@ jobs:
             --repo "${{ github.repository }}" \
             --branch "${{ steps.issue.outputs.target_branch }}" \
             --metadata pr-metadata.json \
+            --snapshot branch-start-shas.json \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Stop when implementation produced no branch update
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && (steps.branch_end.outputs.sha == '' || steps.branch_end.outputs.sha == steps.branch_start.outputs.sha)
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && (steps.branch_end.outputs.sha == '' || steps.branch_end.outputs.sha == steps.branch_end.outputs.start_sha)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -184,11 +193,11 @@ jobs:
             --message "I analyzed this issue but did not produce an implementation diff."
 
       - name: Validate implementation output
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_start.outputs.sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha
         run: python3 .github/scripts/validate_implementation_output.py --context issue_context.json --metadata pr-metadata.json
 
       - name: Create or update implementation pull request
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_start.outputs.sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -200,7 +209,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Update progress comment
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_start.outputs.sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.branch_end.outputs.sha != '' && steps.branch_end.outputs.sha != steps.branch_end.outputs.start_sha
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -219,5 +228,6 @@ jobs:
             issue_context.json
             issue_comments.txt
             spec_context.md
+            branch-start-shas.json
             implementation_summary.md
             pr-metadata.json

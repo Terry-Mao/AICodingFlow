@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read a GitHub branch head SHA and expose it as a workflow output."""
+"""Read GitHub branch head SHAs and expose them as workflow outputs."""
 
 from __future__ import annotations
 
@@ -24,6 +24,40 @@ def read_branch_sha(repo: str, branch: str) -> str:
         return ""
     obj = ref.get("object") or {}
     return obj.get("sha") or ""
+
+
+def matching_branch_shas(repo: str, branch_prefix: str) -> dict[str, str]:
+    refs = run_gh_json(["api", f"repos/{repo}/git/matching-refs/heads/{branch_prefix}"])
+    if not isinstance(refs, list):
+        return {}
+    shas: dict[str, str] = {}
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        name = str(ref.get("ref") or "").removeprefix("refs/heads/")
+        if name != branch_prefix and not name.startswith(f"{branch_prefix}-"):
+            continue
+        obj = ref.get("object") or {}
+        sha = obj.get("sha")
+        if isinstance(sha, str) and sha:
+            shas[name] = sha
+    return shas
+
+
+def write_snapshot(path: Path, shas: dict[str, str]) -> None:
+    path.write_text(json.dumps(shas, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def read_snapshot(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): value for key, value in value.items() if isinstance(value, str)}
 
 
 def metadata_branch(path: Path) -> str:
@@ -52,15 +86,29 @@ def main() -> None:
     parser.add_argument("--repo", required=True)
     parser.add_argument("--branch", required=True)
     parser.add_argument("--metadata", default="")
+    parser.add_argument("--snapshot", default="")
+    parser.add_argument("--snapshot-output", default="")
     parser.add_argument("--github-output", default="")
     args = parser.parse_args()
+
+    if args.snapshot_output:
+        shas = matching_branch_shas(args.repo, args.branch)
+        if args.branch not in shas:
+            sha = read_branch_sha(args.repo, args.branch)
+            if sha:
+                shas[args.branch] = sha
+        write_snapshot(Path(args.snapshot_output), shas)
+        write_github_output(args.github_output, {"branch": args.branch, "sha": shas.get(args.branch, "")})
+        print(shas.get(args.branch, ""))
+        return
 
     branch = metadata_branch(Path(args.metadata)) if args.metadata else ""
     if not branch:
         branch = args.branch
     sha = read_branch_sha(args.repo, branch)
+    start_sha = read_snapshot(Path(args.snapshot)).get(branch, "") if args.snapshot else ""
     print(sha)
-    write_github_output(args.github_output, {"branch": branch, "sha": sha})
+    write_github_output(args.github_output, {"branch": branch, "sha": sha, "start_sha": start_sha})
 
 
 if __name__ == "__main__":
