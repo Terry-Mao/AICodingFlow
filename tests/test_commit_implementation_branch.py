@@ -123,8 +123,14 @@ class CommitImplementationBranchTest(unittest.TestCase):
             )
 
         self.assertEqual(result, {"changed": "true", "branch": "spec/implement-issue-18-workflow", "sha": "abc123"})
-        self.assertLess(calls.index(["git", "stash", "push", "--include-untracked", "-m", "implementation workflow handoff"]), calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]))
-        self.assertLess(calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]), calls.index(["git", "stash", "pop"]))
+        self.assertLess(
+            calls.index(["git", "stash", "push", "--include-untracked", "-m", "implementation workflow handoff"]),
+            calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]),
+        )
+        self.assertLess(
+            calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]),
+            calls.index(["git", "stash", "pop"]),
+        )
 
     def test_commit_and_push_recomputes_paths_after_restore(self) -> None:
         with (
