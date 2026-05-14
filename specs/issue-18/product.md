@@ -32,7 +32,7 @@
   - 没有任何 spec context 时允许继续实现，但必须在 agent prompt 中明确说明没有 spec context。
 - 当存在未批准 spec PR 且默认分支没有 specs 时，workflow 必须 noop，不启动实现，并在 progress comment 中说明原因。
 - 当使用 approved spec PR 时，目标分支必须是 selected spec PR 的 head branch，让 spec 和 implementation 在同一个 PR 中继续演进。
-- 当没有 approved spec PR 时，目标分支必须默认为 `oz-agent/implement-issue-<issue_number>`，并允许 workflow 更新已有 draft implementation PR 或创建新的 draft implementation PR。
+- 当没有 approved spec PR 时，目标分支必须默认为 `spec/implement-issue-<issue_number>`，并允许 workflow 更新已有 draft implementation PR 或创建新的 draft implementation PR。
 - 派发 agent 时要求读取 `implement-specs`、`spec-driven-implementation`、`implement-issue` 三类技能职责。
 - agent 输出存在实现 diff 时，必须产生代码变更、必要时同步 specs、写出 `pr-metadata.json`、commit 并 push target branch；不得自行创建或更新 PR。
 - 外层 workflow 必须根据 branch 更新和 `pr-metadata.json` artifact 创建或更新 PR，并更新 issue progress comment。
@@ -72,7 +72,7 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 - 若没有 approved spec PR，但默认分支存在 specs：
   - `spec_context_source = directory`。
   - 从默认分支读取 specs。
-  - `target_branch = oz-agent/implement-issue-<issue_number>`。
+  - `target_branch = spec/implement-issue-<issue_number>`。
   - 后续创建或更新 draft implementation PR。
 - 若没有任何 spec context：
   - workflow 仍可启动实现。
@@ -140,7 +140,7 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
 
 ## 9. Open questions
 
-- 默认 implementation branch 是否必须严格为 `oz-agent/implement-issue-<issue_number>`，还是允许 workflow 一开始就追加 issue title slug？issue 当前允许 agent 在无 approved spec PR 时扩展 branch name。
+- 默认 implementation branch 是否必须严格为 `spec/implement-issue-<issue_number>`，还是允许 workflow 一开始就追加 issue title slug？issue 当前允许 agent 在无 approved spec PR 时扩展 branch name。
 - progress comment 的唯一标识和更新策略是否复用现有 comment marker，还是新增 implementation-specific marker？
 - `has_existing_implementation_pr` 的定义是否只匹配 bot 创建的 draft PR，还是所有 open PR with matching head branch 都算。
 - spec PR 加 `plan-approved` 触发时，关联 issue number 的解析是否只来自 PR body/title/head branch，还是也应查询 linked issues。
