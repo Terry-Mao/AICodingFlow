@@ -31,3 +31,8 @@ def is_generated_path(path: str) -> bool:
         or ".ruff_cache" in parts
         or path.endswith((".pyc", ".pyo", ".pyd"))
     )
+
+
+def is_github_workflow_path(path: str) -> bool:
+    parts = Path(path).parts
+    return len(parts) >= 3 and parts[0] == ".github" and parts[1] == "workflows"

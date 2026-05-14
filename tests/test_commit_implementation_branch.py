@@ -140,6 +140,11 @@ class CommitImplementationBranchTest(unittest.TestCase):
                 ]
             )
 
+    def test_validate_workflow_push_permissions_requires_token_for_workflow_files(self) -> None:
+        with self.assertRaisesRegex(SystemExit, "WORKFLOW_UPDATE_TOKEN"):
+            commit_impl.validate_workflow_push_permissions([".github/workflows/review-pr.yml"], "")
+        commit_impl.validate_workflow_push_permissions([".github/workflows/review-pr.yml"], "token")
+
     def test_validate_intended_files_rejects_missing_and_unexpected_files(self) -> None:
         commit_impl.validate_intended_files([".agents/skills/review-pr-local/SKILL.md", "app.py"], ["app.py", ".agents/skills/review-pr-local/SKILL.md"])
         with self.assertRaisesRegex(SystemExit, "without implementation changes"):
@@ -220,6 +225,89 @@ class CommitImplementationBranchTest(unittest.TestCase):
             )
 
         self.assertEqual(result, {"changed": "false", "branch": "spec/implement-issue-18", "sha": ""})
+
+    def test_commit_and_push_uses_workflow_token_for_workflow_files(self) -> None:
+        calls: list[list[str]] = []
+        with (
+            mock.patch.dict("os.environ", {"WORKFLOW_UPDATE_TOKEN": "workflow-token"}, clear=False),
+            mock.patch.object(commit_impl, "load_json", side_effect=[
+                {"default_branch": "main", "repository": "owner/repo"},
+                {
+                    "branch_name": "spec/implement-issue-51",
+                    "pr_title": "fix: update workflow",
+                    "intended_files": [".github/workflows/review-pr.yml"],
+                },
+            ]),
+            mock.patch.object(commit_impl, "status_paths", side_effect=[
+                [".github/workflows/review-pr.yml"],
+                [".github/workflows/review-pr.yml"],
+            ]),
+            mock.patch.object(commit_impl, "has_remote_branch", return_value=False),
+            mock.patch.object(commit_impl, "staged_paths", return_value=[".github/workflows/review-pr.yml"]),
+            mock.patch.object(commit_impl, "existing_temp_workflow_paths", return_value=[]),
+            mock.patch.object(
+                commit_impl,
+                "run",
+                side_effect=lambda args, **kwargs: calls.append(args) or (
+                    "abc123" if args == ["git", "rev-parse", "HEAD"] else
+                    "Saved working directory" if args[:3] == ["git", "stash", "push"] else
+                    ""
+                ),
+            ),
+        ):
+            result = commit_impl.commit_and_push(
+                mock.Mock(),
+                mock.Mock(),
+                "github-actions[bot]",
+                "41898282+github-actions[bot]@users.noreply.github.com",
+            )
+
+        self.assertEqual(result, {"changed": "true", "branch": "spec/implement-issue-51", "sha": "abc123"})
+        self.assertLess(
+            calls.index(["git", "commit", "-m", "fix: update workflow"]),
+            calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:workflow-token@github.com/owner/repo.git"]),
+        )
+        self.assertLess(
+            calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:workflow-token@github.com/owner/repo.git"]),
+            calls.index(["git", "push", "-u", "origin", "spec/implement-issue-51"]),
+        )
+
+    def test_commit_and_push_fails_before_commit_when_workflow_token_is_missing(self) -> None:
+        calls: list[list[str]] = []
+        with (
+            mock.patch.dict("os.environ", {}, clear=True),
+            mock.patch.object(commit_impl, "load_json", side_effect=[
+                {"default_branch": "main", "repository": "owner/repo"},
+                {
+                    "branch_name": "spec/implement-issue-51",
+                    "pr_title": "fix: update workflow",
+                    "intended_files": [".github/workflows/review-pr.yml"],
+                },
+            ]),
+            mock.patch.object(commit_impl, "status_paths", side_effect=[
+                [".github/workflows/review-pr.yml"],
+                [".github/workflows/review-pr.yml"],
+            ]),
+            mock.patch.object(commit_impl, "has_remote_branch", return_value=False),
+            mock.patch.object(commit_impl, "staged_paths", return_value=[".github/workflows/review-pr.yml"]),
+            mock.patch.object(commit_impl, "existing_temp_workflow_paths", return_value=[]),
+            mock.patch.object(
+                commit_impl,
+                "run",
+                side_effect=lambda args, **kwargs: calls.append(args) or (
+                    "Saved working directory" if args[:3] == ["git", "stash", "push"] else ""
+                ),
+            ),
+        ):
+            with self.assertRaisesRegex(SystemExit, "WORKFLOW_UPDATE_TOKEN"):
+                commit_impl.commit_and_push(
+                    mock.Mock(),
+                    mock.Mock(),
+                    "github-actions[bot]",
+                    "41898282+github-actions[bot]@users.noreply.github.com",
+                )
+
+        self.assertNotIn(["git", "commit", "-m", "fix: update workflow"], calls)
 
 
 if __name__ == "__main__":

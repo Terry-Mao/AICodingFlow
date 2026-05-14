@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
 
-from implementation_file_filters import TEMP_WORKFLOW_PATHS, is_generated_path
+from implementation_file_filters import TEMP_WORKFLOW_PATHS, is_generated_path, is_github_workflow_path
 
 
 def run(args: list[str], *, capture: bool = False, check: bool = True) -> str:
@@ -63,6 +64,15 @@ def staged_paths() -> list[str]:
     return [line for line in output.splitlines() if line]
 
 
+def print_path_list(label: str, paths: list[str]) -> None:
+    print(f"{label}:")
+    if not paths:
+        print("  (none)")
+        return
+    for path in paths:
+        print(f"  {path}")
+
+
 def existing_temp_workflow_paths() -> list[str]:
     return sorted(path for path in TEMP_WORKFLOW_PATHS if Path(path).exists())
 
@@ -78,6 +88,30 @@ def validate_staged_paths(paths: list[str]) -> None:
     generated = sorted(path for path in paths if is_generated_path(path))
     if generated:
         raise SystemExit("refusing to commit generated files: " + ", ".join(generated))
+
+
+def workflow_paths(paths: list[str]) -> list[str]:
+    return sorted(path for path in paths if is_github_workflow_path(path))
+
+
+def workflow_update_token() -> str:
+    return os.environ.get("WORKFLOW_UPDATE_TOKEN", "").strip()
+
+
+def validate_workflow_push_permissions(paths: list[str], token: str) -> None:
+    workflows = sorted(path for path in paths if is_github_workflow_path(path))
+    if workflows and not token:
+        raise SystemExit(
+            "implementation changes include GitHub workflow files: "
+            + ", ".join(workflows)
+            + ". Set the WORKFLOW_UPDATE_TOKEN repository secret to a token with workflow-file write permission."
+        )
+
+
+def configure_workflow_push_token(repo: str, token: str) -> None:
+    if not token:
+        return
+    run(["git", "remote", "set-url", "origin", f"https://x-access-token:{token}@github.com/{repo}.git"])
 
 
 def validate_intended_files(candidate_paths: list[str], intended_paths: list[str]) -> None:
@@ -139,9 +173,12 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     branch = metadata["branch_name"].strip()
     title = metadata["pr_title"].strip()
     default_branch = str(context.get("default_branch") or "main")
+    repo = str(context.get("repository") or "").strip()
     intended_paths = intended_files(metadata)
+    print_path_list("metadata intended_files", intended_paths)
 
     paths = implementation_paths(status_paths())
+    print_path_list("implementation candidate paths before branch switch", paths)
     if not paths:
         return {"changed": "false", "branch": branch, "sha": ""}
 
@@ -152,6 +189,7 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     switch_to_branch(branch, "HEAD")
     restore_stash()
     paths = implementation_paths(status_paths())
+    print_path_list("implementation candidate paths after branch switch", paths)
     if not paths:
         return {"changed": "false", "branch": branch, "sha": ""}
     validate_intended_files(paths, intended_paths)
@@ -159,11 +197,20 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     configure_git(author_name, author_email)
     stage_implementation_changes(paths)
     staged = staged_paths()
+    print_path_list("staged implementation paths", staged)
     if not staged:
         return {"changed": "false", "branch": branch, "sha": ""}
     validate_staged_paths(staged)
+    token = workflow_update_token()
+    workflow_staged = workflow_paths(staged)
+    validate_workflow_push_permissions(staged, token)
+    if workflow_staged and not repo:
+        raise SystemExit("issue_context.json repository is required to push GitHub workflow file changes")
 
     run(["git", "commit", "-m", title])
+    if workflow_staged:
+        print_path_list("GitHub workflow paths require WORKFLOW_UPDATE_TOKEN", workflow_staged)
+        configure_workflow_push_token(repo, token)
     run(["git", "push", "-u", "origin", branch])
     sha = run(["git", "rev-parse", "HEAD"], capture=True)
     return {"changed": "true", "branch": branch, "sha": sha}
