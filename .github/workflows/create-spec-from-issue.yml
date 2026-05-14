@@ -19,6 +19,7 @@ permissions:
   contents: write
   issues: read
   pull-requests: write
+  actions: write
 
 concurrency:
   group: create-spec-from-issue-${{ inputs.issue || github.event.issue.number }}
@@ -177,10 +178,16 @@ jobs:
 
       - name: Create or update spec pull request
         if: steps.issue.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true'
+        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
+          DEFAULT_BRANCH: ${{ steps.issue.outputs.default_branch }}
+          PRODUCT_SPEC: ${{ steps.issue.outputs.product_spec }}
+          TECH_SPEC: ${{ steps.issue.outputs.tech_spec }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.issue_number }}
         run: |
-          branch="${{ steps.issue.outputs.target_branch }}"
+          branch="$TARGET_BRANCH"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -188,10 +195,10 @@ jobs:
           # Fetch the existing spec branch only to seed --force-with-lease.
           # The new spec branch is always recreated from the default branch.
           git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
-          git fetch origin "+refs/heads/${{ steps.issue.outputs.default_branch }}:refs/remotes/origin/${{ steps.issue.outputs.default_branch }}"
-          git switch -C "$branch" "origin/${{ steps.issue.outputs.default_branch }}"
-          git add "${{ steps.issue.outputs.product_spec }}" "${{ steps.issue.outputs.tech_spec }}"
-          git commit -m "docs(spec): create issue ${{ steps.issue.outputs.issue_number }} specs"
+          git fetch origin "+refs/heads/$DEFAULT_BRANCH:refs/remotes/origin/$DEFAULT_BRANCH"
+          git switch -C "$branch" "origin/$DEFAULT_BRANCH"
+          git add "$PRODUCT_SPEC" "$TECH_SPEC"
+          git commit -m "docs(spec): create issue $ISSUE_NUMBER specs"
           git push --force-with-lease origin "$branch"
 
           title="$(cat pr-title.txt)"
@@ -210,6 +217,19 @@ jobs:
               --title "$title" \
               --body "$body"
           fi
+          pr_number="$(gh pr view "$branch" --repo "${{ github.repository }}" --json number --jq .number)"
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch AI PR review
+        if: steps.issue.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true' && steps.pr.outputs.pr_number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+        run: |
+          gh workflow run review-pr.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.event.repository.default_branch }}" \
+            -f pr_number="$PR_NUMBER"
 
       - uses: actions/upload-artifact@v4
         if: always()
