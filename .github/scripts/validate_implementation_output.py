@@ -9,8 +9,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+from implementation_file_filters import TEMP_WORKFLOW_PATHS, is_generated_path
 
-REQUIRED_METADATA_FIELDS = {"branch_name", "pr_title", "pr_summary"}
+
+REQUIRED_METADATA_FIELDS = {"branch_name", "pr_title", "pr_summary", "intended_files"}
+STRING_METADATA_FIELDS = {"branch_name", "pr_title", "pr_summary"}
 CONVENTIONAL_TITLE_RE = re.compile(r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([a-z0-9._-]+\))?: .+")
 
 
@@ -32,9 +35,21 @@ def validate_metadata(metadata_path: Path, context_path: Path) -> dict[str, str]
     missing = sorted(REQUIRED_METADATA_FIELDS - set(metadata))
     if missing:
         raise SystemExit(f"pr-metadata.json is missing fields: {', '.join(missing)}")
-    for field in REQUIRED_METADATA_FIELDS:
+    for field in STRING_METADATA_FIELDS:
         if not isinstance(metadata.get(field), str) or not metadata[field].strip():
             raise SystemExit(f"pr-metadata.json field {field} must be a non-empty string")
+    intended_files = metadata.get("intended_files")
+    if not isinstance(intended_files, list) or not intended_files:
+        raise SystemExit("pr-metadata.json field intended_files must be a non-empty list")
+    for index, path in enumerate(intended_files):
+        if not isinstance(path, str) or not path.strip():
+            raise SystemExit(f"pr-metadata.json intended_files[{index}] must be a non-empty string")
+        if Path(path).is_absolute() or ".." in Path(path).parts:
+            raise SystemExit(f"pr-metadata.json intended_files[{index}] must be a repository-relative path")
+        if path in TEMP_WORKFLOW_PATHS:
+            raise SystemExit(f"pr-metadata.json intended_files[{index}] must not include workflow handoff files")
+        if is_generated_path(path):
+            raise SystemExit(f"pr-metadata.json intended_files[{index}] must not include generated/cache files")
 
     branch_name = metadata["branch_name"].strip()
     target_branch = str(context.get("target_branch") or "").strip()

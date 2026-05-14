@@ -20,8 +20,14 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "issue_context.json",
                     "implementation_summary.md",
                     "pr-metadata.json",
+                    "pr_description.md",
+                    "pr_description.txt",
+                    "pr_diff.txt",
+                    "review.json",
                     ".github/scripts/post_pr_review.py",
+                    ".github/scripts/__pycache__/post_pr_review.cpython-312.pyc",
                     "tests/test_post_pr_review.py",
+                    "tests/__pycache__/test_post_pr_review.cpython-312.pyc",
                 ]
             ),
             [".github/scripts/post_pr_review.py", "tests/test_post_pr_review.py"],
@@ -99,12 +105,58 @@ class CommitImplementationBranchTest(unittest.TestCase):
         with mock.patch.object(commit_impl, "run", return_value="No local changes to save"):
             self.assertFalse(commit_impl.stash_worktree())
 
+    def test_stage_implementation_changes_stages_intended_paths_and_unstages_workflow_temp_files(self) -> None:
+        calls: list[list[str]] = []
+        with (
+            mock.patch.object(commit_impl, "existing_temp_workflow_paths", return_value=["pr-metadata.json"]),
+            mock.patch.object(commit_impl, "run", side_effect=lambda args, **_: calls.append(args) or ""),
+        ):
+            commit_impl.stage_implementation_changes([".agents/skills/review-pr-local/SKILL.md", "tests/test_file.py"])
+
+        self.assertEqual(
+            calls,
+            [
+                ["git", "add", "-A", "--", ".agents/skills/review-pr-local/SKILL.md", "tests/test_file.py"],
+                ["git", "reset", "--", "pr-metadata.json"],
+            ],
+        )
+
+    def test_stage_implementation_changes_skips_reset_when_no_temp_files_exist(self) -> None:
+        calls: list[list[str]] = []
+        with (
+            mock.patch.object(commit_impl, "existing_temp_workflow_paths", return_value=[]),
+            mock.patch.object(commit_impl, "run", side_effect=lambda args, **_: calls.append(args) or ""),
+        ):
+            commit_impl.stage_implementation_changes(["app.py"])
+
+        self.assertEqual(calls, [["git", "add", "-A", "--", "app.py"]])
+
+    def test_validate_staged_paths_rejects_generated_files(self) -> None:
+        with self.assertRaisesRegex(SystemExit, "refusing to commit generated files"):
+            commit_impl.validate_staged_paths(
+                [
+                    ".github/scripts/post_pr_review.py",
+                    ".github/scripts/__pycache__/post_pr_review.cpython-312.pyc",
+                ]
+            )
+
+    def test_validate_intended_files_rejects_missing_and_unexpected_files(self) -> None:
+        commit_impl.validate_intended_files([".agents/skills/review-pr-local/SKILL.md", "app.py"], ["app.py", ".agents/skills/review-pr-local/SKILL.md"])
+        with self.assertRaisesRegex(SystemExit, "without implementation changes"):
+            commit_impl.validate_intended_files(["app.py"], ["app.py", ".agents/skills/review-pr-local/SKILL.md"])
+        with self.assertRaisesRegex(SystemExit, "not listed in intended_files"):
+            commit_impl.validate_intended_files(["app.py", "tests/test_app.py"], ["app.py"])
+
     def test_commit_and_push_stashes_before_switching_branch(self) -> None:
         calls: list[list[str]] = []
         with (
             mock.patch.object(commit_impl, "load_json", side_effect=[
                 {"default_branch": "main"},
-                {"branch_name": "spec/implement-issue-18-workflow", "pr_title": "feat: add workflow"},
+                {
+                    "branch_name": "spec/implement-issue-18-workflow",
+                    "pr_title": "feat: add workflow",
+                    "intended_files": ["app.py"],
+                },
             ]),
             mock.patch.object(commit_impl, "status_paths", side_effect=[
                 ["app.py", "pr-metadata.json"],
@@ -112,11 +164,11 @@ class CommitImplementationBranchTest(unittest.TestCase):
             ]),
             mock.patch.object(commit_impl, "implementation_paths", wraps=commit_impl.implementation_paths),
             mock.patch.object(commit_impl, "has_remote_branch", return_value=False),
+            mock.patch.object(commit_impl, "staged_paths", return_value=["app.py"]),
             mock.patch.object(
                 commit_impl,
                 "run",
                 side_effect=lambda args, **kwargs: calls.append(args) or (
-                    "app.py" if args == ["git", "diff", "--cached", "--name-only"] else
                     "abc123" if args == ["git", "rev-parse", "HEAD"] else
                     "Saved working directory" if args[:3] == ["git", "stash", "push"] else
                     ""
@@ -139,12 +191,17 @@ class CommitImplementationBranchTest(unittest.TestCase):
             calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]),
             calls.index(["git", "stash", "pop"]),
         )
+        self.assertIn(["git", "add", "-A", "--", "app.py"], calls)
 
     def test_commit_and_push_recomputes_paths_after_restore(self) -> None:
         with (
             mock.patch.object(commit_impl, "load_json", side_effect=[
                 {"default_branch": "main"},
-                {"branch_name": "spec/implement-issue-18", "pr_title": "fix: update workflow"},
+                {
+                    "branch_name": "spec/implement-issue-18",
+                    "pr_title": "fix: update workflow",
+                    "intended_files": ["app.py"],
+                },
             ]),
             mock.patch.object(commit_impl, "status_paths", side_effect=[
                 ["app.py"],

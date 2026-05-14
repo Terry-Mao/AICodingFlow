@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+"""Shared path filters for implementation workflow outputs."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+
+TEMP_WORKFLOW_PATHS = {
+    "issue_context.json",
+    "issue_comments.txt",
+    "spec_context.md",
+    "branch-start-shas.json",
+    "implementation_summary.md",
+    "pr-metadata.json",
+    "pr_description.md",
+    "pr_description.txt",
+    "pr_diff.txt",
+    "review.json",
+    "validation-output.txt",
+    "validation-error.txt",
+}
+
+
+def is_generated_path(path: str) -> bool:
+    parts = Path(path).parts
+    return (
+        "__pycache__" in parts
+        or ".pytest_cache" in parts
+        or ".mypy_cache" in parts
+        or ".ruff_cache" in parts
+        or path.endswith((".pyc", ".pyo", ".pyd"))
+    )

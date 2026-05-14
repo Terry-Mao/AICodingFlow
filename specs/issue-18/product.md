@@ -94,6 +94,7 @@ Figma: none provided。该需求是 GitHub workflow、agent skill 和自动化�
   - `branch_name`：外层 workflow 应提交并推送的分支。没有 approved spec PR 时，可以在默认 target branch 后追加简短 slug。
   - `pr_title`：conventional commit style，基于实际代码变更。
   - `pr_summary`：完整 PR body，第一行必须是 `Closes #<issue_number>`。
+  - `intended_files`：外层 workflow 应提交的 repository-relative 实现文件列表，不包含 workflow 临时文件、validation logs、生成缓存或未变化文件。
 - agent 停止于工作区 diff 和 metadata handoff；不得自行 commit、push、open/update PR。
 
 ### 外层 workflow 结果行为
