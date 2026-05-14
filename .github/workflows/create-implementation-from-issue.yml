@@ -189,7 +189,9 @@ jobs:
               should be committed. Include every intentionally changed
               production, test, spec, .agents, or workflow file. Do not include
               workflow handoff files, validation logs, generated cache files, or
-              unchanged files.
+              unchanged files. If intended_files includes .github/workflows
+              paths, the outer workflow requires the WORKFLOW_UPDATE_TOKEN
+              repository secret so it can push with workflow-file permissions.
 
             Do not stage files, commit, push, create branches, or run GitHub
             CLI commands. Leave implementation changes in the working tree.
@@ -259,6 +261,8 @@ jobs:
       - name: Commit and push implementation branch
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
         id: implementation_branch
+        env:
+          WORKFLOW_UPDATE_TOKEN: ${{ secrets.WORKFLOW_UPDATE_TOKEN }}
         run: |
           python3 .github/scripts/commit_implementation_branch.py \
             --context issue_context.json \
