@@ -8,6 +8,10 @@ permissions:
   contents: read
   pull-requests: write
 
+concurrency:
+  group: ai-pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   review:
     if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
@@ -35,6 +39,7 @@ jobs:
         run: python3 .github/scripts/select_review_skill.py --diff pr_diff.txt
 
       - name: Snapshot spec context
+        if: steps.review_skill.outputs.needs_spec_context == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}

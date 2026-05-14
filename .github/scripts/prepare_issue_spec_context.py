@@ -98,10 +98,28 @@ def assignee_logins(issue: dict[str, Any]) -> list[str]:
     return [assignee.get("login", "") for assignee in issue.get("assignees", []) if assignee.get("login")]
 
 
-def event_comment_body(event_path: str | None) -> str:
+def load_event(event_path: str | None) -> dict[str, Any]:
     if not event_path:
-        return ""
-    event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+        return {}
+    return json.loads(Path(event_path).read_text(encoding="utf-8"))
+
+
+def event_action(event: dict[str, Any]) -> str:
+    return event.get("action") or ""
+
+
+def event_label_name(event: dict[str, Any]) -> str:
+    label = event.get("label") or {}
+    return label.get("name") or ""
+
+
+def event_assignee_login(event: dict[str, Any]) -> str:
+    assignee = event.get("assignee") or {}
+    return assignee.get("login") or ""
+
+
+def event_comment_body(event_path: str | None) -> str:
+    event = load_event(event_path)
     comment = event.get("comment") or {}
     return comment.get("body") or ""
 
@@ -116,9 +134,7 @@ def comment_mentions_login(comment: str, login: str) -> bool:
 
 
 def triggering_comment(event_path: str | None) -> dict[str, Any] | None:
-    if not event_path:
-        return None
-    event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+    event = load_event(event_path)
     comment = event.get("comment")
     if not comment:
         return None
@@ -177,8 +193,21 @@ def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, s
         return False, "agent login is not configured"
 
     assignees = set(assignee_logins(issue))
-    if agent_login in assignees:
-        return True, f"ready-to-spec assigned to {agent_login}"
+    event = load_event(args.event_path)
+
+    if args.event_name == "issues":
+        action = event_action(event)
+        if action == "labeled":
+            if event_label_name(event) != "ready-to-spec":
+                return False, "issue label event is not ready-to-spec"
+            if agent_login not in assignees:
+                return False, f"ready-to-spec issue is not assigned to {agent_login}"
+            return True, f"ready-to-spec label added to issue assigned to {agent_login}"
+        if action == "assigned":
+            if event_assignee_login(event) != agent_login:
+                return False, f"issue assignment event is not for {agent_login}"
+            return True, f"ready-to-spec issue assigned to {agent_login}"
+        return False, f"issue event action is not a spec trigger: {action or 'unknown'}"
 
     comment = event_comment_body(args.event_path)
     if args.event_name == "issue_comment" and comment_mentions_login(comment, agent_login):

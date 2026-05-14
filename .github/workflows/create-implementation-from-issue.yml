@@ -7,15 +7,13 @@ on:
         description: "GitHub issue number"
         required: true
       agent_login:
-        description: "Agent login that can be assigned or mentioned; defaults to IMPLEMENT_AGENT_LOGIN"
+        description: "Agent login that can be assigned or mentioned; defaults to AGENT_LOGIN"
         required: false
         default: ""
   issues:
-    types: [labeled, assigned, reopened]
+    types: [labeled, assigned]
   issue_comment:
     types: [created]
-  pull_request:
-    types: [labeled]
 
 permissions:
   contents: write
@@ -23,12 +21,21 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: create-implementation-from-issue-${{ inputs.issue || github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: false
+  group: create-implementation-from-issue-${{ inputs.issue || github.event.issue.number }}
+  cancel-in-progress: true
 
 jobs:
   create-implementation:
-    if: github.event_name == 'workflow_dispatch' || github.event.issue.pull_request == null || github.event_name == 'pull_request'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.issue.pull_request == null &&
+        (
+          (github.event_name == 'issue_comment' && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
+          (github.event.action == 'labeled' && github.event.label.name == 'ready-to-implement' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
+          (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-implement'))
+        )
+      )
     runs-on: ubuntu-latest
     env:
       PYTHONDONTWRITEBYTECODE: "1"
@@ -44,7 +51,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
-          AGENT_LOGIN: ${{ inputs.agent_login || vars.IMPLEMENT_AGENT_LOGIN }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.AGENT_LOGIN }}
         run: |
           python3 .github/scripts/prepare_issue_implementation_context.py \
             --repo "${{ github.repository }}" \

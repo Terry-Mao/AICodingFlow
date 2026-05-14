@@ -43,9 +43,8 @@
 新增 `.github/workflows/create-implementation-from-issue.yml`。建议触发：
 
 - `workflow_dispatch`，输入 issue number 和可选 agent login。
-- `issues`：`labeled`、`assigned`、`reopened`。
+- `issues`：`labeled`、`assigned`。
 - `issue_comment`：`created`。
-- `pull_request`：`labeled`，用于 spec PR 新增 `plan-approved`。
 
 workflow 权限建议：
 
@@ -109,7 +108,6 @@ workflow 主步骤：
 
 - trigger 判断复用 `prepare_issue_spec_context.py` 的 label、assignment、mention boundary 模式，但 label 改为 `ready-to-implement`。
 - `workflow_dispatch` 只手动检查指定 issue，不绕过 `ready-to-implement` 和 bot assignment 守卫。
-- `pull_request.labeled` 场景只在 label 为 `plan-approved` 时继续，并从 PR title/body/head ref 解析 issue number，再 fetch issue 确认 `ready-to-implement` 且 bot assigned。
 - best-effort assignee 恢复可以封装为独立函数，失败只记录 warning。
 - coauthor directives 复用现有 `collect_coauthor_directives` 规则。
 
@@ -222,7 +220,7 @@ resolver 优先级：
   - assigned 后新增 label 返回 true。
   - issue comment mention 只匹配非引用块、完整 login。
   - 缺少 label、缺少 agent login、未 mention 均返回 false。
-  - `pull_request.labeled` 只有 `plan-approved` 才触发，并会校验 issue readiness 和 bot assignment。
+  - `pull_request.labeled` 不作为 implementation trigger；`plan-approved` 只影响 spec context resolver。
 - 新增 spec context resolver 测试：
   - approved spec PR 优先。
   - 多个 approved PR 选择最新或规则指定项。
