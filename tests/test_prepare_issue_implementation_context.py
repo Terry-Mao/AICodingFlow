@@ -145,6 +145,63 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
 
         self.assertEqual(prepare_impl.extract_issue_number("", event), 18)
 
+    def test_main_noops_non_plan_approved_pull_request_label_before_issue_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            output = Path(directory) / "issue_context.json"
+            comments_output = Path(directory) / "issue_comments.txt"
+            spec_output = Path(directory) / "spec_context.md"
+            github_output = Path(directory) / "github_output.txt"
+            event_path.write_text(
+                json.dumps(
+                    {
+                        "label": {"name": "bug"},
+                        "pull_request": {
+                            "title": "docs: unrelated",
+                            "body": "",
+                            "head": {"ref": "docs/no-issue"},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with (
+                mock.patch.object(prepare_impl, "fetch_issue") as fetch_issue,
+                mock.patch(
+                    "sys.argv",
+                    [
+                        "prepare_issue_implementation_context.py",
+                        "--repo",
+                        "owner/repo",
+                        "--event-name",
+                        "pull_request",
+                        "--event-path",
+                        str(event_path),
+                        "--agent-login",
+                        "codex",
+                        "--output",
+                        str(output),
+                        "--comments-output",
+                        str(comments_output),
+                        "--spec-context-output",
+                        str(spec_output),
+                        "--github-output",
+                        str(github_output),
+                    ],
+                ),
+            ):
+                prepare_impl.main()
+
+            fetch_issue.assert_not_called()
+            context = json.loads(output.read_text(encoding="utf-8"))
+            self.assertFalse(context["should_run"])
+            self.assertEqual(context["skip_reason"], "pull request event is not plan-approved")
+            self.assertIsNone(context["issue_number"])
+            self.assertEqual(comments_output.read_text(encoding="utf-8"), "")
+            self.assertFalse(spec_output.exists())
+            self.assertIn("should_run=false", github_output.read_text(encoding="utf-8"))
+
     def test_resolves_approved_spec_pr_before_directory(self) -> None:
         spec_pr = {
             "number": 123,

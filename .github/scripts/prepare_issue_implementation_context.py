@@ -298,6 +298,71 @@ def write_github_output(path: str | None, values: dict[str, str]) -> None:
             handle.write(f"{key}={value}\n")
 
 
+def build_skipped_context(reason: str) -> dict[str, Any]:
+    return {
+        "owner": "",
+        "repo": "",
+        "repository": "",
+        "issue_number": None,
+        "requester": "",
+        "issue_title": "",
+        "issue_labels": [],
+        "issue_assignees": [],
+        "issue_url": "",
+        "default_branch": "",
+        "target_branch": "",
+        "implementation_branch_prefix": "",
+        "spec_context_source": "",
+        "selected_spec_pr_number": None,
+        "selected_spec_pr_url": "",
+        "selected_spec_pr": None,
+        "approved_spec_prs": [],
+        "unapproved_spec_prs": [],
+        "spec_entries": [],
+        "spec_context_text": "",
+        "has_existing_implementation_pr": False,
+        "comments_count": 0,
+        "historical_comments_count": 0,
+        "triggering_comment": None,
+        "coauthor_directives": [],
+        "skill_paths": [
+            ".agents/skills/implement-specs/SKILL.md",
+            ".agents/skills/spec-driven-implementation/SKILL.md",
+            ".agents/skills/implement-issue/SKILL.md",
+        ],
+        "progress_start_line": "",
+        "should_run": False,
+        "should_noop": False,
+        "skip_reason": reason,
+        "noop_reason": "",
+        "trigger_reason": "",
+        "assignment_warning": "",
+    }
+
+
+def write_skipped_outputs(args: argparse.Namespace, reason: str) -> None:
+    Path(args.output).write_text(json.dumps(build_skipped_context(reason), indent=2) + "\n", encoding="utf-8")
+    Path(args.comments_output).write_text("", encoding="utf-8")
+    spec_output = Path(args.spec_context_output)
+    if spec_output.exists():
+        spec_output.unlink()
+    write_github_output(
+        args.github_output,
+        {
+            "should_run": "false",
+            "should_noop": "false",
+            "skip_reason": reason,
+            "noop_reason": "",
+            "issue_number": "",
+            "default_branch": "",
+            "target_branch": "",
+            "spec_context_source": "",
+            "selected_spec_pr_number": "",
+            "has_existing_implementation_pr": "false",
+        },
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
@@ -313,6 +378,10 @@ def main() -> None:
     args = parser.parse_args()
 
     event = load_event(args.event_path)
+    if args.event_name == "pull_request" and not pull_request_event_should_run(event):
+        write_skipped_outputs(args, f"pull request event is not {APPROVED_LABEL}")
+        return
+
     issue_number = extract_issue_number(args.issue, event)
     issue = fetch_issue(args.repo, issue_number)
     comments = fetch_comments(args.repo, issue_number)
