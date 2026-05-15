@@ -268,6 +268,31 @@ def request_reviewer(repo: str, token: str, pr_number: int, reviewer: str) -> No
     request_json(url, token, {"reviewers": [reviewer]})
 
 
+def request_human_reviewer_if_needed(
+    repo: str,
+    token: str,
+    pr: dict[str, Any],
+    review: dict[str, Any],
+    changed_files: list[str],
+    verdict: str,
+) -> None:
+    if not should_request_human_reviewer(pr, changed_files, verdict):
+        return
+
+    pr_author = pr.get("user", {}).get("login", "")
+    rules = parse_codeowners(Path(".github/CODEOWNERS"))
+    reviewer = select_reviewer(review, rules, changed_files, pr_author if isinstance(pr_author, str) else "")
+    if reviewer is None:
+        print("No eligible CODEOWNERS reviewer found; skipping reviewer request")
+        return
+    try:
+        request_reviewer(repo, token, pr["number"], reviewer)
+    except SystemExit as exc:
+        print(f"Reviewer request failed; continuing after review publish: {exc}")
+        return
+    print(f"Requested reviewer {reviewer}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--review", default="review.json")
@@ -296,6 +321,7 @@ def main() -> None:
         comments = normalize_comments(raw_comments, positions)
     if not body and not comments:
         print("review.json has no body or comments; skipping PR review")
+        request_human_reviewer_if_needed(repo, token, pr, review, changed_files, verdict)
         return
 
     payload = {
@@ -308,19 +334,7 @@ def main() -> None:
     response = request_json(url, token, payload)
     print(f"Posted PR review {response.get('id')}")
 
-    if should_request_human_reviewer(pr, changed_files, verdict):
-        pr_author = pr.get("user", {}).get("login", "")
-        rules = parse_codeowners(Path(".github/CODEOWNERS"))
-        reviewer = select_reviewer(review, rules, changed_files, pr_author if isinstance(pr_author, str) else "")
-        if reviewer is None:
-            print("No eligible CODEOWNERS reviewer found; skipping reviewer request")
-            return
-        try:
-            request_reviewer(repo, token, pr["number"], reviewer)
-        except SystemExit as exc:
-            print(f"Reviewer request failed; continuing after review publish: {exc}")
-            return
-        print(f"Requested reviewer {reviewer}")
+    request_human_reviewer_if_needed(repo, token, pr, review, changed_files, verdict)
 
 
 if __name__ == "__main__":

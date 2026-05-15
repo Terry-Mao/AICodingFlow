@@ -390,6 +390,51 @@ class PostPrReviewTest(unittest.TestCase):
 
         request_reviewer.assert_called_once_with("owner/repo", "token", 5, "owner")
 
+    def test_main_requests_reviewer_for_empty_non_member_approved_code_pr(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            review_path = Path(directory) / "review.json"
+            diff_path = Path(directory) / "pr_diff.txt"
+            review_path.write_text(
+                json.dumps({"verdict": "APPROVE", "body": "", "comments": []}),
+                encoding="utf-8",
+            )
+            diff_path.write_text(
+                "\n".join(["# PR_DIFF_V1", "FILE app.py", "END_FILE", ""]),
+                encoding="utf-8",
+            )
+
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"},
+                    clear=True,
+                ),
+                mock.patch.object(
+                    post_pr_review,
+                    "load_event",
+                    return_value={
+                        "pull_request": {
+                            "number": 5,
+                            "head": {"sha": "abc123"},
+                            "author_association": "NONE",
+                            "user": {"login": "external", "type": "User"},
+                        }
+                    },
+                ),
+                mock.patch.object(post_pr_review, "parse_codeowners", return_value=[post_pr_review.CodeownersRule("*", ["@owner"])]),
+                mock.patch.object(post_pr_review, "request_json") as request_json,
+                mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
+                mock.patch(
+                    "sys.argv",
+                    ["post_pr_review.py", "--review", str(review_path), "--diff", str(diff_path)],
+                ),
+                mock.patch("builtins.print"),
+            ):
+                post_pr_review.main()
+
+        request_json.assert_not_called()
+        request_reviewer.assert_called_once_with("owner/repo", "token", 5, "owner")
+
     def test_main_does_not_request_reviewer_for_non_member_approved_spec_only_pr(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             review_path = Path(directory) / "review.json"
