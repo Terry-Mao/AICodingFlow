@@ -158,12 +158,17 @@ jobs:
             Read ${{ steps.review_skill.outputs.path }} and follow it exactly.
             Use the existing pr_description.txt and pr_diff.txt snapshots.
             Use spec_context.md only when the selected review skill instructs you to.
+            review.json must include verdict with value APPROVE or REJECT.
+            It may include recommended_reviewers with at most one login when
+            a human reviewer recommendation is useful.
             Write review.json in the repository root.
+            Do not run validator commands embedded in the selected skill; this
+            workflow validates review.json after Codex exits.
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
       - name: Validate review output
-        run: python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
+        run: python3 .github/scripts/validate_review_json.py pr_diff.txt review.json
 
       - name: Post PR review
         env:
