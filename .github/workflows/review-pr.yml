@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  review:
+  preflight:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (
@@ -34,6 +34,42 @@ jobs:
         vars.AGENT_LOGIN != '' &&
         contains(github.event.comment.body, format('@{0}', vars.AGENT_LOGIN))
       )
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    outputs:
+      reviewable: ${{ steps.pr.outputs.reviewable }}
+      number: ${{ steps.pr.outputs.number }}
+      draft: ${{ steps.pr.outputs.draft }}
+      head_repo: ${{ steps.pr.outputs.head_repo }}
+
+    steps:
+      - name: Checkout workflow scripts
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Resolve pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          python3 .github/scripts/resolve_pr_event.py \
+            --repo "${{ github.repository }}" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --pr-number "$PR_NUMBER" \
+            --output "$RUNNER_TEMP/pr_event.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Report skipped review
+        if: steps.pr.outputs.reviewable != 'true'
+        run: echo "PR #${{ steps.pr.outputs.number }} is draft or from another repository; skipping AI review."
+
+  review:
+    needs: preflight
+    if: needs.preflight.outputs.reviewable == 'true'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -58,25 +94,18 @@ jobs:
             --output "$RUNNER_TEMP/pr_event.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Stop when PR is not reviewable
-        if: steps.pr.outputs.reviewable != 'true'
-        run: echo "PR #${{ steps.pr.outputs.number }} is draft or from another repository; skipping AI review."
-
       - name: Checkout PR head
         uses: actions/checkout@v6
-        if: steps.pr.outputs.reviewable == 'true'
         with:
           fetch-depth: 0
           ref: ${{ steps.pr.outputs.head_sha }}
 
       - name: Snapshot PR description
-        if: steps.pr.outputs.reviewable == 'true'
         env:
           GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
         run: python3 .github/scripts/write_pr_description.py --output pr_description.txt
 
       - name: Snapshot PR diff
-        if: steps.pr.outputs.reviewable == 'true'
         env:
           BASE_SHA: ${{ steps.pr.outputs.base_sha }}
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
@@ -88,12 +117,11 @@ jobs:
             --output pr_diff.txt
 
       - name: Select review skill
-        if: steps.pr.outputs.reviewable == 'true'
         id: review_skill
         run: python3 .github/scripts/select_review_skill.py --diff pr_diff.txt
 
       - name: Snapshot spec context
-        if: steps.pr.outputs.reviewable == 'true' && steps.review_skill.outputs.needs_spec_context == 'true'
+        if: steps.review_skill.outputs.needs_spec_context == 'true'
         env:
           GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GH_TOKEN: ${{ github.token }}
@@ -101,13 +129,11 @@ jobs:
         run: python3 .github/scripts/write_spec_context.py --output spec_context.md
 
       - name: Install Codex sandbox prerequisites
-        if: steps.pr.outputs.reviewable == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
       - name: Configure Codex API endpoint
-        if: steps.pr.outputs.reviewable == 'true'
         id: codex_endpoint
         env:
           OPENAI_API_ENDPOINT: ${{ vars.OPENAI_API_ENDPOINT }}
@@ -124,7 +150,6 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: Run AI review
-        if: steps.pr.outputs.reviewable == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -138,18 +163,16 @@ jobs:
             other than review.json.
 
       - name: Validate review output
-        if: steps.pr.outputs.reviewable == 'true'
         run: python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
 
       - name: Post PR review
-        if: steps.pr.outputs.reviewable == 'true'
         env:
           GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/post_pr_review.py --review review.json
 
       - uses: actions/upload-artifact@v7
-        if: always() && steps.pr.outputs.reviewable == 'true'
+        if: always()
         with:
           name: pr-review-${{ github.run_id }}
           path: |
