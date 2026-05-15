@@ -94,6 +94,23 @@ class PostPrReviewTest(unittest.TestCase):
 
         self.assertEqual(post_pr_review.select_reviewer({}, rules, ["app.py"], "external"), "docs-owner")
 
+    def test_codeowners_single_star_does_not_cross_path_separator(self) -> None:
+        self.assertTrue(post_pr_review.codeowners_pattern_matches("docs/*", "docs/file.md"))
+        self.assertFalse(post_pr_review.codeowners_pattern_matches("docs/*", "docs/private/file.md"))
+        self.assertTrue(post_pr_review.codeowners_pattern_matches("docs/**", "docs/private/file.md"))
+        self.assertTrue(post_pr_review.codeowners_pattern_matches("*.py", "src/app.py"))
+
+    def test_select_reviewer_uses_last_matching_codeowners_rule_with_path_semantics(self) -> None:
+        rules = [
+            post_pr_review.CodeownersRule("docs/private/**", ["@private-owner"]),
+            post_pr_review.CodeownersRule("docs/*", ["@docs-owner"]),
+        ]
+
+        self.assertEqual(
+            post_pr_review.select_reviewer({}, rules, ["docs/private/file.md"], "external"),
+            "private-owner",
+        )
+
     def test_select_reviewer_returns_none_without_eligible_owner(self) -> None:
         rules = [
             post_pr_review.CodeownersRule("app.py", ["@external"]),

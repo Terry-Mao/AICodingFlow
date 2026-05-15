@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import fnmatch
 import json
 import os
 import re
@@ -193,6 +192,28 @@ def parse_codeowners(path: Path) -> list[CodeownersRule]:
     return rules
 
 
+def codeowners_pattern_regex(pattern: str) -> re.Pattern[str]:
+    regex = ["^"]
+    index = 0
+    while index < len(pattern):
+        char = pattern[index]
+        if char == "*":
+            if index + 1 < len(pattern) and pattern[index + 1] == "*":
+                regex.append(".*")
+                index += 2
+            else:
+                regex.append("[^/]*")
+                index += 1
+        elif char == "?":
+            regex.append("[^/]")
+            index += 1
+        else:
+            regex.append(re.escape(char))
+            index += 1
+    regex.append("$")
+    return re.compile("".join(regex))
+
+
 def codeowners_pattern_matches(pattern: str, changed_path: str) -> bool:
     normalized_pattern = pattern.lstrip("/")
     normalized_path = changed_path.lstrip("/")
@@ -200,8 +221,8 @@ def codeowners_pattern_matches(pattern: str, changed_path: str) -> bool:
     if normalized_pattern.endswith("/"):
         return normalized_path.startswith(normalized_pattern)
     if "/" not in normalized_pattern:
-        return fnmatch.fnmatch(Path(normalized_path).name, normalized_pattern)
-    return fnmatch.fnmatch(normalized_path, normalized_pattern)
+        return bool(codeowners_pattern_regex(normalized_pattern).match(Path(normalized_path).name))
+    return bool(codeowners_pattern_regex(normalized_pattern).match(normalized_path))
 
 
 def codeowners_candidates_for_file(rules: list[CodeownersRule], changed_path: str) -> list[str]:
