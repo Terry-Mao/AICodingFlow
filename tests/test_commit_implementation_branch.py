@@ -265,6 +265,10 @@ class CommitImplementationBranchTest(unittest.TestCase):
         self.assertEqual(result, {"changed": "true", "branch": "spec/implement-issue-51", "sha": "abc123"})
         self.assertLess(
             calls.index(["git", "commit", "-m", "fix: update workflow"]),
+            calls.index(["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"]),
+        )
+        self.assertLess(
+            calls.index(["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"]),
             calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:workflow-token@github.com/owner/repo.git"]),
         )
         self.assertLess(
