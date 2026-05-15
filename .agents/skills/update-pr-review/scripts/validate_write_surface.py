@@ -9,8 +9,8 @@ import sys
 
 
 ALLOWED_PREFIXES = (
-    ".agents/skills/review-pr-local/",
-    ".agents/skills/review-spec-local/",
+    ".agents/skills/review-pr-repo/",
+    ".agents/skills/review-spec-repo/",
 )
 
 

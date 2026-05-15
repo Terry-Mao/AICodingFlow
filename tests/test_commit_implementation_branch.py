@@ -111,12 +111,12 @@ class CommitImplementationBranchTest(unittest.TestCase):
             mock.patch.object(commit_impl, "existing_temp_workflow_paths", return_value=["pr-metadata.json"]),
             mock.patch.object(commit_impl, "run", side_effect=lambda args, **_: calls.append(args) or ""),
         ):
-            commit_impl.stage_implementation_changes([".agents/skills/review-pr-local/SKILL.md", "tests/test_file.py"])
+            commit_impl.stage_implementation_changes([".agents/skills/review-pr-repo/SKILL.md", "tests/test_file.py"])
 
         self.assertEqual(
             calls,
             [
-                ["git", "add", "-A", "--", ".agents/skills/review-pr-local/SKILL.md", "tests/test_file.py"],
+                ["git", "add", "-A", "--", ".agents/skills/review-pr-repo/SKILL.md", "tests/test_file.py"],
                 ["git", "reset", "--", "pr-metadata.json"],
             ],
         )
@@ -146,9 +146,9 @@ class CommitImplementationBranchTest(unittest.TestCase):
         commit_impl.validate_workflow_push_permissions([".github/workflows/review-pr.yml"], "token")
 
     def test_validate_intended_files_rejects_missing_and_unexpected_files(self) -> None:
-        commit_impl.validate_intended_files([".agents/skills/review-pr-local/SKILL.md", "app.py"], ["app.py", ".agents/skills/review-pr-local/SKILL.md"])
+        commit_impl.validate_intended_files([".agents/skills/review-pr-repo/SKILL.md", "app.py"], ["app.py", ".agents/skills/review-pr-repo/SKILL.md"])
         with self.assertRaisesRegex(SystemExit, "without implementation changes"):
-            commit_impl.validate_intended_files(["app.py"], ["app.py", ".agents/skills/review-pr-local/SKILL.md"])
+            commit_impl.validate_intended_files(["app.py"], ["app.py", ".agents/skills/review-pr-repo/SKILL.md"])
         with self.assertRaisesRegex(SystemExit, "not listed in intended_files"):
             commit_impl.validate_intended_files(["app.py", "tests/test_app.py"], ["app.py"])
 

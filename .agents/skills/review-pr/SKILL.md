@@ -67,7 +67,7 @@ attached to an explicit changed line, put it in top-level `body`.
 ## Local Companion
 
 When a repository-specific companion such as
-`.agents/skills/review-pr-local/SKILL.md` is referenced by the prompt or local
+`.agents/skills/review-pr-repo/SKILL.md` is referenced by the prompt or local
 workflow, read it and apply any non-conflicting repository guidance.
 
 The local companion may add repository-specific checks and preferences, but it

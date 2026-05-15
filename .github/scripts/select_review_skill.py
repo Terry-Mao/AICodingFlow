@@ -8,8 +8,8 @@ import os
 from pathlib import Path
 
 
-CODE_REVIEW_SKILL = ".agents/skills/review-pr-local/SKILL.md"
-SPEC_REVIEW_SKILL = ".agents/skills/review-spec-local/SKILL.md"
+CODE_REVIEW_SKILL = ".agents/skills/review-pr-repo/SKILL.md"
+SPEC_REVIEW_SKILL = ".agents/skills/review-spec-repo/SKILL.md"
 
 
 def changed_files(pr_diff_text: str) -> list[str]:

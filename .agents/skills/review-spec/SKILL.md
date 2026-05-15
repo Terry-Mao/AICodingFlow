@@ -80,7 +80,7 @@ right behavior and a feasible plan.
 ## Local Companion
 
 After applying this core workflow, read
-`.agents/skills/review-spec-local/SKILL.md` when it exists and apply any
+`.agents/skills/review-spec-repo/SKILL.md` when it exists and apply any
 non-conflicting repository-specific guidance.
 
 The local companion may only supplement:
@@ -191,7 +191,7 @@ Constraints:
 2. Parse `pr_diff.txt`, build the allowed changed-line targets, and collect the
    changed file paths.
 3. Apply the `specs/` scope guard from this skill.
-4. Read `.agents/skills/review-spec-local/SKILL.md` if present and apply only
+4. Read `.agents/skills/review-spec-repo/SKILL.md` if present and apply only
    non-conflicting local guidance.
 5. Inspect repository files only when needed to evaluate whether the specs are
    complete, aligned, feasible, or consistent.

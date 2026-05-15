@@ -259,8 +259,8 @@ AI PR Review 会：
 - 生成稳定的 `pr_description.txt`。
 - 生成带行号的 `pr_diff.txt`。
 - 如果能找到相关 spec，生成 `spec_context.md`。
-- 纯 `specs/` PR 使用 `review-spec-local`。
-- 其他 PR 使用 `review-pr-local`。
+- 纯 `specs/` PR 使用 `review-spec-repo`。
+- 其他 PR 使用 `review-pr-repo`。
 - 如果 `spec_context.md` 存在，`review-pr` 会加载 `check-impl-against-spec`，把重要 spec drift 当成 review concern。
 - 输出并验证 `review.json`。
 - 通过 GitHub API 发布 PR review。
@@ -290,9 +290,9 @@ AI PR Review 会：
 | `implement-specs` | 从已批准 spec 推进实现，并保持 spec 与实现一致。 |
 | `implement-issue` | GitHub issue 实现场景包装器，约束 target branch、summary、metadata 和 push 边界。 |
 | `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`。 |
-| `review-pr-local` | AICodingFlow 仓库的普通 PR review 包装器。 |
+| `review-pr-repo` | AICodingFlow 仓库的普通 PR review 包装器。 |
 | `review-spec` | 审查纯 spec PR 的文档质量。 |
-| `review-spec-local` | AICodingFlow 仓库的 spec review 包装器。 |
+| `review-spec-repo` | AICodingFlow 仓库的 spec review 包装器。 |
 | `check-impl-against-spec` | 对照 `spec_context.md` 检查实现是否偏离 spec。 |
 | `update-pr-review` | 从人工反馈中更新本仓库的 review companion SKILL。 |
 
@@ -397,8 +397,8 @@ validation-error.txt
 这个 workflow 聚合人工对 bot review 的反馈，并更新：
 
 ```text
-.agents/skills/review-pr-local/SKILL.md
-.agents/skills/review-spec-local/SKILL.md
+.agents/skills/review-pr-repo/SKILL.md
+.agents/skills/review-spec-repo/SKILL.md
 ```
 
 它只允许写 repo-local companion skill，不允许修改核心 review contract。
@@ -446,7 +446,7 @@ rsync -a .github/ /path/to/target-repo/.github/
 1. 提交复制后的文件。
 2. 配置 `OPENAI_API_KEY` 和 `OPENAI_API_ENDPOINT`。
 3. 配置 `AGENT_LOGIN`，用于 spec 和 implementation workflow 的 assignment / mention gate。
-4. 根据目标仓库调整 `review-pr-local` 和 `review-spec-local` 的 repo-specific guidance。
+4. 根据目标仓库调整 `review-pr-repo` 和 `review-spec-repo` 的 repo-specific guidance。
 
 ## 本地开发与测试
 
