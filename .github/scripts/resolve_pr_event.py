@@ -24,7 +24,7 @@ def fetch_pr(repo: str, pr_number: str) -> dict[str, Any]:
 
 
 def resolve_event(repo: str, event_name: str, event_path: Path, pr_number: str) -> dict[str, Any]:
-    if event_name == "pull_request":
+    if event_name in {"pull_request", "pull_request_target"}:
         event = load_json(event_path)
         if "pull_request" not in event:
             raise SystemExit("pull_request event payload is missing pull_request")
@@ -56,7 +56,7 @@ def review_state(event: dict[str, Any], repo: str, event_name: str = "") -> dict
     draft = bool(pr.get("draft"))
     state = str(pr.get("state") or "").lower()
     manual_comment_trigger = event_name == "issue_comment"
-    reviewable = (manual_comment_trigger or not draft) and head_repo == repo and state == "open"
+    reviewable = (manual_comment_trigger or not draft) and state == "open"
 
     return {
         "number": str(pr.get("number") or ""),
