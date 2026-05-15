@@ -18,6 +18,29 @@ def steps(workflow_data: dict, job: str) -> list[dict]:
 
 
 class ReviewWorkflowDispatchTest(unittest.TestCase):
+    def test_workflows_use_node24_action_runtime(self) -> None:
+        workflow_jobs = {
+            ".github/workflows/create-implementation-from-issue.yml": "create-implementation",
+            ".github/workflows/create-spec-from-issue.yml": "create-spec",
+            ".github/workflows/review-pr.yml": "review",
+            ".github/workflows/update-pr-review.yml": "update",
+        }
+
+        for path, job_name in workflow_jobs.items():
+            with self.subTest(path=path):
+                data = workflow(path)
+                job = data["jobs"][job_name]
+                self.assertEqual(job["env"]["FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"], "true")
+                used_actions = [step.get("uses", "") for step in steps(data, job_name) if "uses" in step]
+                self.assertNotIn("actions/checkout@v4", used_actions)
+                self.assertNotIn("actions/upload-artifact@v4", used_actions)
+
+                for action in used_actions:
+                    if action.startswith("actions/checkout@"):
+                        self.assertEqual(action, "actions/checkout@v6")
+                    if action.startswith("actions/upload-artifact@"):
+                        self.assertEqual(action, "actions/upload-artifact@v7")
+
     def test_review_workflow_keeps_pull_request_trigger_and_adds_manual_pr_number(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")
         triggers = data[True]
