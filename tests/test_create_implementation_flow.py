@@ -113,17 +113,16 @@ class CreateImplementationFlowTest(unittest.TestCase):
                 mock.patch.object(
                     finalize_impl,
                     "create_pr",
-                    return_value={"number": "125", "url": "https://github.test/owner/repo/pull/125"},
+                    return_value="https://github.test/owner/repo/pull/125",
                 ) as create_pr,
             ):
-                pr = finalize_impl.finalize(
+                pr_url = finalize_impl.finalize(
                     "owner/repo",
                     context,
                     json.loads(metadata.read_text(encoding="utf-8")),
                 )
 
-        self.assertEqual(pr["url"], "https://github.test/owner/repo/pull/125")
-        self.assertEqual(pr["number"], "125")
+        self.assertEqual(pr_url, "https://github.test/owner/repo/pull/125")
         create_pr.assert_called_once_with(
             "owner/repo",
             "main",

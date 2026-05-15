@@ -53,11 +53,10 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
             "pr_summary": "Closes #18\n\n## Summary\n- Done",
         }
 
-        with mock.patch.object(finalize, "edit_pr", return_value={"number": "123", "url": "https://github.test/pr/123"}) as edit_pr:
-            pr = finalize.finalize("owner/repo", context, metadata)
+        with mock.patch.object(finalize, "edit_pr", return_value="https://github.test/pr/123") as edit_pr:
+            pr_url = finalize.finalize("owner/repo", context, metadata)
 
-        self.assertEqual(pr["url"], "https://github.test/pr/123")
-        self.assertEqual(pr["number"], "123")
+        self.assertEqual(pr_url, "https://github.test/pr/123")
         edit_pr.assert_called_once_with(
             "owner/repo",
             "123",
@@ -81,13 +80,12 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
             mock.patch.object(
                 finalize,
                 "create_pr",
-                return_value={"number": "124", "url": "https://github.test/pr/124"},
+                return_value="https://github.test/pr/124",
             ) as create_pr,
         ):
-            pr = finalize.finalize("owner/repo", context, metadata)
+            pr_url = finalize.finalize("owner/repo", context, metadata)
 
-        self.assertEqual(pr["url"], "https://github.test/pr/124")
-        self.assertEqual(pr["number"], "124")
+        self.assertEqual(pr_url, "https://github.test/pr/124")
         create_pr.assert_called_once_with(
             "owner/repo",
             "main",
@@ -102,10 +100,10 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
             "run",
             return_value=CompletedProcess(args=[], returncode=0, stdout="https://github.test/owner/repo/pull/124\n"),
         ) as run:
-            pr = finalize.create_pr("owner/repo", "main", "feature-branch", "feat: title", "Body")
+            pr_url = finalize.create_pr("owner/repo", "main", "feature-branch", "feat: title", "Body")
 
         args = run.call_args.args[0]
-        self.assertEqual(pr, {"number": "124", "url": "https://github.test/owner/repo/pull/124"})
+        self.assertEqual(pr_url, "https://github.test/owner/repo/pull/124")
         self.assertIn("create", args)
         self.assertIn("--draft", args)
 

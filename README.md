@@ -225,6 +225,7 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
    - `implement-issue`
 7. agent 产出实现 diff 时，写 `implementation_summary.md` 和 `pr-metadata.json`，并把代码变更留在工作区。
 8. workflow 校验 metadata，提交并推送 `pr-metadata.json.branch_name`，确认 branch 更新后创建或更新 PR。
+9. implementation PR 默认保持 draft，不自动触发 AI PR Review；需要 review 时，在 PR comment 中 `@AGENT_LOGIN` 手动触发。
 
 目标分支规则：
 
@@ -360,7 +361,7 @@ permissions:
 .github/workflows/create-implementation-from-issue.yml
 ```
 
-这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。
+这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。创建或更新 implementation PR 后不会自动触发 AI PR Review，因为该 PR 仍是 draft；需要 review 时，在 PR comment 中 `@AGENT_LOGIN` 手动触发。
 
 需要配置：
 
