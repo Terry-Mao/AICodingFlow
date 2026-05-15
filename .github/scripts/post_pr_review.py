@@ -26,9 +26,9 @@ class CodeownersRule(NamedTuple):
 
 
 def load_event() -> dict[str, Any]:
-    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    event_path = os.environ.get("PR_EVENT_PATH") or os.environ.get("GITHUB_EVENT_PATH")
     if not event_path:
-        raise SystemExit("GITHUB_EVENT_PATH is not set")
+        raise SystemExit("PR_EVENT_PATH or GITHUB_EVENT_PATH is required")
     return json.loads(Path(event_path).read_text(encoding="utf-8"))
 
 

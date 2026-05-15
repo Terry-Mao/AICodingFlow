@@ -77,9 +77,11 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("reviewable", data["jobs"]["preflight"]["outputs"])
 
         description_step = next(step for step in review_steps if step.get("name") == "Snapshot PR description")
+        spec_context_step = next(step for step in review_steps if step.get("name") == "Snapshot spec context")
         post_step = next(step for step in review_steps if step.get("name") == "Post PR review")
-        self.assertEqual(description_step["env"]["GITHUB_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
-        self.assertEqual(post_step["env"]["GITHUB_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
+        self.assertEqual(description_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
+        self.assertEqual(spec_context_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
+        self.assertEqual(post_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
 
     def test_create_spec_workflow_dispatches_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-spec-from-issue.yml")

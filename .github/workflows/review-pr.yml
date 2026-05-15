@@ -102,7 +102,7 @@ jobs:
 
       - name: Snapshot PR description
         env:
-          GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
+          PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
         run: python3 .github/scripts/write_pr_description.py --output pr_description.txt
 
       - name: Snapshot PR diff
@@ -123,7 +123,7 @@ jobs:
       - name: Snapshot spec context
         if: steps.review_skill.outputs.needs_spec_context == 'true'
         env:
-          GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
+          PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/write_spec_context.py --output spec_context.md
@@ -172,7 +172,7 @@ jobs:
 
       - name: Post PR review
         env:
-          GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
+          PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/post_pr_review.py --review review.json
 
