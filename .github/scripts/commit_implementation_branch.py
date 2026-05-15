@@ -65,12 +65,12 @@ def staged_paths() -> list[str]:
 
 
 def print_path_list(label: str, paths: list[str]) -> None:
-    print(f"{label}:")
+    print(f"{label}:", flush=True)
     if not paths:
-        print("  (none)")
+        print("  (none)", flush=True)
         return
     for path in paths:
-        print(f"  {path}")
+        print(f"  {path}", flush=True)
 
 
 def existing_temp_workflow_paths() -> list[str]:
@@ -111,6 +111,7 @@ def validate_workflow_push_permissions(paths: list[str], token: str) -> None:
 def configure_workflow_push_token(repo: str, token: str) -> None:
     if not token:
         return
+    run(["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"], check=False)
     run(["git", "remote", "set-url", "origin", f"https://x-access-token:{token}@github.com/{repo}.git"])
 
 
