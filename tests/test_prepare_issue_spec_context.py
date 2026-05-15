@@ -243,6 +243,31 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 (True, "ready-to-spec comment mentioned @codex"),
             )
 
+    def test_should_not_run_for_pull_request_comment_mention(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(
+                json.dumps(
+                    {
+                        "issue": {"pull_request": {"url": "https://api.github.test/repos/owner/repo/pulls/61"}},
+                        "comment": {"body": "@codex please spec this"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                force=False,
+                event_name="issue_comment",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": []}
+
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (False, "PR comments are handled by review-pr workflow"),
+            )
+
     def test_should_not_run_for_partial_or_quoted_agent_mention(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
