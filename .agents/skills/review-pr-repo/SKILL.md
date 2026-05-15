@@ -1,10 +1,10 @@
 ---
-name: review-pr-local
+name: review-pr-repo
 specializes: review-pr
 description: Repo-specific wrapper around the core review-pr workflow for AICodingFlow pull request reviews.
 ---
 
-# review-pr-local
+# review-pr-repo
 
 Use this skill for reviewing pull requests in this repository.
 

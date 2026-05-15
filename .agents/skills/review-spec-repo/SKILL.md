@@ -1,10 +1,10 @@
 ---
-name: review-spec-local
+name: review-spec-repo
 specializes: review-spec
 description: Repo-specific wrapper around the core review-spec workflow for AICodingFlow spec-only pull request reviews.
 ---
 
-# review-spec-local
+# review-spec-repo
 
 Use this skill for reviewing PRs whose changed files are all under `specs/`.
 

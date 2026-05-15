@@ -30,7 +30,7 @@ Always write `update-pr-review-output/status.json`:
 {
   "status": "changed",
   "reason": "Brief evidence summary.",
-  "updated_files": [".agents/skills/review-pr-local/SKILL.md"]
+  "updated_files": [".agents/skills/review-pr-repo/SKILL.md"]
 }
 ```
 
@@ -45,8 +45,8 @@ enough to update guidance.
 
 For `changed`, write the complete replacement content for each updated file:
 
-- `update-pr-review-output/review-pr-local/SKILL.md`
-- `update-pr-review-output/review-spec-local/SKILL.md`
+- `update-pr-review-output/review-pr-repo/SKILL.md`
+- `update-pr-review-output/review-spec-repo/SKILL.md`
 
 Do not edit `.agents` directly.
 
@@ -94,8 +94,8 @@ Do not:
 
 Use each PR's `review_type`:
 
-- `code` -> `.agents/skills/review-pr-local/SKILL.md`
-- `spec` -> `.agents/skills/review-spec-local/SKILL.md`
+- `code` -> `.agents/skills/review-pr-repo/SKILL.md`
+- `spec` -> `.agents/skills/review-spec-repo/SKILL.md`
 
 Skip a file when that feedback type has no useful pattern.
 
@@ -103,8 +103,8 @@ Skip a file when that feedback type has no useful pattern.
 
 Allowed write surface:
 
-- `.agents/skills/review-pr-local/`
-- `.agents/skills/review-spec-local/`
+- `.agents/skills/review-pr-repo/`
+- `.agents/skills/review-spec-repo/`
 
 Forbidden write surface:
 

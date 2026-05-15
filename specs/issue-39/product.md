@@ -8,7 +8,7 @@
 
 ## 2. Problem
 
-当前仓库已有 `review-pr` 核心技能和 `review-spec-local` 仓库本地 companion，但缺少一个面向规格文档 PR 的核心 `review-spec` 技能。没有这个核心技能时，规格 PR 容易被普通代码评审规则处理，导致评审关注点偏向代码错误、性能或异常处理，而不是文档是否足以指导后续实现。
+当前仓库已有 `review-pr` 核心技能和 `review-spec-repo` 仓库本地 companion，但缺少一个面向规格文档 PR 的核心 `review-spec` 技能。没有这个核心技能时，规格 PR 容易被普通代码评审规则处理，导致评审关注点偏向代码错误、性能或异常处理，而不是文档是否足以指导后续实现。
 
 该问题会影响两类用户：
 
@@ -23,14 +23,14 @@
 - 保持与 `review-pr` 相同的 `review.json` 输出契约、diff 行定位规则、严重级别标签、suggestion 规则和校验流程。
 - 将评审重点限定在规格文档质量：完整性、清晰性、可行性、与 issue/PR 意图的对齐度、文档内部一致性。
 - 明确禁止代码级评审范围，例如不针对生产代码的错误处理、性能优化或实现风格提出评论。
-- 说明如何结合 `.agents/skills/review-spec-local/SKILL.md` 的仓库本地规则，并限制本地规则只能补充仓库特定章节、链接和格式要求。
+- 说明如何结合 `.agents/skills/review-spec-repo/SKILL.md` 的仓库本地规则，并限制本地规则只能补充仓库特定章节、链接和格式要求。
 - 确保该技能的最终产物仅为 `review.json`。
 
 ## 4. Non-goals
 
 - 不实现或修改规格评审运行的 GitHub Actions workflow。
 - 不修改 `.agents/skills/review-pr/SKILL.md` 的核心评审契约或校验脚本。
-- 不修改 `.agents/skills/review-spec-local/SKILL.md`，除非后续独立任务要求。
+- 不修改 `.agents/skills/review-spec-repo/SKILL.md`，除非后续独立任务要求。
 - 不新增发布评论、拉取 live PR 状态、生成 diff 快照或调用 `gh` 的能力。
 - 不把 `review-spec` 扩展为代码 PR 的通用评审技能。
 - 不要求在本次规格工作中实现 feature；本 PR 只产出规格文档和 PR metadata。
@@ -88,7 +88,7 @@ Figma: none provided。该需求是仓库自动化技能与文档工作流变更
 ### 与本地 companion 的关系
 
 - `review-spec` 是核心技能，定义通用工作流、输出契约、安全边界和文档质量评审重点。
-- `.agents/skills/review-spec-local/SKILL.md` 只能补充仓库本地偏好。
+- `.agents/skills/review-spec-repo/SKILL.md` 只能补充仓库本地偏好。
 - 本地 companion 可以覆盖或补充的内容仅限：
   - 仓库要求的必填章节。
   - `specs/` 目录下链接规范。
@@ -102,7 +102,7 @@ Figma: none provided。该需求是仓库自动化技能与文档工作流变更
 - 技能文档明确复用 `review-pr` 的 `review.json` shape、inline target 规则、severity labels、suggestion block 规则和 `validate_review_json.py` 校验步骤。
 - 技能文档明确它只关注文档质量，不做生产代码级评审。
 - 技能文档包含 issue 中给出的五个核心评审维度，并把它们转换为可执行的评审规则。
-- 技能文档明确说明 `review-spec-local` 的允许覆盖范围和禁止覆盖范围。
+- 技能文档明确说明 `review-spec-repo` 的允许覆盖范围和禁止覆盖范围。
 - 技能文档包含最终检查步骤：运行 `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`。
 - 当没有可定位 inline findings 时，`review.json` 仍然使用合法 JSON，`comments` 为 `[]`，广泛问题写入 `body`。
 - 文档不会要求新增或修改 GitHub Actions，也不会要求修改生产代码。
@@ -111,12 +111,12 @@ Figma: none provided。该需求是仓库自动化技能与文档工作流变更
 
 - 人工检查 `.agents/skills/review-spec/SKILL.md` 是否覆盖 issue 中的定位、五大维度、必须做、本地覆盖规则、diff 注解规则、评论标签、输出格式和最终检查。
 - 人工检查该技能是否与 `.agents/skills/review-pr/SKILL.md` 的输出契约保持一致，没有引入不兼容的 JSON 字段。
-- 人工检查该技能是否与 `.agents/skills/review-spec-local/SKILL.md` 的 companion 边界一致。
+- 人工检查该技能是否与 `.agents/skills/review-spec-repo/SKILL.md` 的 companion 边界一致。
 - 使用一个示例 `pr_diff.txt` 和 `review.json` 运行 `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`，确认校验流程仍可复用。
 - 对包含非 `specs/` 文件的输入进行人工或测试验证，确认技能不会假装完成 spec-only review，而是在顶层 `body` 说明范围不匹配。
 
 ## 9. Open questions
 
-- 是否需要后续单独更新 `.github/workflows/review-pr.yml`，在 spec-only PR 中调用 `review-spec` 而不是 `review-pr-local`？本规格将该 workflow 改动视为非目标。
+- 是否需要后续单独更新 `.github/workflows/review-pr.yml`，在 spec-only PR 中调用 `review-spec` 而不是 `review-pr-repo`？本规格将该 workflow 改动视为非目标。
 - 是否需要提供 fixture 示例来验证 `review-spec` 的典型 approve/reject 输出？当前需求未强制要求。
 - `review.json` 是否应包含 issue 正文示例中的 `verdict` 字段？现有 `review-pr` 校验脚本不接受 `verdict`，因此本规格以当前仓库契约为准，不新增该字段。

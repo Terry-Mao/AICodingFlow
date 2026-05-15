@@ -23,7 +23,7 @@
 现有 end-to-end 流程：
 
 1. `review-pr.yml` 生成稳定 PR 快照。
-2. `select_review_skill.py` 根据 changed files 选择 `review-pr-local` 或 `review-spec-local`。
+2. `select_review_skill.py` 根据 changed files 选择 `review-pr-repo` 或 `review-spec-repo`。
 3. Codex 按 skill 写出 `review.json`。
 4. `validate_review_json.py` 校验 `review.json`。
 5. `post_pr_review.py` 发布 GitHub PR review。
@@ -161,7 +161,7 @@ POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers
 
 1. PR 触发 `review-pr.yml`。
 2. Workflow 生成 `pr_description.txt` 和 `pr_diff.txt`。
-3. Workflow 选择 `review-pr-local` 或 `review-spec-local`。
+3. Workflow 选择 `review-pr-repo` 或 `review-spec-repo`。
 4. Codex 输出包含 `verdict` 的 `review.json`。
 5. `validate_review_json.py pr_diff.txt review.json` 校验通过。
 6. `post_pr_review.py` 读取 GitHub event 中的 `pull_request`。

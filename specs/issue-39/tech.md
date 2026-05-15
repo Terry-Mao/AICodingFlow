@@ -10,9 +10,9 @@
 
 - `.agents/skills/review-pr/SKILL.md` — 现有核心 PR review 技能，定义 `pr_description.txt`、`pr_diff.txt`、`review.json`、severity labels、suggestion block、inline line targeting 和校验工作流。
 - `.agents/skills/review-pr/scripts/validate_review_json.py` — 当前唯一 review 输出校验脚本；它只允许 `review.json` 包含 `body` 和 `comments`，并校验 inline comments 是否指向 `pr_diff.txt` 中的 changed `LEFT` 或 `RIGHT` 行。
-- `.agents/skills/review-pr-local/SKILL.md` — 仓库本地代码 PR review wrapper，展示本地 companion 如何引用核心技能且不覆盖核心契约。
-- `.agents/skills/review-spec-local/SKILL.md` — 已存在的 spec-only PR companion，当前只定义仓库本地规格文档评审偏好，不定义核心 schema 或安全规则。
-- `.github/workflows/review-pr.yml` — 当前 PR review workflow 固定读取 `.agents/skills/review-pr-local/SKILL.md`，生成并发布 `review.json`。本次实现不修改该 workflow。
+- `.agents/skills/review-pr-repo/SKILL.md` — 仓库本地代码 PR review wrapper，展示本地 companion 如何引用核心技能且不覆盖核心契约。
+- `.agents/skills/review-spec-repo/SKILL.md` — 已存在的 spec-only PR companion，当前只定义仓库本地规格文档评审偏好，不定义核心 schema 或安全规则。
+- `.github/workflows/review-pr.yml` — 当前 PR review workflow 固定读取 `.agents/skills/review-pr-repo/SKILL.md`，生成并发布 `review.json`。本次实现不修改该 workflow。
 - `.agents/skills/update-pr-review/SKILL.md` — 已把 `.agents/skills/review-spec/SKILL.md` 列为禁止写入的核心技能路径，说明 `review-spec` 应被视为核心契约而非 self-evolution companion。
 
 ## 3. Current state
@@ -20,15 +20,15 @@
 当前系统已有通用代码 PR review 能力：
 
 - workflow 生成 `pr_description.txt` 和 `pr_diff.txt`。
-- Codex 按 `.agents/skills/review-pr-local/SKILL.md` 执行 review。
-- `review-pr-local` 读取并遵循核心 `.agents/skills/review-pr/SKILL.md`。
+- Codex 按 `.agents/skills/review-pr-repo/SKILL.md` 执行 review。
+- `review-pr-repo` 读取并遵循核心 `.agents/skills/review-pr/SKILL.md`。
 - `review.json` 由 `.agents/skills/review-pr/scripts/validate_review_json.py` 校验。
 - `.github/scripts/post_pr_review.py` 负责把合法 review 结果发布到 GitHub。
 
 当前缺口：
 
 - 没有 `.agents/skills/review-spec/SKILL.md` 核心技能。
-- `review-spec-local` 已存在但只是 companion，没有完整工作流、输出契约和安全边界。
+- `review-spec-repo` 已存在但只是 companion，没有完整工作流、输出契约和安全边界。
 - `update-pr-review` 已将 `.agents/skills/review-spec/SKILL.md` 视作核心 forbidden write surface，但该路径尚不存在。
 - Issue 正文中的输出示例包含 `verdict`，但当前校验器会拒绝未知字段；实现时必须解决文档需求与现有 schema 的冲突。
 
@@ -101,14 +101,14 @@ description: Review a spec-only GitHub pull request from pinned `pr_diff.txt` an
 
 该 guard 是技能行为要求，不需要新增脚本实现。
 
-### 与 `review-spec-local` 的关系
+### 与 `review-spec-repo` 的关系
 
-`review-spec` 应定义核心契约；`.agents/skills/review-spec-local/SKILL.md` 只作为仓库本地 companion。技能应要求：
+`review-spec` 应定义核心契约；`.agents/skills/review-spec-repo/SKILL.md` 只作为仓库本地 companion。技能应要求：
 
 1. 先遵循 `.agents/skills/review-spec/SKILL.md` 的核心工作流。
-2. 再应用 `.agents/skills/review-spec-local/SKILL.md` 的仓库本地偏好。
+2. 再应用 `.agents/skills/review-spec-repo/SKILL.md` 的仓库本地偏好。
 
-同时写明 `review-spec-local` 只能补充：
+同时写明 `review-spec-repo` 只能补充：
 
 - 仓库要求的必填章节。
 - `specs/` 目录下链接规范。
@@ -158,7 +158,7 @@ description: Review a spec-only GitHub pull request from pinned `pr_diff.txt` an
 
 - 静态检查 `.agents/skills/review-spec/SKILL.md` frontmatter 是否包含 `name: review-spec` 和准确 description。
 - 人工比对 `.agents/skills/review-spec/SKILL.md` 与 `.agents/skills/review-pr/SKILL.md`，确认输出 schema、severity labels、suggestion rules 和 validate command 不冲突。
-- 人工比对 `.agents/skills/review-spec/SKILL.md` 与 `.agents/skills/review-spec-local/SKILL.md`，确认 core/companion 边界清楚。
+- 人工比对 `.agents/skills/review-spec/SKILL.md` 与 `.agents/skills/review-spec-repo/SKILL.md`，确认 core/companion 边界清楚。
 - 准备一个只包含 `specs/example/product.md` changed lines 的 `pr_diff.txt` fixture 和合法 `review.json`，运行：
 
 ```bash
@@ -170,6 +170,6 @@ python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt rev
 
 ## 8. Follow-ups
 
-- 后续可设计 workflow 分流：当 PR 只修改 `specs/` 时读取 `review-spec` 或 `review-spec-local`，其他 PR 继续读取 `review-pr-local`。
+- 后续可设计 workflow 分流：当 PR 只修改 `specs/` 时读取 `review-spec` 或 `review-spec-repo`，其他 PR 继续读取 `review-pr-repo`。
 - 后续可考虑新增专用 fixture 或轻量脚本，验证 skill 文档中的示例 `review.json` 与校验脚本兼容。
 - 如果维护者确实需要 `verdict` 字段，应另开任务统一修改 `validate_review_json.py`、post review 逻辑、`review-pr` 和 `review-spec` 契约。
