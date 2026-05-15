@@ -11,14 +11,17 @@ from pathlib import Path
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--event-path", default="")
     parser.add_argument("--output", default="pr_description.txt")
     args = parser.parse_args()
 
-    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    event_path = args.event_path or os.environ.get("PR_EVENT_PATH") or os.environ.get("GITHUB_EVENT_PATH")
     if not event_path:
-        raise SystemExit("GITHUB_EVENT_PATH is not set")
+        raise SystemExit("--event-path, PR_EVENT_PATH, or GITHUB_EVENT_PATH is required")
 
     event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+    if "pull_request" not in event:
+        raise SystemExit("event payload is missing pull_request")
     pr = event["pull_request"]
     base = pr["base"]
     head = pr["head"]

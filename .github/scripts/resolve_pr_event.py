@@ -24,7 +24,7 @@ def fetch_pr(repo: str, pr_number: str) -> dict[str, Any]:
 
 
 def resolve_event(repo: str, event_name: str, event_path: Path, pr_number: str) -> dict[str, Any]:
-    if event_name == "pull_request":
+    if event_name in {"pull_request", "pull_request_target"}:
         event = load_json(event_path)
         if "pull_request" not in event:
             raise SystemExit("pull_request event payload is missing pull_request")
@@ -48,14 +48,15 @@ def resolve_event(repo: str, event_name: str, event_path: Path, pr_number: str) 
     raise SystemExit(f"unsupported event_name: {event_name}")
 
 
-def review_state(event: dict[str, Any], repo: str) -> dict[str, str]:
+def review_state(event: dict[str, Any], repo: str, event_name: str = "") -> dict[str, str]:
     pr = event["pull_request"]
     head = pr.get("head") or {}
     base = pr.get("base") or {}
     head_repo = (head.get("repo") or {}).get("full_name") or ""
     draft = bool(pr.get("draft"))
     state = str(pr.get("state") or "").lower()
-    reviewable = (not draft) and head_repo == repo and state == "open"
+    manual_comment_trigger = event_name == "issue_comment"
+    reviewable = (manual_comment_trigger or not draft) and state == "open"
 
     return {
         "number": str(pr.get("number") or ""),
@@ -90,7 +91,7 @@ def main() -> None:
     event = resolve_event(args.repo, args.event_name, Path(args.event_path), args.pr_number)
     output_path.write_text(json.dumps(event), encoding="utf-8")
 
-    state = review_state(event, args.repo)
+    state = review_state(event, args.repo, args.event_name)
     state["event_path"] = str(output_path)
     write_github_output(args.github_output, state)
 

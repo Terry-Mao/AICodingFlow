@@ -214,14 +214,14 @@ def format_spec_context_text(context: dict[str, Any]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", ""))
-    parser.add_argument("--event-path", default=os.environ.get("GITHUB_EVENT_PATH", ""))
+    parser.add_argument("--event-path", default=os.environ.get("PR_EVENT_PATH") or os.environ.get("GITHUB_EVENT_PATH", ""))
     parser.add_argument("--output", default="spec_context.md")
     args = parser.parse_args()
 
     if not args.repo:
         raise SystemExit("--repo or GITHUB_REPOSITORY is required")
     if not args.event_path:
-        raise SystemExit("--event-path or GITHUB_EVENT_PATH is required")
+        raise SystemExit("--event-path, PR_EVENT_PATH, or GITHUB_EVENT_PATH is required")
 
     context = resolve_spec_context(args.repo, load_event(args.event_path))
     output_path = Path(args.output)
