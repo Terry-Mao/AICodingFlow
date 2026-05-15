@@ -34,17 +34,6 @@ class ResolvePrEventTest(unittest.TestCase):
                 event,
             )
 
-    def test_pull_request_target_event_reuses_existing_payload(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            event_path = Path(directory) / "event.json"
-            event = {"pull_request": pr_payload(number=11, head_repo="fork/repo")}
-            event_path.write_text(json.dumps(event), encoding="utf-8")
-
-            self.assertEqual(
-                resolver.resolve_event("owner/repo", "pull_request_target", event_path, ""),
-                event,
-            )
-
     def test_workflow_dispatch_fetches_pr_payload(self) -> None:
         fetched = pr_payload(number=12)
         with mock.patch.object(resolver, "fetch_pr", return_value=fetched) as fetch_pr:

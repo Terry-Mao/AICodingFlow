@@ -24,7 +24,7 @@ def fetch_pr(repo: str, pr_number: str) -> dict[str, Any]:
 
 
 def resolve_event(repo: str, event_name: str, event_path: Path, pr_number: str) -> dict[str, Any]:
-    if event_name in {"pull_request", "pull_request_target"}:
+    if event_name == "pull_request":
         event = load_json(event_path)
         if "pull_request" not in event:
             raise SystemExit("pull_request event payload is missing pull_request")
