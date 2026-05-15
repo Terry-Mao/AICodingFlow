@@ -98,6 +98,24 @@ class ResolvePrEventTest(unittest.TestCase):
             "false",
         )
 
+    def test_review_state_allows_manual_comment_review_for_draft_same_repo_pr(self) -> None:
+        self.assertEqual(
+            resolver.review_state(
+                {"pull_request": pr_payload(draft=True)},
+                "owner/repo",
+                "issue_comment",
+            )["reviewable"],
+            "true",
+        )
+        self.assertEqual(
+            resolver.review_state(
+                {"pull_request": pr_payload(draft=True, head_repo="fork/repo")},
+                "owner/repo",
+                "issue_comment",
+            )["reviewable"],
+            "false",
+        )
+
     def test_main_writes_event_file_and_github_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"

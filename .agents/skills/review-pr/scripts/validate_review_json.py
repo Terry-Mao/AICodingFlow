@@ -16,6 +16,7 @@ SEVERITIES = (
     "💡 [SUGGESTION]",
     "🧹 [NIT]",
 )
+VERDICTS = ("APPROVE", "REJECT")
 
 FILE_RE = re.compile(r"^FILE\s+(.+?)\s*$")
 LINE_RE = re.compile(r"^(LEFT|RIGHT|BOTH)\s+(\d+)\s+\|")
@@ -115,6 +116,14 @@ def validate_comment(comment: Any, index: int, allowed: dict[tuple[str, str], se
             fail(f"{label} suggestion block is not closed")
 
 
+def validate_reviewers(reviewers: Any) -> None:
+    require_type(reviewers, list, "review.recommended_reviewers")
+    if len(reviewers) > 1:
+        fail("review.recommended_reviewers must contain at most 1 reviewer")
+    for index, reviewer in enumerate(reviewers):
+        require_type(reviewer, str, f"review.recommended_reviewers[{index}]")
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         fail("usage: validate_review_json.py <pr_diff.txt> <review.json>")
@@ -133,14 +142,20 @@ def main() -> None:
         fail(f"review.json is not valid JSON: {exc}")
     require_type(review, dict, "review")
 
-    if set(review) - {"body", "comments"}:
-        fail(f"review contains unknown keys: {sorted(set(review) - {'body', 'comments'})}")
-    for key in ("body", "comments"):
+    allowed_keys = {"verdict", "body", "comments", "recommended_reviewers"}
+    if set(review) - allowed_keys:
+        fail(f"review contains unknown keys: {sorted(set(review) - allowed_keys)}")
+    for key in ("verdict", "body", "comments"):
         if key not in review:
             fail(f"review.{key} is required")
 
+    require_type(review["verdict"], str, "review.verdict")
+    if review["verdict"] not in VERDICTS:
+        fail("review.verdict must be APPROVE or REJECT")
     require_type(review["body"], str, "review.body")
     require_type(review["comments"], list, "review.comments")
+    if "recommended_reviewers" in review:
+        validate_reviewers(review["recommended_reviewers"])
 
     for index, comment in enumerate(review["comments"]):
         validate_comment(comment, index, allowed)
