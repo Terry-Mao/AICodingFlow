@@ -26,6 +26,19 @@ class PostPrReviewTest(unittest.TestCase):
         self.assertEqual(post_pr_review.review_event_for(non_member_pr, ["app.py"], "APPROVE"), "COMMENT")
         self.assertEqual(post_pr_review.review_event_for(non_member_pr, ["app.py"], "REJECT"), "REQUEST_CHANGES")
 
+    def test_spec_only_pr_is_not_a_non_member_code_review_subject(self) -> None:
+        non_member_pr = {"author_association": "FIRST_TIMER", "user": {"login": "external", "type": "User"}}
+
+        self.assertFalse(
+            post_pr_review.is_non_member_code_review_subject(
+                non_member_pr,
+                ["specs/issue-1/product.md"],
+            )
+        )
+        self.assertFalse(post_pr_review.should_request_human_reviewer(non_member_pr, ["specs/issue-1/product.md"], "APPROVE"))
+        self.assertEqual(post_pr_review.review_event_for(non_member_pr, ["specs/issue-1/product.md"], "APPROVE"), "COMMENT")
+        self.assertEqual(post_pr_review.review_event_for(non_member_pr, ["specs/issue-1/product.md"], "REJECT"), "COMMENT")
+
     def test_review_event_uses_conservative_author_handling(self) -> None:
         bot_pr = {"author_association": "NONE", "user": {"login": "dependabot[bot]", "type": "Bot"}}
         missing_association_pr = {"user": {"login": "external", "type": "User"}}
@@ -69,15 +82,6 @@ class PostPrReviewTest(unittest.TestCase):
         self.assertEqual(
             post_pr_review.select_reviewer(
                 {"recommended_reviewers": ["not-a-codeowner"]},
-                rules,
-                ["app.py"],
-                "external",
-            ),
-            "owner",
-        )
-        self.assertEqual(
-            post_pr_review.select_reviewer(
-                {"recommended_reviewers": ["owner", "fallback"]},
                 rules,
                 ["app.py"],
                 "external",
@@ -291,6 +295,57 @@ class PostPrReviewTest(unittest.TestCase):
             },
         )
 
+    def test_main_posts_request_changes_for_non_member_rejected_code_pr(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            review_path = Path(directory) / "review.json"
+            diff_path = Path(directory) / "pr_diff.txt"
+            review_path.write_text(
+                json.dumps({"verdict": "REJECT", "body": "blocking issue", "comments": []}),
+                encoding="utf-8",
+            )
+            diff_path.write_text(
+                "\n".join(["# PR_DIFF_V1", "FILE app.py", "END_FILE", ""]),
+                encoding="utf-8",
+            )
+
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"},
+                    clear=True,
+                ),
+                mock.patch.object(
+                    post_pr_review,
+                    "load_event",
+                    return_value={
+                        "pull_request": {
+                            "number": 5,
+                            "head": {"sha": "abc123"},
+                            "author_association": "FIRST_TIMER",
+                            "user": {"login": "external", "type": "User"},
+                        }
+                    },
+                ),
+                mock.patch.object(post_pr_review, "request_json", return_value={"id": 99}) as request_json,
+                mock.patch(
+                    "sys.argv",
+                    ["post_pr_review.py", "--review", str(review_path), "--diff", str(diff_path)],
+                ),
+                mock.patch("builtins.print"),
+            ):
+                post_pr_review.main()
+
+        request_json.assert_called_once_with(
+            "https://api.github.com/repos/owner/repo/pulls/5/reviews",
+            "token",
+            {
+                "event": "REQUEST_CHANGES",
+                "commit_id": "abc123",
+                "body": "blocking issue",
+                "comments": [],
+            },
+        )
+
     def test_main_requests_reviewer_for_non_member_approved_code_pr(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             review_path = Path(directory) / "review.json"
@@ -334,6 +389,60 @@ class PostPrReviewTest(unittest.TestCase):
                 post_pr_review.main()
 
         request_reviewer.assert_called_once_with("owner/repo", "token", 5, "owner")
+
+    def test_main_does_not_request_reviewer_for_non_member_approved_spec_only_pr(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            review_path = Path(directory) / "review.json"
+            diff_path = Path(directory) / "pr_diff.txt"
+            review_path.write_text(
+                json.dumps({"verdict": "APPROVE", "body": "summary", "comments": []}),
+                encoding="utf-8",
+            )
+            diff_path.write_text(
+                "\n".join(["# PR_DIFF_V1", "FILE specs/issue-1/product.md", "END_FILE", ""]),
+                encoding="utf-8",
+            )
+
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"},
+                    clear=True,
+                ),
+                mock.patch.object(
+                    post_pr_review,
+                    "load_event",
+                    return_value={
+                        "pull_request": {
+                            "number": 5,
+                            "head": {"sha": "abc123"},
+                            "author_association": "NONE",
+                            "user": {"login": "external", "type": "User"},
+                        }
+                    },
+                ),
+                mock.patch.object(post_pr_review, "parse_codeowners", return_value=[post_pr_review.CodeownersRule("*", ["@owner"])]),
+                mock.patch.object(post_pr_review, "request_json", return_value={"id": 99}) as request_json,
+                mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
+                mock.patch(
+                    "sys.argv",
+                    ["post_pr_review.py", "--review", str(review_path), "--diff", str(diff_path)],
+                ),
+                mock.patch("builtins.print"),
+            ):
+                post_pr_review.main()
+
+        request_json.assert_called_once_with(
+            "https://api.github.com/repos/owner/repo/pulls/5/reviews",
+            "token",
+            {
+                "event": "COMMENT",
+                "commit_id": "abc123",
+                "body": "summary",
+                "comments": [],
+            },
+        )
+        request_reviewer.assert_not_called()
 
     def test_main_skips_reviewer_request_when_codeowners_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

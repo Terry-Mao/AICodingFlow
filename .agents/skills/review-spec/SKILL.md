@@ -129,10 +129,11 @@ inline comment.
 
 ## Output
 
-Write `review.json` with exactly the current `review-pr` shape:
+Write `review.json` with exactly this shape:
 
 ```json
 {
+  "verdict": "APPROVE",
   "body": "Top-level review summary or issues that cannot be attached inline.",
   "comments": [
     {
@@ -144,6 +145,18 @@ Write `review.json` with exactly the current `review-pr` shape:
   ]
 }
 ```
+
+Use `verdict: "APPROVE"` when there are no blocking-level document-quality
+findings. Use `verdict: "REJECT"` when the spec has material gaps,
+contradictions, missing acceptance criteria, infeasible technical direction, or
+other problems that should be fixed before the plan is accepted. Keep the
+top-level `body` wording consistent with the structured verdict.
+
+For spec-only PRs, the workflow publishes both `APPROVE` and `REJECT` verdicts
+as GitHub `COMMENT` reviews. A `REJECT` verdict is machine-readable review
+state for the spec quality result; it does not become a GitHub blocking
+`REQUEST_CHANGES` review and does not trigger the non-member human reviewer
+request flow.
 
 For ranges, add `start_line`:
 
@@ -159,6 +172,7 @@ For ranges, add `start_line`:
 
 Constraints:
 
+- `verdict` is required and must be `APPROVE` or `REJECT`.
 - `body` is a string; use `""` when empty.
 - `comments` is an array; use `[]` when there are no inline findings.
 - Each comment has `path`, `side`, `line`, and `body`.
@@ -166,8 +180,9 @@ Constraints:
 - Inline targets must match changed `path/side/line` entries from `pr_diff.txt`.
 - If `start_line` is present, the full range must be changed lines on the same
   `path` and `side`.
-- Do not add `verdict` or any other top-level fields; the current validator only
-  accepts `body` and `comments`.
+- Do not add unknown top-level fields. `recommended_reviewers` is allowed by the
+  shared schema but should normally be omitted for spec-only reviews because the
+  workflow does not request human reviewers for spec-only PRs.
 - Do not wrap the whole JSON in markdown fences.
 
 ## Workflow
@@ -181,7 +196,7 @@ Constraints:
 5. Inspect repository files only when needed to evaluate whether the specs are
    complete, aligned, feasible, or consistent.
 6. Review the spec changes using the document-quality focus above.
-7. Write `review.json`.
+7. Write `review.json` with `verdict`, `body`, and `comments`.
 8. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
 9. Fix `review.json` until validation passes.
 10. Finish with only the validated `review.json` content.
@@ -192,6 +207,6 @@ Constraints:
 - No GitHub comments were posted.
 - No snapshots were regenerated.
 - No spec files or production files were modified.
-- `review.json` contains only `body` and `comments`.
+- `review.json` contains `verdict`, `body`, `comments`, and no unknown fields.
 - `review.json` passed
   `.agents/skills/review-pr/scripts/validate_review_json.py`.

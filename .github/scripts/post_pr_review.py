@@ -92,10 +92,12 @@ def is_non_member_author(pr: dict[str, Any]) -> bool:
     return not is_bot_author(pr)
 
 
+def is_non_member_code_review_subject(pr: dict[str, Any], files: list[str]) -> bool:
+    return not is_spec_only(files) and is_non_member_author(pr)
+
+
 def review_event_for(pr: dict[str, Any], files: list[str], verdict: str) -> str:
-    if is_spec_only(files):
-        return "COMMENT"
-    if not is_non_member_author(pr):
+    if not is_non_member_code_review_subject(pr, files):
         return "COMMENT"
     if verdict == "REJECT":
         return "REQUEST_CHANGES"
@@ -103,7 +105,7 @@ def review_event_for(pr: dict[str, Any], files: list[str], verdict: str) -> str:
 
 
 def should_request_human_reviewer(pr: dict[str, Any], files: list[str], verdict: str) -> bool:
-    return verdict == "APPROVE" and not is_spec_only(files) and is_non_member_author(pr)
+    return verdict == "APPROVE" and is_non_member_code_review_subject(pr, files)
 
 
 def parse_diff_positions(path: Path) -> dict[tuple[str, str, int], int]:
