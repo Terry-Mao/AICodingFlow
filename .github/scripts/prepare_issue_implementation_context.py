@@ -76,6 +76,11 @@ def event_comment_body(event: dict[str, Any]) -> str:
     return comment.get("body") or ""
 
 
+def is_pull_request_issue_event(event: dict[str, Any]) -> bool:
+    issue = event.get("issue") or {}
+    return bool(issue.get("pull_request"))
+
+
 def event_action(event: dict[str, Any]) -> str:
     return event.get("action") or ""
 
@@ -179,6 +184,9 @@ def extract_issue_number(args_issue: str, event: dict[str, Any]) -> int:
 
 
 def should_run(args: argparse.Namespace, event: dict[str, Any], issue: dict[str, Any]) -> tuple[bool, str]:
+    if args.event_name == "issue_comment" and is_pull_request_issue_event(event):
+        return False, "PR comments are handled by review-pr workflow"
+
     labels = set(label_names(issue))
     if READY_LABEL not in labels:
         return False, f"issue is missing {READY_LABEL}"

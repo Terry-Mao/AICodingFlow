@@ -16,7 +16,6 @@ on:
     types: [created]
 
 permissions:
-  actions: write
   contents: write
   issues: write
   pull-requests: write
@@ -306,17 +305,6 @@ jobs:
             --context issue_context.json \
             --metadata pr-metadata.json \
             --github-output "$GITHUB_OUTPUT"
-
-      - name: Dispatch AI PR review
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true' && steps.pr.outputs.pr_number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
-        run: |
-          gh workflow run review-pr.yml \
-            --repo "${{ github.repository }}" \
-            --ref "${{ github.event.repository.default_branch }}" \
-            -f pr_number="$PR_NUMBER"
 
       - name: Update progress comment
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'
