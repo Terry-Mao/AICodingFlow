@@ -56,7 +56,7 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 建议实现方式：
 
 - 继续使用 Git 生成 unified diff，再交给 `build_pr_diff.convert()` 转成现有 review 文本格式。
-- 对 tracked file 的 committed、staged、unstaged 当前状态，使用能比较 `base_sha` 与工作区最终内容的 diff 方式。
+- 对 tracked file 的 committed、staged、unstaged 当前状态，以及 tracked file deletion，使用能比较 `base_sha` 与工作区最终内容的 diff 方式。
 - 对 untracked file，使用 Git 规则枚举未被 ignore 的 untracked 文件，并把它们作为新增文件纳入 diff。
 - 排除根目录临时 review 输出文件：
   - `pr_description.txt`
@@ -70,9 +70,10 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 1. 枚举 dirty / untracked 路径，过滤 `TEMP_REVIEW_PATHS`。
 2. 在临时 index 中构造“当前工作区快照”，避免修改用户真实 index。
 3. 将 `HEAD` tree 读入临时 index，再把 tracked working tree 文件和非 ignored untracked 文件加入该临时 index。
-4. 对临时 index 执行 `git diff --cached --unified=3 <base_sha>`，得到 base 到当前工作区快照的 diff。
+4. 对工作区中已删除的 tracked 文件，在临时 index 中执行等价 remove 操作，确保删除也进入快照。
+5. 对临时 index 执行 `git diff --cached --unified=3 <base_sha>`，得到 base 到当前工作区快照的 diff。
 
-该方案的优点是可以同时覆盖 committed、staged、unstaged 和 untracked 内容，并且不需要 stash、commit 或改动真实 index。实现时应通过 `GIT_INDEX_FILE` 指向临时 index，并确保临时文件在异常时清理。
+该方案的优点是可以同时覆盖 committed、staged、unstaged、untracked 和 deleted 内容，并且不需要 stash、commit 或改动真实 index。实现时应通过 `GIT_INDEX_FILE` 指向临时 index，并确保临时文件在异常时清理。
 
 如果实现选择其他 Git 组合命令，也必须满足同样语义：`pr_diff.txt` 代表当前工作区最终文件状态相对 base 的完整变化，不改变真实 index，不漏掉 untracked 文件，不包含 review 快照文件。
 
@@ -136,6 +137,8 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 
 - 风险：dirty worktree diff 漏掉 untracked 文件。
   - 缓解：使用 Git ignore 规则枚举未跟踪文件，并为新增文件写单元测试。
+- 风险：dirty worktree diff 漏掉 tracked file deletion，导致 `pr_diff.txt` 不能代表当前工作区最终状态。
+  - 缓解：构造临时 index 时对已删除 tracked 文件执行 remove，并增加删除文件的 diff 生成测试。
 - 风险：实现时修改真实 index，影响用户 staging 状态。
   - 缓解：使用 `GIT_INDEX_FILE` 临时 index；测试确认真实 staged 状态不被命令改变。
 - 风险：review 快照文件被纳入 `pr_diff.txt`，导致自我 review 或 skill 选择错误。
@@ -162,6 +165,7 @@ python3 -m unittest discover -s tests
 - committed-only diff 仍能生成与现有逻辑等价的 `pr_diff.txt`。
 - unstaged tracked file 修改会出现在 `pr_diff.txt`。
 - staged tracked file 修改会出现在 `pr_diff.txt`，且真实 index 不被改变。
+- deleted tracked file 会作为删除 diff 出现在 `pr_diff.txt`。
 - untracked 且未被 ignore 的文件会作为新增文件出现在 `pr_diff.txt`。
 - ignored untracked 文件不会出现在 `pr_diff.txt`。
 - 根目录 `pr_description.txt`、`pr_diff.txt`、`spec_context.md`、`review.json` 不会出现在 `pr_diff.txt`。
