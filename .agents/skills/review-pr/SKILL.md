@@ -85,6 +85,11 @@ When `spec_context.md` exists, use the repository's local
 `.agents/skills/check-impl-against-spec/SKILL.md` skill and treat material spec
 drift as a review concern.
 
+Always apply the repository's local
+`.agents/skills/security-review-pr/SKILL.md` skill as a supplemental security
+pass on code and mixed PRs. Fold any security findings into the same
+`review.json` produced by this review rather than emitting a separate output.
+
 ## Review Scope
 
 Prioritize concrete findings:
@@ -202,10 +207,13 @@ Constraints:
 4. Parse `pr_diff.txt`, build the allowed changed-line targets, and collect the changed file paths.
 5. Apply the applicability rules above.
 6. Read any referenced local companion and apply only non-conflicting guidance.
-7. Inspect relevant repository files only when needed to understand changed code or verify a concrete risk.
-8. Triage findings by severity and attach inline comments only to explicit changed-line targets.
-9. Put broad, cross-file, missing-test, missing-doc, spec mismatch, or untouched-code concerns in top-level `body`.
-10. Write `review.json`.
-11. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
-12. Fix `review.json` until validation passes.
-13. Finish with only the validated `review.json` content.
+7. Read `.agents/skills/security-review-pr/SKILL.md` and apply it as a
+   non-conflicting supplemental security pass.
+8. Inspect relevant repository files only when needed to understand changed code or verify a concrete risk.
+9. Triage findings by severity and attach inline comments only to explicit changed-line targets.
+10. Put broad, cross-file, missing-test, missing-doc, spec mismatch, security, or untouched-code concerns in top-level `body`.
+11. Write one combined `review.json` that includes both base review findings
+    and any supplemental security findings.
+12. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
+13. Fix `review.json` until validation passes.
+14. Finish with only the validated `review.json` content.
