@@ -45,6 +45,41 @@ class ValidateLocalReviewResultTest(unittest.TestCase):
         self.assertEqual(records, [("?", "?", "review.json")])
         self.assertEqual(validator.validate_records(records), [])
 
+    def test_baseline_allows_existing_business_changes_and_review_outputs(self) -> None:
+        self.assertEqual(
+            validator.validate_records_against_baseline(
+                [
+                    (" ", "M", "src/app.py"),
+                    ("A", " ", "src/staged.py"),
+                    (" ", "M", "review.json"),
+                ],
+                [
+                    (" ", "M", "src/app.py"),
+                    ("A", " ", "src/staged.py"),
+                ],
+            ),
+            [],
+        )
+
+    def test_baseline_rejects_new_or_changed_business_state(self) -> None:
+        self.assertEqual(
+            validator.validate_records_against_baseline(
+                [
+                    (" ", "M", "src/app.py"),
+                    (" ", "M", "src/new.py"),
+                ],
+                [
+                    ("A", " ", "src/app.py"),
+                    (" ", "M", "src/removed.py"),
+                ],
+            ),
+            [
+                "unexpected file change during local review: src/new.py",
+                "baseline file state changed during local review: src/removed.py",
+                "baseline file state changed during local review: src/app.py",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

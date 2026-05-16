@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import tempfile
 import unittest
 from contextlib import ExitStack
@@ -46,7 +47,6 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def common_patches(self, diff_lines: list[str]):
         return (
-            mock.patch.object(prepare_local, "require_clean_worktree"),
             mock.patch.object(prepare_local, "default_repo", return_value="owner/repo"),
             mock.patch.object(prepare_local, "default_base", return_value="upstream/main"),
             mock.patch.object(prepare_local, "resolve_ref", side_effect=["base-sha", "head-sha"]),
@@ -65,8 +65,30 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                     }
                 },
             ),
-            mock.patch.object(prepare_local.build_pr_diff, "run_git_diff", return_value=diff_lines),
+            mock.patch.object(prepare_local, "local_worktree_diff", return_value=diff_lines),
+            mock.patch.object(prepare_local, "write_baseline_status", return_value="/tmp/local-review-baseline.status"),
         )
+
+    def git(self, directory: Path, *args: str) -> str:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=directory,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        return result.stdout.strip()
+
+    def init_repo(self, directory: Path) -> str:
+        self.git(directory, "init", "-b", "main")
+        self.git(directory, "config", "user.name", "Test User")
+        self.git(directory, "config", "user.email", "test@example.com")
+        (directory / "core").mkdir()
+        (directory / "core/foo.py").write_text("old\n", encoding="utf-8")
+        (directory / "core/deleted.py").write_text("delete me\n", encoding="utf-8")
+        self.git(directory, "add", "core/foo.py", "core/deleted.py")
+        self.git(directory, "commit", "-m", "base")
+        return self.git(directory, "rev-parse", "HEAD")
 
     def test_prepares_code_review_inputs_and_removes_stale_files(self) -> None:
         def scenario(directory: Path) -> None:
@@ -83,7 +105,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                         return_value={"spec_context_source": "", "spec_entries": []},
                     )
                 )
-                stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py"]))
+                stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py", "--github-output", ""]))
                 self.assertEqual(prepare_local.main(), 0)
 
             self.assertIn("Title: feat: local review", Path("pr_description.txt").read_text(encoding="utf-8"))
@@ -109,6 +131,8 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                         "sys.argv",
                         [
                             "prepare_local_review_inputs.py",
+                            "--github-output",
+                            "",
                             "--expected-skill",
                             ".agents/skills/review-spec-repo/SKILL.md",
                         ],
@@ -132,6 +156,8 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                         "sys.argv",
                         [
                             "prepare_local_review_inputs.py",
+                            "--github-output",
+                            "",
                             "--expected-skill",
                             ".agents/skills/review-pr-repo/SKILL.md",
                         ],
@@ -156,6 +182,58 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             prepare_local.remote_repo_from_url("https://github.com/owner/repo.name.git"),
             "owner/repo.name",
         )
+
+    def test_local_worktree_diff_includes_committed_unstaged_staged_deleted_and_untracked_files(self) -> None:
+        def scenario(directory: Path) -> None:
+            base_sha = self.init_repo(directory)
+            (directory / "core/foo.py").write_text("committed\n", encoding="utf-8")
+            self.git(directory, "add", "core/foo.py")
+            self.git(directory, "commit", "-m", "change foo")
+
+            (directory / "core/foo.py").write_text("unstaged\n", encoding="utf-8")
+            (directory / "core/staged.py").write_text("staged\n", encoding="utf-8")
+            self.git(directory, "add", "core/staged.py")
+            (directory / "core/deleted.py").unlink()
+            (directory / "core/untracked.py").write_text("untracked\n", encoding="utf-8")
+            (directory / "pr_diff.txt").write_text("snapshot\n", encoding="utf-8")
+            status_before = self.git(directory, "status", "--porcelain=v1", "-z", "--untracked-files=all")
+
+            diff_text = prepare_local.build_pr_diff.convert(prepare_local.local_worktree_diff(base_sha, 3))
+            status_after = self.git(directory, "status", "--porcelain=v1", "-z", "--untracked-files=all")
+
+            self.assertEqual(status_after, status_before)
+            self.assertIn("FILE core/foo.py", diff_text)
+            self.assertIn("RIGHT    1 | unstaged", diff_text)
+            self.assertIn("FILE core/staged.py", diff_text)
+            self.assertIn("FILE core/deleted.py", diff_text)
+            self.assertIn("FILE core/untracked.py", diff_text)
+            self.assertNotIn("FILE pr_diff.txt", diff_text)
+
+        self.run_in_tempdir(scenario)
+
+    def test_local_worktree_diff_excludes_ignored_untracked_files(self) -> None:
+        def scenario(directory: Path) -> None:
+            base_sha = self.init_repo(directory)
+            (directory / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+            self.git(directory, "add", ".gitignore")
+            self.git(directory, "commit", "-m", "ignore file")
+            (directory / "ignored.txt").write_text("ignored\n", encoding="utf-8")
+
+            diff_text = prepare_local.build_pr_diff.convert(prepare_local.local_worktree_diff(base_sha, 3))
+
+            self.assertIn("FILE .gitignore", diff_text)
+            self.assertNotIn("FILE ignored.txt", diff_text)
+
+        self.run_in_tempdir(scenario)
+
+    def test_write_local_diff_rejects_empty_diff(self) -> None:
+        def scenario(directory: Path) -> None:
+            base_sha = self.init_repo(directory)
+
+            with self.assertRaisesRegex(SystemExit, "no local changes to review"):
+                prepare_local.write_local_diff(base_sha, Path("pr_diff.txt"))
+
+        self.run_in_tempdir(scenario)
 
 
 if __name__ == "__main__":
