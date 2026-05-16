@@ -48,6 +48,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("pull_request", triggers)
         self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review"])
         self.assertNotIn("pull_request_target", triggers)
+        self.assertEqual(data["permissions"]["statuses"], "write")
         self.assertEqual(triggers["issue_comment"]["types"], ["created"])
         self.assertTrue(triggers["workflow_dispatch"]["inputs"]["pr_number"]["required"])
         job_gate = data["jobs"]["preflight"]["if"]
@@ -79,6 +80,14 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn(".github/scripts/resolve_pr_event.py", resolve_step["run"])
         self.assertIn("--output \"$RUNNER_TEMP/pr_event.json\"", resolve_step["run"])
         self.assertIn("--agent-login \"${{ vars.AGENT_LOGIN }}\"", resolve_step["run"])
+
+        pending_status_step = next(step for step in review_steps if step.get("name") == "Mark PR review status pending")
+        self.assertIn("github.event_name != 'pull_request'", pending_status_step["if"])
+        self.assertIn("steps.pr.outputs.head_sha != ''", pending_status_step["if"])
+        self.assertIn("steps.pr.outputs.head_repo == github.repository", pending_status_step["if"])
+        self.assertEqual(pending_status_step["env"]["HEAD_SHA"], "${{ steps.pr.outputs.head_sha }}")
+        self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", pending_status_step["run"])
+        self.assertIn('state="pending"', pending_status_step["run"])
 
         preflight_steps = steps(data, "preflight")
         preflight_resolve = next(step for step in preflight_steps if step.get("name") == "Resolve pull request")
@@ -117,8 +126,20 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Write review.json in pr-worktree", ai_step["with"]["prompt"])
 
+        normalize_step = next(step for step in review_steps if step.get("name") == "Normalize review output path")
+        self.assertIn("[ ! -f pr-worktree/review.json ] && [ -f review.json ]", normalize_step["run"])
+        self.assertIn("mv review.json pr-worktree/review.json", normalize_step["run"])
+
         validate_step = next(step for step in review_steps if step.get("name") == "Validate review output")
         self.assertIn("pr-worktree/pr_diff.txt pr-worktree/review.json", validate_step["run"])
+
+        complete_status_step = next(step for step in review_steps if step.get("name") == "Mark PR review status complete")
+        self.assertIn("always()", complete_status_step["if"])
+        self.assertIn("github.event_name != 'pull_request'", complete_status_step["if"])
+        self.assertIn("steps.pr.outputs.head_sha != ''", complete_status_step["if"])
+        self.assertIn("steps.pr.outputs.head_repo == github.repository", complete_status_step["if"])
+        self.assertEqual(complete_status_step["env"]["STATE"], "${{ job.status == 'success' && 'success' || 'failure' }}")
+        self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", complete_status_step["run"])
 
     def test_create_spec_workflow_does_not_dispatch_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-spec-from-issue.yml")
