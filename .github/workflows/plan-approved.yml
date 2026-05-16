@@ -1,0 +1,68 @@
+name: Plan Approved
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Spec pull request number"
+        required: true
+      agent_login:
+        description: "Agent login that can be assigned; defaults to AGENT_LOGIN"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  actions: write
+
+concurrency:
+  group: plan-approved-${{ inputs.pr_number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync-issue-state:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'plan-approved' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Sync linked issue state
+        id: approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.AGENT_LOGIN }}
+          PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+        run: |
+          python3 .github/scripts/handle_plan_approved.py \
+            --repo "${{ github.repository }}" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --pr-number "$PR_NUMBER" \
+            --agent-login "$AGENT_LOGIN" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Report approval result
+        run: |
+          echo "linked issue: ${{ steps.approval.outputs.issue_number || 'none' }}"
+          echo "removed ready-to-spec: ${{ steps.approval.outputs.removed_ready_to_spec }}"
+          echo "has ready-to-implement: ${{ steps.approval.outputs.has_ready_to_implement }}"
+          echo "has bot assignee: ${{ steps.approval.outputs.has_agent_assignee }}"
+          echo "implementation dispatched: ${{ steps.approval.outputs.implementation_dispatched }}"
+          echo "skip reason: ${{ steps.approval.outputs.skip_reason || 'none' }}"
