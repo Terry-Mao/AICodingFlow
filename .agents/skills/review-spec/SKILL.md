@@ -68,6 +68,11 @@ Only comment on formatting when it affects readability, executability, or a
 reviewer's ability to evaluate the spec. Ignore personal writing preferences and
 minor wording differences unless an exact `🧹 [NIT]` suggestion is available.
 
+Always apply the repository's local
+`.agents/skills/security-review-spec/SKILL.md` skill as a supplemental
+high-level security pass on spec PRs. Fold any security findings into the same
+`review.json` produced by this review rather than emitting a separate output.
+
 ## Out Of Scope
 
 Do not review production-code concerns such as exception handling, performance,
@@ -76,6 +81,10 @@ spec itself makes an incorrect, contradictory, or infeasible claim about them.
 
 Do not request implementation changes. Review whether the document describes the
 right behavior and a feasible plan.
+
+Do not apply code-level review criteria such as error handling or low-level
+performance to spec prose; the `security-review-spec` supplement covers
+design-level security concerns.
 
 ## Local Companion
 
@@ -193,13 +202,16 @@ Constraints:
 3. Apply the `specs/` scope guard from this skill.
 4. Read `.agents/skills/review-spec-repo/SKILL.md` if present and apply only
    non-conflicting local guidance.
-5. Inspect repository files only when needed to evaluate whether the specs are
+5. Read `.agents/skills/security-review-spec/SKILL.md` and apply it as a
+   non-conflicting supplemental high-level security pass.
+6. Inspect repository files only when needed to evaluate whether the specs are
    complete, aligned, feasible, or consistent.
-6. Review the spec changes using the document-quality focus above.
-7. Write `review.json` with `verdict`, `body`, and `comments`.
-8. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
-9. Fix `review.json` until validation passes.
-10. Finish with only the validated `review.json` content.
+7. Review the spec changes using the document-quality focus above and the
+   supplemental security-review-spec guidance.
+8. Write one combined `review.json` with `verdict`, `body`, and `comments`.
+9. Run `python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json`.
+10. Fix `review.json` until validation passes.
+11. Finish with only the validated `review.json` content.
 
 ## Final Checks
 
