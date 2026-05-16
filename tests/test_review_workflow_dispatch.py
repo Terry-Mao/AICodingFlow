@@ -115,23 +115,18 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         validate_step = next(step for step in review_steps if step.get("name") == "Validate review output")
         self.assertIn("pr-worktree/pr_diff.txt pr-worktree/review.json", validate_step["run"])
 
-    def test_create_spec_workflow_dispatches_review_after_pr_creation(self) -> None:
+    def test_create_spec_workflow_does_not_dispatch_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-spec-from-issue.yml")
-        self.assertEqual(data["permissions"]["actions"], "write")
+        self.assertNotIn("actions", data["permissions"])
 
         create_steps = steps(data, "create-spec")
         create_pr = next(step for step in create_steps if step.get("name") == "Create or update spec pull request")
-        dispatch = next(step for step in create_steps if step.get("name") == "Dispatch AI PR review")
+        step_names = [step.get("name") for step in create_steps]
 
-        self.assertEqual(create_pr["id"], "pr")
-        self.assertIn("--state open", create_pr["run"])
-        self.assertIn("if [ -n \"$pr_number\" ]; then", create_pr["run"])
-        self.assertIn("gh pr edit \"$pr_number\"", create_pr["run"])
-        self.assertIn("echo \"pr_number=$pr_number\" >> \"$GITHUB_OUTPUT\"", create_pr["run"])
-        self.assertIn("steps.pr.outputs.pr_number != ''", dispatch["if"])
-        self.assertIn("gh workflow run review-pr.yml", dispatch["run"])
-        self.assertIn("-f pr_number=\"$PR_NUMBER\"", dispatch["run"])
-        self.assertEqual(dispatch["env"]["PR_NUMBER"], "${{ steps.pr.outputs.pr_number }}")
+        self.assertIn(".github/scripts/finalize_spec_pr.py", create_pr["run"])
+        self.assertNotIn("--github-output", create_pr["run"])
+        self.assertNotIn("id", create_pr)
+        self.assertNotIn("Dispatch AI PR review", step_names)
 
     def test_create_implementation_workflow_does_not_dispatch_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-implementation-from-issue.yml")
