@@ -225,7 +225,7 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
    - `implement-issue`
 7. agent 产出实现 diff 时，写 `implementation_summary.md` 和 `pr-metadata.json`，并把代码变更留在工作区。
 8. workflow 校验 metadata，提交并推送 `pr-metadata.json.branch_name`，确认 branch 更新后创建或更新 PR。
-9. implementation PR 默认保持 draft，不自动触发 AI PR Review。需要 review 时，先把 PR 标记为 ready for review，再在 PR comment 中 `@AGENT_LOGIN` 手动触发或使用手动 workflow dispatch。
+9. implementation PR 默认保持 draft，不自动触发 AI PR Review。需要 review 时，先把 PR 标记为 ready for review，再在 PR conversation comment 中发送 body-level `@AGENT_LOGIN /review` 或使用手动 workflow dispatch。
 
 目标分支规则：
 
@@ -255,7 +255,7 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
 AI PR Review 会：
 
 - 在非 draft PR `opened` / `reopened` / `synchronize` / `ready_for_review` 时自动运行。
-- 其他场景默认不自动重跑；需要重新 review 时，在非 draft PR comment 中 `@AGENT_LOGIN` 或使用手动 workflow dispatch。
+- 其他场景默认不自动重跑；需要重新 review 时，在非 draft PR conversation comment 中发送单行 `@AGENT_LOGIN /review`，或使用手动 workflow dispatch。
 - 生成稳定的 `pr_description.txt`。
 - 生成带行号的 `pr_diff.txt`。
 - 如果能找到相关 spec，生成 `spec_context.md`。
@@ -326,7 +326,7 @@ AI PR Review 会：
 | --- | --- | --- |
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可填写 base URL 或 `/responses` URL。 |
-| `AGENT_LOGIN` | Actions variable | PR comment 中 mention 该账号时手动触发 AI review。 |
+| `AGENT_LOGIN` | Actions variable | PR conversation comment 中通过 `@AGENT_LOGIN /review` 指令手动触发 AI review。 |
 | `GITHUB_TOKEN` | GitHub 内置 token | workflow 自动提供，用于发布 PR review。 |
 
 Workflow 权限：
@@ -363,7 +363,7 @@ permissions:
 .github/workflows/create-implementation-from-issue.yml
 ```
 
-这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。创建或更新 implementation PR 后不会自动触发 AI PR Review，因为该 PR 仍是 draft；需要 review 时，先把 PR 标记为 ready for review，再在 PR comment 中 `@AGENT_LOGIN` 手动触发。
+这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。创建或更新 implementation PR 后不会自动触发 AI PR Review，因为该 PR 仍是 draft；需要 review 时，先把 PR 标记为 ready for review，再在 PR conversation comment 中发送 body-level `@AGENT_LOGIN /review`。
 
 需要配置：
 

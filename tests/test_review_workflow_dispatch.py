@@ -57,6 +57,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("github.event_name == 'issue_comment'", job_gate)
         self.assertIn("github.event.issue.pull_request != null", job_gate)
         self.assertIn("contains(github.event.comment.body, format('@{0}', vars.AGENT_LOGIN))", job_gate)
+        self.assertIn("contains(github.event.comment.body, '/review')", job_gate)
         self.assertEqual(data["jobs"]["review"]["needs"], "preflight")
         self.assertEqual(data["jobs"]["review"]["if"], "needs.preflight.outputs.reviewable == 'true'")
 
@@ -77,12 +78,15 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         resolve_step = next(step for step in review_steps if step.get("name") == "Resolve pull request")
         self.assertIn(".github/scripts/resolve_pr_event.py", resolve_step["run"])
         self.assertIn("--output \"$RUNNER_TEMP/pr_event.json\"", resolve_step["run"])
+        self.assertIn("--agent-login \"${{ vars.AGENT_LOGIN }}\"", resolve_step["run"])
 
         preflight_steps = steps(data, "preflight")
         preflight_resolve = next(step for step in preflight_steps if step.get("name") == "Resolve pull request")
         self.assertIn(".github/scripts/resolve_pr_event.py", preflight_resolve["run"])
         self.assertIn("--github-output \"$GITHUB_OUTPUT\"", preflight_resolve["run"])
+        self.assertIn("--agent-login \"${{ vars.AGENT_LOGIN }}\"", preflight_resolve["run"])
         self.assertIn("reviewable", data["jobs"]["preflight"]["outputs"])
+        self.assertIn("skip_reason", data["jobs"]["preflight"]["outputs"])
 
         description_step = next(step for step in review_steps if step.get("name") == "Snapshot PR description")
         spec_context_step = next(step for step in review_steps if step.get("name") == "Snapshot spec context")

@@ -23,6 +23,30 @@ def pr_payload(*, number: int = 7, draft: bool = False, head_repo: str = "owner/
 
 
 class ResolvePrEventTest(unittest.TestCase):
+    def test_comment_has_review_command_accepts_body_level_bot_command(self) -> None:
+        self.assertTrue(resolver.comment_has_review_command("@codex /review", "codex"))
+        self.assertTrue(resolver.comment_has_review_command("\n  @codex /review  \n", "codex"))
+        self.assertTrue(resolver.comment_has_review_command("hello\n@codex /review\nthanks", "codex"))
+
+    def test_comment_has_review_command_rejects_non_commands(self) -> None:
+        invalid_bodies = [
+            "",
+            "/review",
+            "@codex",
+            "please @codex /review this",
+            "@codex /review now",
+            "> @codex /review",
+            "```\n@codex /review\n```",
+            "```text\n@codex /review\n```\n@codex",
+        ]
+
+        for body in invalid_bodies:
+            with self.subTest(body=body):
+                self.assertFalse(resolver.comment_has_review_command(body, "codex"))
+
+        self.assertFalse(resolver.comment_has_review_command("@codex /review", ""))
+        self.assertFalse(resolver.comment_has_review_command(None, "codex"))
+
     def test_pull_request_event_reuses_existing_payload(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
@@ -49,13 +73,18 @@ class ResolvePrEventTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
             event_path.write_text(
-                json.dumps({"issue": {"number": 22, "pull_request": {"url": "https://github.test/pr/22"}}}),
+                json.dumps(
+                    {
+                        "issue": {"number": 22, "pull_request": {"url": "https://github.test/pr/22"}},
+                        "comment": {"body": "@codex /review"},
+                    }
+                ),
                 encoding="utf-8",
             )
             with mock.patch.object(resolver, "fetch_pr", return_value=fetched) as fetch_pr:
                 self.assertEqual(
-                    resolver.resolve_event("owner/repo", "issue_comment", event_path, ""),
-                    {"pull_request": fetched},
+                    resolver.resolve_event("owner/repo", "issue_comment", event_path, "", "codex"),
+                    {"pull_request": fetched, "comment": {"body": "@codex /review"}, "review_command": True},
                 )
 
         fetch_pr.assert_called_once_with("owner/repo", "22")
@@ -81,6 +110,7 @@ class ResolvePrEventTest(unittest.TestCase):
                 "draft": "false",
                 "head_repo": "owner/repo",
                 "reviewable": "true",
+                "skip_reason": "",
             },
         )
 
@@ -100,22 +130,42 @@ class ResolvePrEventTest(unittest.TestCase):
             "true",
         )
 
-    def test_review_state_allows_manual_comment_review_for_draft_same_repo_pr(self) -> None:
+    def test_review_state_allows_valid_comment_review_for_open_non_draft_pr(self) -> None:
         self.assertEqual(
             resolver.review_state(
-                {"pull_request": pr_payload(draft=True)},
+                {"pull_request": pr_payload(draft=False), "review_command": True},
                 "owner/repo",
                 "issue_comment",
             )["reviewable"],
             "true",
         )
+
+    def test_review_state_skips_issue_comments_without_valid_review_command(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(draft=False), "review_command": False},
+            "owner/repo",
+            "issue_comment",
+        )
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "missing valid @AGENT_LOGIN /review command")
+
+    def test_review_state_skips_manual_comment_review_for_draft_pr(self) -> None:
         self.assertEqual(
             resolver.review_state(
-                {"pull_request": pr_payload(draft=True, head_repo="fork/repo")},
+                {"pull_request": pr_payload(draft=True), "review_command": True},
                 "owner/repo",
                 "issue_comment",
             )["reviewable"],
-            "true",
+            "false",
+        )
+        self.assertEqual(
+            resolver.review_state(
+                {"pull_request": pr_payload(draft=True, head_repo="fork/repo"), "review_command": True},
+                "owner/repo",
+                "issue_comment",
+            )["reviewable"],
+            "false",
         )
 
     def test_main_writes_event_file_and_github_outputs(self) -> None:
