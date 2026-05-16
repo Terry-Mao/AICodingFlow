@@ -253,12 +253,15 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
         def scenario(directory: Path) -> None:
             self.init_repo(directory)
             (directory / "core/foo.py").write_text("dirty\n", encoding="utf-8")
+            self.git(directory, "mv", "core/deleted.py", "core/renamed.py")
 
             path = prepare_local.write_baseline_status()
 
             self.assertEqual(path, ".local_review_baseline.status")
             self.assertTrue((directory / ".local_review_baseline.status").exists())
-            self.assertIn(b" M core/foo.py\0", (directory / ".local_review_baseline.status").read_bytes())
+            baseline = (directory / ".local_review_baseline.status").read_bytes()
+            self.assertIn(b" M core/foo.py\0", baseline)
+            self.assertIn(b"R  core/renamed.py\0core/deleted.py\0", baseline)
 
         self.run_in_tempdir(scenario)
 

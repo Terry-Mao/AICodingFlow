@@ -80,7 +80,12 @@ def parse_status_records(raw: bytes) -> list[StatusRecord]:
 
 
 def serialize_status_records(records: list[StatusRecord]) -> bytes:
-    return b"".join(f"{index_status}{worktree_status} {path}\0".encode("utf-8") for index_status, worktree_status, path, _source in records)
+    output = bytearray()
+    for index_status, worktree_status, path, source in records:
+        output.extend(f"{index_status}{worktree_status} {path}\0".encode("utf-8"))
+        if source:
+            output.extend(f"{source}\0".encode("utf-8"))
+    return bytes(output)
 
 
 def git_status_raw() -> bytes:

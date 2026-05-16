@@ -68,6 +68,15 @@ class ValidateLocalReviewResultTest(unittest.TestCase):
             [],
         )
 
+    def test_baseline_rename_record_does_not_swallow_next_dirty_file(self) -> None:
+        baseline = validator.parse_status_records(b"R  core/renamed.py\0core/deleted.py\0 M src/app.py\0")
+        current = validator.parse_status_records(b"R  core/renamed.py\0core/deleted.py\0 M src/app.py\0")
+
+        self.assertEqual(
+            validator.validate_records_against_baseline(current, baseline),
+            [],
+        )
+
     def test_baseline_rejects_new_or_changed_business_state(self) -> None:
         self.assertEqual(
             validator.validate_records_against_baseline(
