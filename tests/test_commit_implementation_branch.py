@@ -250,6 +250,8 @@ class CommitImplementationBranchTest(unittest.TestCase):
                 "run",
                 side_effect=lambda args, **kwargs: calls.append(args) or (
                     "abc123" if args == ["git", "rev-parse", "HEAD"] else
+                    "includeif.gitdir:/home/runner/work/AICodingFlow/AICodingFlow/.git.path"
+                    if args[:5] == ["git", "config", "--local", "--name-only", "--get-regexp"] else
                     "Saved working directory" if args[:3] == ["git", "stash", "push"] else
                     ""
                 ),
@@ -269,6 +271,14 @@ class CommitImplementationBranchTest(unittest.TestCase):
         )
         self.assertLess(
             calls.index(["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"]),
+            calls.index(["git", "config", "--local", "--name-only", "--get-regexp", r"^includeIf\..*\.path$"]),
+        )
+        self.assertLess(
+            calls.index(["git", "config", "--local", "--name-only", "--get-regexp", r"^includeIf\..*\.path$"]),
+            calls.index(["git", "config", "--local", "--unset-all", "includeif.gitdir:/home/runner/work/AICodingFlow/AICodingFlow/.git.path"]),
+        )
+        self.assertLess(
+            calls.index(["git", "config", "--local", "--unset-all", "includeif.gitdir:/home/runner/work/AICodingFlow/AICodingFlow/.git.path"]),
             calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:workflow-token@github.com/owner/repo.git"]),
         )
         self.assertLess(

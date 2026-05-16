@@ -112,6 +112,15 @@ def configure_workflow_push_token(repo: str, token: str) -> None:
     if not token:
         return
     run(["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"], check=False)
+    include_keys = run(
+        ["git", "config", "--local", "--name-only", "--get-regexp", r"^includeIf\..*\.path$"],
+        capture=True,
+        check=False,
+    )
+    for key in include_keys.splitlines():
+        key = key.strip()
+        if key:
+            run(["git", "config", "--local", "--unset-all", key], check=False)
     run(["git", "remote", "set-url", "origin", f"https://x-access-token:{token}@github.com/{repo}.git"])
 
 

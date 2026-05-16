@@ -7,3 +7,8 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+
+/pr_description.txt
+/pr_diff.txt
+/spec_context.md
+/review.json
