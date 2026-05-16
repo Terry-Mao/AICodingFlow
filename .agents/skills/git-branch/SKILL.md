@@ -70,7 +70,7 @@ Before running `git switch -c <branch-name>`, verify the local repository state:
 - Check whether the target branch already exists with `git branch --list <branch-name>` and `git branch --remotes --list "*/<branch-name>"`. If it exists, switch to it only after the user confirms that is intended.
 - Check the current branch with `git branch --show-current`. Prefer creating development branches from the repo's documented base branch, usually `main`, `master`, `develop`, or a release branch named by repo guidance.
 - If the current branch is not a suitable base, ask whether to switch to the expected base before creating the new branch.
-- If the repo has a remote and network access is available, run `git fetch --prune` before checking whether the base branch is current. If fetching is unavailable or not allowed, tell the user the base freshness was not verified.
+- If the repo has a remote and network access is available, run `git fetch` before checking whether the base branch is current. If fetching is unavailable or not allowed, tell the user the base freshness was not verified.
 - Compare the local base with its upstream using `git status -sb` or `git rev-list --left-right --count <base>...<upstream>`. If the base is behind, ask whether to update it before branching.
 - If already on the target branch, do not recreate it; report that the branch is already active.
 

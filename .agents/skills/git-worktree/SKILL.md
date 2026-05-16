@@ -78,7 +78,7 @@ Run these checks before creating a worktree:
    these uncommitted changes will not be copied into the new worktree.
 3. Refresh remote refs when possible:
    ```bash
-   git fetch --prune
+   git fetch
    ```
    If fetch fails, continue only if the user accepts that base freshness was
    not verified.
