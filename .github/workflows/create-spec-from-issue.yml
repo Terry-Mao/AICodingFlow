@@ -19,7 +19,6 @@ permissions:
   contents: write
   issues: read
   pull-requests: write
-  actions: write
 
 concurrency:
   group: create-spec-from-issue-${{ inputs.issue || github.event.issue.number }}
@@ -165,83 +164,15 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Write PR metadata files
-        if: steps.issue.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true'
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          metadata = json.loads(Path("pr-metadata.json").read_text(encoding="utf-8"))
-          Path("pr-title.txt").write_text(metadata["pr_title"], encoding="utf-8")
-          Path("pr-body.md").write_text(metadata["pr_summary"], encoding="utf-8")
-          PY
-
       - name: Create or update spec pull request
         if: steps.issue.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true'
-        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
-          TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
-          DEFAULT_BRANCH: ${{ steps.issue.outputs.default_branch }}
-          PRODUCT_SPEC: ${{ steps.issue.outputs.product_spec }}
-          TECH_SPEC: ${{ steps.issue.outputs.tech_spec }}
-          ISSUE_NUMBER: ${{ steps.issue.outputs.issue_number }}
         run: |
-          branch="$TARGET_BRANCH"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Fetch the existing spec branch only to seed --force-with-lease.
-          # The new spec branch is always recreated from the default branch.
-          git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
-          git fetch origin "+refs/heads/$DEFAULT_BRANCH:refs/remotes/origin/$DEFAULT_BRANCH"
-          git switch -C "$branch" "origin/$DEFAULT_BRANCH"
-          git add "$PRODUCT_SPEC" "$TECH_SPEC"
-          git commit -m "docs(spec): create issue $ISSUE_NUMBER specs"
-          git push --force-with-lease origin "$branch"
-
-          title="$(cat pr-title.txt)"
-          body="$(cat pr-body.md)"
-          pr_number="$(gh pr list \
+          python3 .github/scripts/finalize_spec_pr.py \
             --repo "${{ github.repository }}" \
-            --head "$branch" \
-            --state open \
-            --json number \
-            --jq '.[0].number // ""')"
-
-          if [ -n "$pr_number" ]; then
-            gh pr edit "$pr_number" \
-              --repo "${{ github.repository }}" \
-              --title "$title" \
-              --body "$body"
-          else
-            gh pr create \
-              --repo "${{ github.repository }}" \
-              --base "${{ github.event.repository.default_branch }}" \
-              --head "$branch" \
-              --title "$title" \
-              --body "$body"
-            pr_number="$(gh pr list \
-              --repo "${{ github.repository }}" \
-              --head "$branch" \
-              --state open \
-              --json number \
-              --jq '.[0].number // ""')"
-          fi
-          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
-
-      - name: Dispatch AI PR review
-        if: steps.issue.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true' && steps.pr.outputs.pr_number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
-        run: |
-          gh workflow run review-pr.yml \
-            --repo "${{ github.repository }}" \
-            --ref "${{ github.event.repository.default_branch }}" \
-            -f pr_number="$PR_NUMBER"
+            --context issue_context.json \
+            --metadata pr-metadata.json
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -251,5 +182,3 @@ jobs:
             issue_context.json
             issue_comments.txt
             pr-metadata.json
-            pr-title.txt
-            pr-body.md

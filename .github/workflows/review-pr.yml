@@ -132,7 +132,10 @@ jobs:
           PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/write_spec_context.py --output pr-worktree/spec_context.md
+        run: |
+          python3 .github/scripts/write_spec_context.py \
+            --changed-files-from-diff pr-worktree/pr_diff.txt \
+            --output pr-worktree/spec_context.md
 
       - name: Prepare review workspace
         run: |
