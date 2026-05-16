@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -25,11 +26,14 @@ TEMP_REVIEW_PATHS = (
     Path("pr_diff.txt"),
     Path("spec_context.md"),
     Path("review.json"),
+    Path(".local_review_baseline.status"),
 )
+TEMP_REVIEW_PATH_NAMES = {path.as_posix() for path in TEMP_REVIEW_PATHS}
+StatusRecord = tuple[str, str, str, str]
 
 
-def run(args: list[str]) -> str:
-    result = subprocess.run(args, check=True, stdout=subprocess.PIPE, text=True)
+def run(args: list[str], env: dict[str, str] | None = None) -> str:
+    result = subprocess.run(args, check=True, stdout=subprocess.PIPE, text=True, env=env)
     return result.stdout.strip()
 
 
@@ -54,6 +58,50 @@ def require_clean_worktree() -> None:
     ).stdout
     if status:
         raise SystemExit("working tree must be clean before local review")
+
+
+def parse_status_records(raw: bytes) -> list[StatusRecord]:
+    parts = raw.decode("utf-8", errors="replace").split("\0")
+    records: list[StatusRecord] = []
+    index = 0
+    while index < len(parts):
+        entry = parts[index]
+        index += 1
+        if not entry:
+            continue
+        status = entry[:2]
+        path = entry[3:]
+        source = ""
+        if ("R" in status or "C" in status) and index < len(parts):
+            source = parts[index]
+            index += 1
+        records.append((status[0], status[1], path, source))
+    return records
+
+
+def serialize_status_records(records: list[StatusRecord]) -> bytes:
+    output = bytearray()
+    for index_status, worktree_status, path, source in records:
+        output.extend(f"{index_status}{worktree_status} {path}\0".encode("utf-8"))
+        if source:
+            output.extend(f"{source}\0".encode("utf-8"))
+    return bytes(output)
+
+
+def git_status_raw() -> bytes:
+    return subprocess.run(
+        ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+        check=True,
+        stdout=subprocess.PIPE,
+    ).stdout
+
+
+def is_temp_review_path(path: str) -> bool:
+    return Path(path).as_posix() in TEMP_REVIEW_PATH_NAMES
+
+
+def filtered_status_records() -> list[StatusRecord]:
+    return [record for record in parse_status_records(git_status_raw()) if not is_temp_review_path(record[2])]
 
 
 def resolve_ref(ref: str) -> str:
@@ -130,10 +178,58 @@ def local_pr_event(repo: str, base: str, base_sha: str, head_sha: str) -> dict[s
     }
 
 
-def write_diff(base_sha: str, head_sha: str, output: Path) -> str:
-    diff_text = build_pr_diff.convert(build_pr_diff.run_git_diff(base_sha, head_sha, 3))
+def run_git_with_index(args: list[str], index_path: str) -> str:
+    env = os.environ.copy()
+    env["GIT_INDEX_FILE"] = index_path
+    return run(["git", *args], env=env)
+
+
+def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
+    with tempfile.NamedTemporaryFile(prefix="local-review-index-", delete=False) as handle:
+        index_path = handle.name
+    Path(index_path).unlink(missing_ok=True)
+
+    try:
+        run_git_with_index(["read-tree", "HEAD"], index_path)
+        for index_status, worktree_status, path, source in filtered_status_records():
+            if source:
+                run_git_with_index(["rm", "--cached", "-q", "--ignore-unmatch", "--", source], index_path)
+            if not Path(path).exists() and (index_status == "D" or worktree_status == "D"):
+                run_git_with_index(["rm", "--cached", "-q", "--ignore-unmatch", "--", path], index_path)
+            elif Path(path).exists():
+                run_git_with_index(["add", "--", path], index_path)
+
+        diff = run_git_with_index(
+            [
+                "diff",
+                "--cached",
+                "--no-color",
+                "--no-ext-diff",
+                f"--unified={context_lines}",
+                "--find-renames",
+                base_sha,
+            ],
+            index_path,
+        )
+        return diff.splitlines()
+    finally:
+        Path(index_path).unlink(missing_ok=True)
+
+
+def write_local_diff(base_sha: str, output: Path) -> str:
+    raw_diff = local_worktree_diff(base_sha, 3)
+    if not raw_diff:
+        raise SystemExit(f"no local changes to review against {base_sha}")
+    diff_text = build_pr_diff.convert(raw_diff)
     output.write_text(diff_text, encoding="utf-8")
     return diff_text
+
+
+def write_baseline_status() -> str:
+    records = filtered_status_records()
+    path = Path(".local_review_baseline.status")
+    path.write_bytes(serialize_status_records(records))
+    return path.as_posix()
 
 
 def write_spec_context_if_needed(repo: str, event: dict[str, Any], pr_diff_text: str, needs_spec_context: bool) -> None:
@@ -169,7 +265,6 @@ def main() -> int:
     args = parser.parse_args()
 
     remove_stale_review_files()
-    require_clean_worktree()
 
     repo = args.repo or default_repo()
     base = args.base or default_base()
@@ -178,13 +273,14 @@ def main() -> int:
     event = local_pr_event(repo, base, base_sha, head_sha)
 
     Path("pr_description.txt").write_text(write_pr_description.format_pr_description(event), encoding="utf-8")
-    pr_diff_text = write_diff(base_sha, head_sha, Path("pr_diff.txt"))
+    pr_diff_text = write_local_diff(base_sha, Path("pr_diff.txt"))
     skill = select_review_skill.select_skill(pr_diff_text)
     if args.expected_skill and skill != args.expected_skill:
         raise SystemExit(f"local review selected {skill}; expected {args.expected_skill}")
 
     needs_spec_context = select_review_skill.needs_spec_context(skill)
     write_spec_context_if_needed(repo, event, pr_diff_text, needs_spec_context)
+    baseline_status_path = write_baseline_status()
 
     values = {
         "skill": skill,
@@ -192,6 +288,7 @@ def main() -> int:
         "base": base,
         "base_sha": base_sha,
         "head_sha": head_sha,
+        "baseline_status_path": baseline_status_path,
     }
     write_github_output(args.github_output, values)
     for key, value in values.items():

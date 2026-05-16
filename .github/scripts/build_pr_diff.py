@@ -47,9 +47,23 @@ def emit_file(output: list[str], current_file: str | None, next_file: str) -> st
     return next_file
 
 
+def diff_git_new_path(line: str) -> str:
+    parts = line.split(" ", 3)
+    if len(parts) < 4:
+        return ""
+    return clean_path(parts[3])
+
+
+def emit_metadata_only_file(output: list[str], path: str) -> None:
+    if path and path != "/dev/null":
+        output.append(f"FILE {path}")
+        output.append("END_FILE")
+
+
 def convert(lines: list[str]) -> str:
     output = ["# PR_DIFF_V1"]
     current_file: str | None = None
+    metadata_only_path: str | None = None
     pending_old: str | None = None
     pending_new: str | None = None
     old_line: int | None = None
@@ -58,7 +72,15 @@ def convert(lines: list[str]) -> str:
 
     for line in lines:
         if line.startswith("diff --git "):
+            if current_file is not None:
+                output.append("END_FILE")
+                output.append("")
+                current_file = None
+            elif metadata_only_path is not None:
+                emit_metadata_only_file(output, metadata_only_path)
+                output.append("")
             in_hunk = False
+            metadata_only_path = diff_git_new_path(line)
             pending_old = None
             pending_new = None
             continue
@@ -72,6 +94,7 @@ def convert(lines: list[str]) -> str:
             path = pending_new if pending_new != "/dev/null" else pending_old
             if path and path != "/dev/null":
                 current_file = emit_file(output, current_file, path)
+                metadata_only_path = None
             continue
 
         hunk = HUNK_RE.match(line)
@@ -104,6 +127,8 @@ def convert(lines: list[str]) -> str:
 
     if current_file is not None:
         output.append("END_FILE")
+    elif metadata_only_path is not None:
+        emit_metadata_only_file(output, metadata_only_path)
 
     return "\n".join(output) + "\n"
 

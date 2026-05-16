@@ -16,7 +16,7 @@
 
 - `review-pr-local` 和 `review-spec-local` 在工作区存在未提交修改时仍能准备并运行 review。
 - 本地 review 生成的 `pr_diff.txt` 必须反映当前工作区相对选定 base 的实际待 review 内容，而不只包含 `HEAD` 已提交内容。
-- 本地 review 仍然只允许 review 阶段产出根目录临时文件：`pr_description.txt`、`pr_diff.txt`、`spec_context.md` 和 `review.json`。
+- 本地 review 仍然只允许产出受控的根目录临时文件：`pr_description.txt`、`pr_diff.txt`、`spec_context.md`、`review.json`，以及用于 dirty worktree 校验的 `.local_review_baseline.status`。
 - 本地 review 不应自动 stage、commit、stash、push 或修改用户的业务文件。
 - 如果工作区没有实际待 review 的 diff，流程应给出清晰失败或跳过原因，而不是生成误导性的空 review。
 - 保留现有按 diff 自动选择 `review-pr-repo` 或 `review-spec-repo` 的行为。
@@ -45,6 +45,7 @@ Figma: none provided。该需求是本地命令与 agent skill 工作流行为�
   - `pr_description.txt`
   - `pr_diff.txt`
   - `spec_context.md`，仅在代码 review 需要 spec context 时存在
+  - `.local_review_baseline.status`，用于记录 review 前的工作区状态并在校验阶段使用
   - 后续 review 阶段生成 `review.json`
 - review 内容应覆盖开发者当前准备提交的改动，包括已 staged 和 unstaged 的 tracked file 修改，以及需要纳入 review 的新文件。
 - review 完成后，开发者可以继续修改、重新运行 review，最后再自行 commit。
@@ -57,6 +58,7 @@ Figma: none provided。该需求是本地命令与 agent skill 工作流行为�
 - 未 staged 的业务文件改动不应被拒绝；它们也属于当前工作区待 review 内容。
 - 新增但未跟踪的业务文件如果位于通常会进入 Git diff 的项目路径中，应纳入 review diff，避免新文件漏审。
 - 根目录旧的 review 快照文件可以像当前行为一样在准备阶段被清理或覆盖。
+- `.local_review_baseline.status` 可以在下次准备阶段被覆盖，不需要单独清理脚本，且不应被纳入提交。
 - 本地 review 过程中如果产生除允许快照以外的新改动，仍应被 `validate_local_review_result.py` 拒绝。
 
 ### Diff 语义
@@ -66,6 +68,7 @@ Figma: none provided。该需求是本地命令与 agent skill 工作流行为�
 - 当工作区没有未提交修改时，`pr_diff.txt` 可以继续表示 `base...HEAD` 的 committed diff。
 - 如果同时存在 `HEAD` 之后的提交和未提交修改，review 应覆盖两者合并后的当前文件状态与 base 的差异。
 - 本地 review 不应把临时 review 输出文件自身纳入 `pr_diff.txt`。
+- 本地 review 不应把 `.local_review_baseline.status` 纳入 `pr_diff.txt`。
 
 ### 错误与跳过体验
 
@@ -83,6 +86,7 @@ Figma: none provided。该需求是本地命令与 agent skill 工作流行为�
 - `review-spec-local` 对纯 `specs/` 变化仍选择 `review-spec-repo`。
 - `review-pr-local` 对非纯 `specs/` 变化仍选择 `review-pr-repo`，并在需要时生成 `spec_context.md`。
 - 旧的根目录快照文件在准备阶段仍会被清理或覆盖，且不会被纳入待 review diff。
+- `.local_review_baseline.status` 被 `.gitignore` 忽略、可覆盖，且不会被纳入待 review diff。
 - 本地 review 阶段仍只能新增或修改允许的 review 输出文件；业务文件被 review 阶段修改时校验失败。
 - 本地 review 不执行 `git add`、`git commit`、`git stash`、`git push` 或 GitHub API 发布操作。
 
@@ -91,6 +95,7 @@ Figma: none provided。该需求是本地命令与 agent skill 工作流行为�
 - 增加或更新 `prepare_local_review_inputs` 的单元测试，覆盖 dirty worktree 不再被准备阶段拒绝。
 - 增加 diff 生成测试，覆盖 committed-only、unstaged、staged、untracked 以及 mixed 状态。
 - 增加测试确认根目录 review 快照文件不会进入 `pr_diff.txt`。
+- 增加测试确认 `.local_review_baseline.status` 被忽略且不会进入 `pr_diff.txt`。
 - 保留并扩展 selected skill 测试，确认当前工作区 diff 仍驱动 `review-pr-repo` / `review-spec-repo` 选择。
 - 保留 `validate_local_review_result.py` 测试，确认 review 阶段仍不能改动业务文件或 staged 输出。
 - 手动验证可运行 `review-pr-local` 和 `review-spec-local`，分别在有未提交代码改动和纯 spec 改动时完成本地 review。

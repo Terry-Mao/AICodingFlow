@@ -24,6 +24,7 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "pr_description.txt",
                     "pr_diff.txt",
                     "review.json",
+                    ".local_review_baseline.status",
                     ".github/scripts/post_pr_review.py",
                     ".github/scripts/__pycache__/post_pr_review.cpython-312.pyc",
                     "tests/test_post_pr_review.py",
