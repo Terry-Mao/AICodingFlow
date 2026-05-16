@@ -66,7 +66,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                 },
             ),
             mock.patch.object(prepare_local, "local_worktree_diff", return_value=diff_lines),
-            mock.patch.object(prepare_local, "write_baseline_status", return_value="/tmp/local-review-baseline.status"),
+            mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status"),
         )
 
     def git(self, directory: Path, *args: str) -> str:
@@ -170,7 +170,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def test_gitignore_excludes_root_review_snapshots(self) -> None:
         gitignore = (Path(__file__).resolve().parents[1] / ".gitignore").read_text(encoding="utf-8").splitlines()
-        for path in ("pr_description.txt", "pr_diff.txt", "spec_context.md", "review.json"):
+        for path in ("pr_description.txt", "pr_diff.txt", "spec_context.md", "review.json", ".local_review_baseline.status"):
             self.assertIn(f"/{path}", gitignore)
 
     def test_remote_repo_from_url_accepts_ssh_https_and_dotted_names(self) -> None:
@@ -226,12 +226,39 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
         self.run_in_tempdir(scenario)
 
+    def test_local_worktree_diff_removes_staged_rename_source_from_snapshot(self) -> None:
+        def scenario(directory: Path) -> None:
+            base_sha = self.init_repo(directory)
+            self.git(directory, "mv", "core/deleted.py", "core/renamed.py")
+
+            raw_diff = "\n".join(prepare_local.local_worktree_diff(base_sha, 3))
+            diff_text = prepare_local.build_pr_diff.convert(raw_diff.splitlines())
+
+            self.assertIn("rename from core/deleted.py", raw_diff)
+            self.assertIn("rename to core/renamed.py", raw_diff)
+            self.assertIn("FILE core/renamed.py", diff_text)
+
+        self.run_in_tempdir(scenario)
+
     def test_write_local_diff_rejects_empty_diff(self) -> None:
         def scenario(directory: Path) -> None:
             base_sha = self.init_repo(directory)
 
             with self.assertRaisesRegex(SystemExit, "no local changes to review"):
                 prepare_local.write_local_diff(base_sha, Path("pr_diff.txt"))
+
+        self.run_in_tempdir(scenario)
+
+    def test_write_baseline_status_uses_fixed_ignored_root_path(self) -> None:
+        def scenario(directory: Path) -> None:
+            self.init_repo(directory)
+            (directory / "core/foo.py").write_text("dirty\n", encoding="utf-8")
+
+            path = prepare_local.write_baseline_status()
+
+            self.assertEqual(path, ".local_review_baseline.status")
+            self.assertTrue((directory / ".local_review_baseline.status").exists())
+            self.assertIn(b" M core/foo.py\0", (directory / ".local_review_baseline.status").read_bytes())
 
         self.run_in_tempdir(scenario)
 

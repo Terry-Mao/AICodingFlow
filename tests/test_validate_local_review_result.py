@@ -14,6 +14,7 @@ class ValidateLocalReviewResultTest(unittest.TestCase):
             validator.validate_records(
                 [
                     (" ", "M", "review.json"),
+                    (" ", "?", ".local_review_baseline.status"),
                     (" ", "?", "pr_diff.txt"),
                     (" ", "?", "pr_description.txt"),
                     (" ", "?", "spec_context.md"),
@@ -43,6 +44,12 @@ class ValidateLocalReviewResultTest(unittest.TestCase):
         records = validator.parse_status_records(b"?? review.json\0")
 
         self.assertEqual(records, [("?", "?", "review.json")])
+        self.assertEqual(validator.validate_records(records), [])
+
+    def test_allows_fixed_baseline_file_as_review_output(self) -> None:
+        records = validator.parse_status_records(b"?? .local_review_baseline.status\0")
+
+        self.assertEqual(records, [("?", "?", ".local_review_baseline.status")])
         self.assertEqual(validator.validate_records(records), [])
 
     def test_baseline_allows_existing_business_changes_and_review_outputs(self) -> None:

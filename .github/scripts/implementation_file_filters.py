@@ -17,6 +17,7 @@ TEMP_WORKFLOW_PATHS = {
     "pr_description.txt",
     "pr_diff.txt",
     "review.json",
+    ".local_review_baseline.status",
     "validation-output.txt",
     "validation-error.txt",
 }

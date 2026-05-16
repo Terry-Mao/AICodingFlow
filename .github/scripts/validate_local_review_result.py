@@ -14,6 +14,7 @@ ALLOWED_PATHS = {
     "pr_diff.txt",
     "spec_context.md",
     "review.json",
+    ".local_review_baseline.status",
 }
 
 

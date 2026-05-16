@@ -99,13 +99,13 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 推荐实现：
 
 1. `prepare_local_review_inputs.py` 在生成快照后记录一次 baseline status，内容来自 `git status --porcelain=v1 -z --untracked-files=all`，并排除允许的 review 输出文件。
-2. baseline 不写入 repository root，避免新增可提交文件。可以写入 `tempfile.NamedTemporaryFile(delete=False)` 生成的 `/tmp` 路径。
-3. 准备脚本通过 stdout 和可选 `--github-output` 输出 baseline 文件路径，例如 `baseline_status_path=/tmp/...`。
-4. 更新 local review skill 文档，让第 8 步调用 `validate_local_review_result.py --baseline-status <path>`。
+2. baseline 写入固定 root 文件 `.local_review_baseline.status`，并加入 `.gitignore` 和 workflow 临时文件过滤，避免误提交。
+3. 固定路径由准备脚本覆盖写入；下次本地 review 可以覆盖旧 baseline，不需要单独清理脚本。
+4. 更新 local review skill 文档，让第 8 步固定调用 `validate_local_review_result.py --baseline-status .local_review_baseline.status`，避免模型解析 stdout 中的随机临时路径。
 5. `validate_local_review_result.py` 在提供 baseline 时比较“准备后状态”和“review 后状态”：允许 baseline 中已经存在的业务文件 dirty 状态继续存在，但拒绝新增业务文件改动、删除、新增 staged change，或已有业务文件状态发生变化。
-6. validator 运行结束后可以删除 baseline 临时文件；异常路径下残留在 `/tmp` 也不应影响仓库状态。
+6. validator 运行结束后可以删除 `.local_review_baseline.status`；异常路径下残留也应被 `.gitignore` 和临时文件过滤规则排除。
 
-该方案保持 repository root 只产生现有 review 输出文件，同时让 dirty worktree 下的 review 阶段校验仍然有意义。若实施阶段发现跨命令传递临时路径不可靠，备选方案是让准备脚本和 validator 通过一个受控环境变量共享路径，但仍不应在仓库内新增 baseline 文件。
+该方案会在 repository root 多一个受控临时文件，但路径固定、可覆盖、可忽略，避免跨 skill 手动传递 `/tmp` 随机路径的脆弱性。baseline 使用 status 级比较是有意的轻量取舍：它防止 review 阶段新增或改变文件状态，但不承诺检测 review 前已经 dirty 的业务文件内容是否再次变化。
 
 ### 更新本地 review skill 文档
 
@@ -119,6 +119,7 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 - 本地 review 可以在未提交修改存在时运行。
 - 准备阶段会基于当前工作区生成快照。
 - review 阶段仍只能写 `review.json` 和准备脚本生成的快照文件。
+- 校验阶段使用固定 `.local_review_baseline.status` baseline 文件。
 - 不会自动 stage、commit、stash 或 push。
 
 ## 5. End-to-end flow
@@ -144,7 +145,9 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 - 风险：review 快照文件被纳入 `pr_diff.txt`，导致自我 review 或 skill 选择错误。
   - 缓解：在 diff 路径过滤中显式排除 `TEMP_REVIEW_PATHS`，并加测试。
 - 风险：dirty worktree 下 validator 无法区分“review 前已有业务改动”和“review 阶段新增业务改动”。
-  - 缓解：实施时引入 out-of-repo baseline 机制，通过 `/tmp` 临时文件或环境变量传递 baseline path，不在仓库内新增 baseline 文件。
+  - 缓解：实施时引入固定 root baseline 文件 `.local_review_baseline.status`，并通过 `.gitignore` 和临时文件过滤防止误提交。
+- 风险：status 级 baseline 无法发现 review 前已经 dirty 的业务文件内容被再次修改。
+  - 缓解：接受该轻量取舍，当前目标是避免新增或状态变化的越权改动；如果后续误改风险变高，再升级为内容 hash 或 diff 快照 baseline。
 - 风险：本地 review 输出与 CI review 输出语义不同。
   - 缓解：这是预期差异；本地 review 面向当前工作区，CI review 面向 PR committed diff。文档中明确区分。
 - 风险：工作区包含无关本地改动，review 结果噪声变大。
@@ -169,10 +172,11 @@ python3 -m unittest discover -s tests
 - untracked 且未被 ignore 的文件会作为新增文件出现在 `pr_diff.txt`。
 - ignored untracked 文件不会出现在 `pr_diff.txt`。
 - 根目录 `pr_description.txt`、`pr_diff.txt`、`spec_context.md`、`review.json` 不会出现在 `pr_diff.txt`。
+- `.local_review_baseline.status` 写入固定 root 路径、被 `.gitignore` 忽略、不会出现在 `pr_diff.txt`。
 - 纯 `specs/` dirty diff 仍选择 `.agents/skills/review-spec-repo/SKILL.md`。
 - 非纯 `specs/` dirty diff 仍选择 `.agents/skills/review-pr-repo/SKILL.md`。
 - 空 diff 会以明确错误退出。
-- validator 在引入 baseline 后能允许 review 前已有业务改动，同时拒绝 review 阶段新增或改变业务文件。
+- validator 在引入 baseline 后能允许 review 前已有业务改动，同时拒绝 review 阶段新增或改变业务文件状态。
 
 ## 8. Follow-ups
 

@@ -26,8 +26,10 @@ TEMP_REVIEW_PATHS = (
     Path("pr_diff.txt"),
     Path("spec_context.md"),
     Path("review.json"),
+    Path(".local_review_baseline.status"),
 )
 TEMP_REVIEW_PATH_NAMES = {path.as_posix() for path in TEMP_REVIEW_PATHS}
+StatusRecord = tuple[str, str, str, str]
 
 
 def run(args: list[str], env: dict[str, str] | None = None) -> str:
@@ -58,9 +60,9 @@ def require_clean_worktree() -> None:
         raise SystemExit("working tree must be clean before local review")
 
 
-def parse_status_records(raw: bytes) -> list[tuple[str, str, str]]:
+def parse_status_records(raw: bytes) -> list[StatusRecord]:
     parts = raw.decode("utf-8", errors="replace").split("\0")
-    records: list[tuple[str, str, str]] = []
+    records: list[StatusRecord] = []
     index = 0
     while index < len(parts):
         entry = parts[index]
@@ -69,14 +71,16 @@ def parse_status_records(raw: bytes) -> list[tuple[str, str, str]]:
             continue
         status = entry[:2]
         path = entry[3:]
+        source = ""
         if ("R" in status or "C" in status) and index < len(parts):
+            source = parts[index]
             index += 1
-        records.append((status[0], status[1], path))
+        records.append((status[0], status[1], path, source))
     return records
 
 
-def serialize_status_records(records: list[tuple[str, str, str]]) -> bytes:
-    return b"".join(f"{index_status}{worktree_status} {path}\0".encode("utf-8") for index_status, worktree_status, path in records)
+def serialize_status_records(records: list[StatusRecord]) -> bytes:
+    return b"".join(f"{index_status}{worktree_status} {path}\0".encode("utf-8") for index_status, worktree_status, path, _source in records)
 
 
 def git_status_raw() -> bytes:
@@ -91,7 +95,7 @@ def is_temp_review_path(path: str) -> bool:
     return Path(path).as_posix() in TEMP_REVIEW_PATH_NAMES
 
 
-def filtered_status_records() -> list[tuple[str, str, str]]:
+def filtered_status_records() -> list[StatusRecord]:
     return [record for record in parse_status_records(git_status_raw()) if not is_temp_review_path(record[2])]
 
 
@@ -182,7 +186,9 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 
     try:
         run_git_with_index(["read-tree", "HEAD"], index_path)
-        for index_status, worktree_status, path in filtered_status_records():
+        for index_status, worktree_status, path, source in filtered_status_records():
+            if source:
+                run_git_with_index(["rm", "--cached", "-q", "--ignore-unmatch", "--", source], index_path)
             if not Path(path).exists() and (index_status == "D" or worktree_status == "D"):
                 run_git_with_index(["rm", "--cached", "-q", "--ignore-unmatch", "--", path], index_path)
             elif Path(path).exists():
@@ -216,9 +222,9 @@ def write_local_diff(base_sha: str, output: Path) -> str:
 
 def write_baseline_status() -> str:
     records = filtered_status_records()
-    with tempfile.NamedTemporaryFile(prefix="local-review-baseline-", suffix=".status", delete=False) as handle:
-        handle.write(serialize_status_records(records))
-        return handle.name
+    path = Path(".local_review_baseline.status")
+    path.write_bytes(serialize_status_records(records))
+    return path.as_posix()
 
 
 def write_spec_context_if_needed(repo: str, event: dict[str, Any], pr_diff_text: str, needs_spec_context: bool) -> None:

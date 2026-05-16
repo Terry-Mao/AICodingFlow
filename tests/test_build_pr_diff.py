@@ -11,6 +11,26 @@ build_pr_diff = import_script(".github/scripts/build_pr_diff.py", "build_pr_diff
 
 
 class BuildPrDiffTest(unittest.TestCase):
+    def test_metadata_only_rename_still_emits_file_section(self) -> None:
+        diff = [
+            "diff --git a/core/deleted.py b/core/renamed.py",
+            "similarity index 100%",
+            "rename from core/deleted.py",
+            "rename to core/renamed.py",
+        ]
+
+        self.assertEqual(
+            build_pr_diff.convert(diff),
+            "\n".join(
+                [
+                    "# PR_DIFF_V1",
+                    "FILE core/renamed.py",
+                    "END_FILE",
+                    "",
+                ]
+            ),
+        )
+
     def test_hunk_lines_that_look_like_file_headers_are_not_file_headers(self) -> None:
         diff = [
             "diff --git a/docs/example.txt b/docs/example.txt",

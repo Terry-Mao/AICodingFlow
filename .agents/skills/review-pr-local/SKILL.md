@@ -31,7 +31,8 @@ delegates review logic to `review-pr-repo`.
    ```
 8. Validate that the review phase did not mutate repository files:
    ```bash
-   python3 .github/scripts/validate_local_review_result.py
+   python3 .github/scripts/validate_local_review_result.py \
+     --baseline-status .local_review_baseline.status
    ```
 
 ## Safety Rules
