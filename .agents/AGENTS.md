@@ -32,7 +32,7 @@ Use the narrowest relevant validation first, then broaden when risk warrants it.
   ```
 - Syntax-check changed Python scripts:
   ```bash
-  PYTHONPYCACHEPREFIX=/private/tmp/aicodingflow-pycache python3 -m py_compile <paths>
+  PYTHONPYCACHEPREFIX=/tmp/aicodingflow-pycache python3 -m py_compile <paths>
   ```
 - Whitespace check:
   ```bash
