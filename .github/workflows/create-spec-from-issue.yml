@@ -43,10 +43,11 @@ jobs:
       )
     runs-on: ubuntu-latest
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       PYTHONDONTWRITEBYTECODE: "1"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
@@ -203,9 +204,15 @@ jobs:
 
           title="$(cat pr-title.txt)"
           body="$(cat pr-body.md)"
+          pr_number="$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --head "$branch" \
+            --state open \
+            --json number \
+            --jq '.[0].number // ""')"
 
-          if gh pr view "$branch" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh pr edit "$branch" \
+          if [ -n "$pr_number" ]; then
+            gh pr edit "$pr_number" \
               --repo "${{ github.repository }}" \
               --title "$title" \
               --body "$body"
@@ -216,8 +223,13 @@ jobs:
               --head "$branch" \
               --title "$title" \
               --body "$body"
+            pr_number="$(gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // ""')"
           fi
-          pr_number="$(gh pr view "$branch" --repo "${{ github.repository }}" --json number --jq .number)"
           echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
 
       - name: Dispatch AI PR review
@@ -231,7 +243,7 @@ jobs:
             --ref "${{ github.event.repository.default_branch }}" \
             -f pr_number="$PR_NUMBER"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: create-spec-from-issue-${{ github.run_id }}

@@ -39,6 +39,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "feat: add implementation workflow",
                     "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
 
@@ -65,6 +66,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                     "branch_name": "spec/implement-issue-18-workflow",
                     "pr_title": "feat: add implementation workflow",
                     "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
 
@@ -91,6 +93,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                     "branch_name": "spec/issue-18-workflow",
                     "pr_title": "feat: add implementation workflow",
                     "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
 
@@ -118,6 +121,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "Add implementation workflow",
                     "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
 
@@ -145,6 +149,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "feat: add implementation workflow",
                     "pr_summary": "Refs #18\n\n## Summary\n- Done",
+                    "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
 
@@ -152,6 +157,117 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 validate_impl.validate_metadata(metadata, context)
 
         self.assertIn("first line", str(cm.exception))
+
+    def test_rejects_missing_intended_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            context = self.write_json(
+                directory,
+                "issue_context.json",
+                {
+                    "issue_number": 18,
+                    "target_branch": "spec/implement-issue-18",
+                    "implementation_branch_prefix": "spec/implement-issue-18",
+                    "spec_context_source": "",
+                },
+            )
+            metadata = self.write_json(
+                directory,
+                "pr-metadata.json",
+                {
+                    "branch_name": "spec/implement-issue-18",
+                    "pr_title": "feat: add implementation workflow",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                },
+            )
+
+            with self.assertRaisesRegex(SystemExit, "intended_files"):
+                validate_impl.validate_metadata(metadata, context)
+
+    def test_rejects_unsafe_intended_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            context = self.write_json(
+                directory,
+                "issue_context.json",
+                {
+                    "issue_number": 18,
+                    "target_branch": "spec/implement-issue-18",
+                    "implementation_branch_prefix": "spec/implement-issue-18",
+                    "spec_context_source": "",
+                },
+            )
+            metadata = self.write_json(
+                directory,
+                "pr-metadata.json",
+                {
+                    "branch_name": "spec/implement-issue-18",
+                    "pr_title": "feat: add implementation workflow",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "intended_files": ["../outside.py"],
+                },
+            )
+
+            with self.assertRaisesRegex(SystemExit, "repository-relative"):
+                validate_impl.validate_metadata(metadata, context)
+
+    def test_rejects_workflow_handoff_intended_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            context = self.write_json(
+                directory,
+                "issue_context.json",
+                {
+                    "issue_number": 18,
+                    "target_branch": "spec/implement-issue-18",
+                    "implementation_branch_prefix": "spec/implement-issue-18",
+                    "spec_context_source": "",
+                },
+            )
+            for filename in (
+                "pr-metadata.json",
+                "implementation_summary.md",
+                "pr_description.md",
+                "pr_diff.txt",
+                "review.json",
+            ):
+                metadata = self.write_json(
+                    directory,
+                    "pr-metadata.json",
+                    {
+                        "branch_name": "spec/implement-issue-18",
+                        "pr_title": "feat: add implementation workflow",
+                        "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                        "intended_files": [filename],
+                    },
+                )
+
+                with self.subTest(filename=filename), self.assertRaisesRegex(SystemExit, "workflow handoff"):
+                    validate_impl.validate_metadata(metadata, context)
+
+    def test_rejects_generated_cache_intended_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            context = self.write_json(
+                directory,
+                "issue_context.json",
+                {
+                    "issue_number": 18,
+                    "target_branch": "spec/implement-issue-18",
+                    "implementation_branch_prefix": "spec/implement-issue-18",
+                    "spec_context_source": "",
+                },
+            )
+            for filename in ("tests/__pycache__/x.pyc", ".pytest_cache/v/cache/nodeids", "pkg/module.pyo"):
+                metadata = self.write_json(
+                    directory,
+                    "pr-metadata.json",
+                    {
+                        "branch_name": "spec/implement-issue-18",
+                        "pr_title": "feat: add implementation workflow",
+                        "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                        "intended_files": [filename],
+                    },
+                )
+
+                with self.subTest(filename=filename), self.assertRaisesRegex(SystemExit, "generated/cache"):
+                    validate_impl.validate_metadata(metadata, context)
 
 
 if __name__ == "__main__":

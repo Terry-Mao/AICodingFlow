@@ -1,32 +1,43 @@
 ---
 name: review-spec-local
-specializes: review-spec
-description: Repo-specific wrapper around the core review-spec workflow for AICodingFlow spec-only pull request reviews.
+description: Run the repository spec review workflow locally from the current branch using the same root-level snapshots and review.json contract as CI.
 ---
 
 # review-spec-local
 
-Use this skill for reviewing PRs whose changed files are all under `specs/`.
+Use this skill after local spec work and before pushing or creating a spec PR.
+It prepares the same review inputs used by the GitHub review workflow, then
+delegates review logic to `review-spec-repo`.
 
-This is a repository-local wrapper around the core `review-spec` skill for
-spec-only pull requests. The core skill remains authoritative for the workflow,
-snapshot contract, output schema, severity labels, validation rules, and safety
-rules.
+## Workflow
 
-## Required Wrapper Flow
+1. From the repository root, prepare local review inputs:
+   ```bash
+   python3 .github/scripts/prepare_local_review_inputs.py \
+     --expected-skill .agents/skills/review-spec-repo/SKILL.md
+   ```
+2. Read `.agents/skills/review-spec-repo/SKILL.md`.
+3. Follow `review-spec-repo` exactly. It will read the core `review-spec` skill.
+4. Use only these root-level snapshots as review inputs:
+   - `pr_description.txt`
+   - `pr_diff.txt`
+5. Inspect repository files from the current repository root when the review
+   skill needs source context.
+6. Write only `review.json` in the repository root.
+7. Validate the review output:
+   ```bash
+   python3 .github/scripts/validate_review_json.py pr_diff.txt review.json
+   ```
+8. Validate that the review phase did not mutate repository files:
+   ```bash
+   python3 .github/scripts/validate_local_review_result.py
+   ```
 
-1. Read `.agents/skills/review-spec/SKILL.md`.
-2. Follow the core `review-spec` workflow exactly.
-3. Apply the spec review focus below when choosing findings.
+## Safety Rules
 
-## Review Focus
-
-- Check whether the spec is actionable enough for implementation work.
-- Flag contradictions between requirements, examples, and acceptance criteria.
-- Prefer top-level summary notes for broad product or process concerns that do
-  not map cleanly to a changed line.
-
-## Self-Evolution Boundary
-
-`update-pr-review` may update this file from repeated human feedback on spec
-reviews. Keep additions concise and evidence-backed.
+- After input preparation, do not run `git add`, `git commit`, `git push`,
+  `gh`, or GitHub API commands.
+- Do not post comments or mutate GitHub state.
+- Do not modify source, workflow, tests, specs, or skill files.
+- If review discovers issues, report them through `review.json`; do not fix
+  specs during this skill.

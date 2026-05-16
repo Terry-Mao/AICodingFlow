@@ -138,6 +138,23 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
             (True, "ready-to-implement comment mentioned @codex"),
         )
 
+    def test_should_not_run_for_pull_request_comment_mention(self) -> None:
+        args = argparse.Namespace(
+            force=False,
+            event_name="issue_comment",
+            agent_login="codex",
+        )
+        event = {
+            "issue": {"pull_request": {"url": "https://api.github.test/repos/owner/repo/pulls/61"}},
+            "comment": {"body": "@codex please implement this"},
+        }
+        issue = {"labels": [{"name": "ready-to-implement"}], "assignees": []}
+
+        self.assertEqual(
+            prepare_impl.should_run(args, event, issue),
+            (False, "PR comments are handled by review-pr workflow"),
+        )
+
     def test_should_not_run_for_partial_or_quoted_agent_mention(self) -> None:
         args = argparse.Namespace(
             force=False,

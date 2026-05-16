@@ -151,7 +151,11 @@ resolver 优先级：
 {
   "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n..."
+  "pr_summary": "Closes #42\n\n## Summary\n...",
+  "intended_files": [
+    "src/api/client.py",
+    "tests/test_client.py"
+  ]
 }
 ```
 
@@ -161,6 +165,7 @@ resolver 优先级：
 
 - `pr-metadata.json` 存在且是 JSON object。
 - `branch_name`、`pr_title`、`pr_summary` 是非空字符串。
+- `intended_files` 是非空 repository-relative path list，用于声明外层 workflow 应提交的实现文件。
 - `pr_title` 符合 conventional commit style。
 - `pr_summary` 第一行必须精确匹配 `Closes #<issue_number>`。
 - `branch_name` 等于 context target branch，或在无 approved spec PR 时以 target branch 加允许 slug 的形式开头。

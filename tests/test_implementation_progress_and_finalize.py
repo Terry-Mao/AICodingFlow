@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from subprocess import CompletedProcess
 from unittest import mock
 
 from tests.script_imports import import_script
@@ -76,7 +77,11 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
 
         with (
             mock.patch.object(finalize, "open_pr_for_branch", return_value=None),
-            mock.patch.object(finalize, "create_pr", return_value="https://github.test/pr/124") as create_pr,
+            mock.patch.object(
+                finalize,
+                "create_pr",
+                return_value="https://github.test/pr/124",
+            ) as create_pr,
         ):
             pr_url = finalize.finalize("owner/repo", context, metadata)
 
@@ -88,6 +93,19 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
             "feat: implement issue",
             "Closes #18\n\n## Summary\n- Done",
         )
+
+    def test_create_pr_creates_draft_pr(self) -> None:
+        with mock.patch.object(
+            finalize.subprocess,
+            "run",
+            return_value=CompletedProcess(args=[], returncode=0, stdout="https://github.test/owner/repo/pull/124\n"),
+        ) as run:
+            pr_url = finalize.create_pr("owner/repo", "main", "feature-branch", "feat: title", "Body")
+
+        args = run.call_args.args[0]
+        self.assertEqual(pr_url, "https://github.test/owner/repo/pull/124")
+        self.assertIn("create", args)
+        self.assertIn("--draft", args)
 
 
 if __name__ == "__main__":

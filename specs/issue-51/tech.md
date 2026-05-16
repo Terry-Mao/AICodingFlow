@@ -23,7 +23,7 @@
 现有 end-to-end 流程：
 
 1. `review-pr.yml` 生成稳定 PR 快照。
-2. `select_review_skill.py` 根据 changed files 选择 `review-pr-local` 或 `review-spec-local`。
+2. `select_review_skill.py` 根据 changed files 选择 `review-pr-repo` 或 `review-spec-repo`。
 3. Codex 按 skill 写出 `review.json`。
 4. `validate_review_json.py` 校验 `review.json`。
 5. `post_pr_review.py` 发布 GitHub PR review。
@@ -73,6 +73,7 @@
 - `is_spec_only(files: list[str]) -> bool`
 - `is_bot_author(pr: dict[str, Any]) -> bool`
 - `is_non_member_author(pr: dict[str, Any]) -> bool`
+- `is_non_member_code_review_subject(pr: dict[str, Any], files: list[str]) -> bool`
 - `review_event_for(pr: dict[str, Any], files: list[str], verdict: str) -> str`
 
 建议规则：
@@ -80,14 +81,16 @@
 ```text
 ORG_MEMBER_ASSOCIATIONS = {"COLLABORATOR", "MEMBER", "OWNER"}
 
-if is_spec_only(files):
-    return "COMMENT"
-if not is_non_member_author(pr):
+if not is_non_member_code_review_subject(pr, files):
     return "COMMENT"
 if verdict == "REJECT":
     return "REQUEST_CHANGES"
 return "COMMENT"
 ```
+
+`is_non_member_code_review_subject` must return `False` for spec-only PRs. This
+keeps `review-spec` verdicts machine-readable while preventing spec-only PRs
+from using the non-member `REQUEST_CHANGES` or human reviewer request flow.
 
 `is_non_member_author` 细节：
 
@@ -141,7 +144,7 @@ POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers
 2. 规范化 inline comments。
 3. 根据 `verdict`、PR 作者身份和 changed files 选择 GitHub review event。
 4. 发布 PR review。
-5. 如果满足 `non-member code PR + verdict = APPROVE`，尝试选择并请求 1 个 CODEOWNERS reviewer。
+5. 如果满足 `non-member code PR + verdict = APPROVE`，尝试选择并请求 1 个 CODEOWNERS reviewer。Spec-only PR 即使作者是 non-member，也不进入该分支。
 
 发布 review 应先于 reviewer request。这样即使 CODEOWNERS 缺失或 reviewer request 失败，已有 Bot review 仍能留下主要反馈。对 reviewer request 的 GitHub API 错误建议记录并继续，除非错误表示认证或权限完全不可用且仓库希望 fail fast；本规格建议不让 reviewer request 失败阻断 review 发布。
 
@@ -158,7 +161,7 @@ POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers
 
 1. PR 触发 `review-pr.yml`。
 2. Workflow 生成 `pr_description.txt` 和 `pr_diff.txt`。
-3. Workflow 选择 `review-pr-local` 或 `review-spec-local`。
+3. Workflow 选择 `review-pr-repo` 或 `review-spec-repo`。
 4. Codex 输出包含 `verdict` 的 `review.json`。
 5. `validate_review_json.py pr_diff.txt review.json` 校验通过。
 6. `post_pr_review.py` 读取 GitHub event 中的 `pull_request`。
@@ -182,7 +185,7 @@ POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers
 - 风险：`REQUEST_CHANGES` 阻塞由 branch protection 决定，用户误解 `verdict` 就是 merge gate。
   - 缓解：skill 文档和 README 如有更新，应说明 `verdict`、review event 和 branch protection 的区别。
 - 风险：spec-only PR 的 `REJECT` 没有 blocking event，文档问题可能仍可合并。
-  - 缓解：这是本 issue 指定行为；spec-only PR 继续依赖维护者 review、required checks 和 branch protection。
+  - 缓解：这是本 issue 指定行为；`review-spec` 的 `verdict` 用于机器可读地表达文档评审结论，并保证 body 中的 “Approve / Request changes” 与结构化结果一致。spec-only PR 继续依赖维护者 review、required checks 和 branch protection。
 
 ## 7. Testing and validation
 
@@ -207,7 +210,7 @@ POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers
 - bot author + `REJECT` 发布 `COMMENT`。
 - 缺失 `author_association` + `REJECT` 发布 `COMMENT`。
 - recommended reviewer 合法时优先使用。
-- recommended reviewer 是 PR author、不是 CODEOWNERS owner、或数量超过 1 时 fallback。
+- recommended reviewer 是 PR author 或不是 CODEOWNERS owner 时 fallback。
 - CODEOWNERS 缺失或没有合格 owner 时不请求 reviewer，但 review 发布仍完成。
 
 可选人工验证：

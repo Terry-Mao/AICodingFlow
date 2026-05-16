@@ -19,8 +19,8 @@ class ApplyGuidanceOutputTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             output = root / "out"
-            proposed = output / "review-pr-local"
-            target = root / ".agents/skills/review-pr-local/SKILL.md"
+            proposed = output / "review-pr-repo"
+            target = root / ".agents/skills/review-pr-repo/SKILL.md"
             proposed.mkdir(parents=True)
             target.parent.mkdir(parents=True)
             target.write_text("old\n", encoding="utf-8")
@@ -30,7 +30,7 @@ class ApplyGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/review-pr-local/SKILL.md"],
+                        "updated_files": [".agents/skills/review-pr-repo/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",
@@ -94,7 +94,7 @@ class ApplyGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/review-spec-local/SKILL.md"],
+                        "updated_files": [".agents/skills/review-spec-repo/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",

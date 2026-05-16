@@ -70,7 +70,7 @@ Figma: none provided。该需求是 GitHub Actions、review skill 和发布脚�
 
 - code PR：changed files 不全在 `specs/` 下。
 - spec-only PR：changed files 非空，且全部路径以 `specs/` 开头。
-- spec-only PR 关闭 non-member reviewer flow；无论作者身份和 `verdict` 如何，都只发布 `COMMENT`，不请求 human reviewer。
+- spec-only PR 不作为 non-member code review subject 处理；无论作者身份和 `verdict` 如何，都只发布 `COMMENT`，不请求 human reviewer。
 
 ### GitHub review event 映射
 
@@ -92,7 +92,7 @@ Figma: none provided。该需求是 GitHub Actions、review skill 和发布脚�
   - 最多只包含 1 个 reviewer。
   - reviewer 不能是 PR 作者本人。
   - reviewer 必须出现在 `.github/CODEOWNERS`。
-- 如果 agent 返回不合法或没有返回 reviewer，workflow 自行 fallback：
+- 如果 agent 没有返回 reviewer，或返回的 reviewer 结构合法但不合格，workflow 自行 fallback：
   - 按 PR changed files 顺序查找。
   - 对每个 path 使用 `.github/CODEOWNERS` 最后一个匹配规则。
   - 取该规则中第一个合格 owner。
@@ -106,6 +106,7 @@ Figma: none provided。该需求是 GitHub Actions、review skill 和发布脚�
 - Branch protection 才是最终 merge gate。
 - `REQUEST_CHANGES` 可能阻塞 merge，但是否阻塞取决于仓库保护规则和维护者权限。
 - `COMMENT` 不应被描述为批准或拒绝 GitHub merge。
+- 对 spec-only PR，`review-spec` 的 `verdict` 只用于机器可读地表达文档评审结论，并保证 review body 中的结论与结构化结果一致；发布到 GitHub 时不会成为 blocking review。
 
 ## 7. Success criteria
 
@@ -118,7 +119,7 @@ Figma: none provided。该需求是 GitHub Actions、review skill 和发布脚�
 - 对 non-member code PR，当 `verdict = APPROVE` 时，GitHub event 是 `COMMENT`，并尝试请求 1 个 CODEOWNERS reviewer。
 - 对 non-member spec-only PR，无论 `verdict` 如何，都只发布 `COMMENT` 且不请求 reviewer。
 - Bot/automation author、缺失或异常 `author_association` 都不会走 non-member blocking flow。
-- 当 agent 给出的 `recommended_reviewers` 不合法时，workflow 使用 CODEOWNERS fallback，而不是失败。
+- 当 agent 给出的 `recommended_reviewers` 结构合法但 reviewer 不合格时，workflow 使用 CODEOWNERS fallback，而不是失败。结构不合法的 `recommended_reviewers` 仍由 validator 拒绝。
 - 当没有可用 CODEOWNERS reviewer 时，workflow 不请求 reviewer，但发布 review 本身仍可完成。
 
 ## 8. Validation

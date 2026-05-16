@@ -225,6 +225,7 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
    - `implement-issue`
 7. agent 产出实现 diff 时，写 `implementation_summary.md` 和 `pr-metadata.json`，并把代码变更留在工作区。
 8. workflow 校验 metadata，提交并推送 `pr-metadata.json.branch_name`，确认 branch 更新后创建或更新 PR。
+9. implementation PR 默认保持 draft，不自动触发 AI PR Review。需要 review 时，先把 PR 标记为 ready for review，再在 PR comment 中 `@AGENT_LOGIN` 手动触发或使用手动 workflow dispatch。
 
 目标分支规则：
 
@@ -239,21 +240,27 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
 {
   "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n..."
+  "pr_summary": "Closes #42\n\n## Summary\n...",
+  "intended_files": [
+    "src/api/client.py",
+    "tests/test_client.py"
+  ]
 }
 ```
 
-`pr_summary` 第一行必须是 `Closes #<issue-number>`。metadata 缺失或无效时，workflow 会先更新 issue progress comment，再让 job 失败，避免用户只看到静默失败。
+`pr_summary` 第一行必须是 `Closes #<issue-number>`。`intended_files` 必须精确列出外层 workflow 应提交的实现文件，不包含 workflow 临时文件、validation logs、生成缓存或未变化文件。metadata 缺失或无效时，workflow 会先更新 issue progress comment，再让 job 失败，避免用户只看到静默失败。
 
 ### 实现 PR Review
 
 AI PR Review 会：
 
+- 在非 draft PR `opened` / `reopened` / `synchronize` / `ready_for_review` 时自动运行。
+- 其他场景默认不自动重跑；需要重新 review 时，在非 draft PR comment 中 `@AGENT_LOGIN` 或使用手动 workflow dispatch。
 - 生成稳定的 `pr_description.txt`。
 - 生成带行号的 `pr_diff.txt`。
 - 如果能找到相关 spec，生成 `spec_context.md`。
-- 纯 `specs/` PR 使用 `review-spec-local`。
-- 其他 PR 使用 `review-pr-local`。
+- 纯 `specs/` PR 使用 `review-spec-repo`。
+- 其他 PR 使用 `review-pr-repo`。
 - 如果 `spec_context.md` 存在，`review-pr` 会加载 `check-impl-against-spec`，把重要 spec drift 当成 review concern。
 - 输出并验证 `review.json`。
 - 通过 GitHub API 发布 PR review。
@@ -283,9 +290,9 @@ AI PR Review 会：
 | `implement-specs` | 从已批准 spec 推进实现，并保持 spec 与实现一致。 |
 | `implement-issue` | GitHub issue 实现场景包装器，约束 target branch、summary、metadata 和 push 边界。 |
 | `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`。 |
-| `review-pr-local` | AICodingFlow 仓库的普通 PR review 包装器。 |
+| `review-pr-repo` | AICodingFlow 仓库的普通 PR review 包装器。 |
 | `review-spec` | 审查纯 spec PR 的文档质量。 |
-| `review-spec-local` | AICodingFlow 仓库的 spec review 包装器。 |
+| `review-spec-repo` | AICodingFlow 仓库的 spec review 包装器。 |
 | `check-impl-against-spec` | 对照 `spec_context.md` 检查实现是否偏离 spec。 |
 | `update-pr-review` | 从人工反馈中更新本仓库的 review companion SKILL。 |
 
@@ -301,15 +308,17 @@ AI PR Review 会：
 
 主要步骤：
 
-1. checkout PR head。
-2. 生成 `pr_description.txt`。
-3. 生成 `pr_diff.txt`。
-4. 根据 changed files 选择 review skill。
-5. 按需生成 `spec_context.md`。
-6. 运行 `openai/codex-action@v1`。
-7. 验证 `review.json`。
-8. 发布 GitHub PR review。
-9. 上传 artifact。
+1. 先运行轻量 preflight，解析 PR 并确认它是 open、same-repo、非 draft。
+2. draft PR 或 fork PR 只记录 skip，不启动 AI review job。
+3. checkout PR head。
+4. 生成 `pr_description.txt`。
+5. 生成 `pr_diff.txt`。
+6. 根据 changed files 选择 review skill。
+7. 按需生成 `spec_context.md`。
+8. 运行 `openai/codex-action@v1`。
+9. 验证 `review.json`。
+10. 发布 GitHub PR review。
+11. 上传 artifact。
 
 需要配置：
 
@@ -317,6 +326,7 @@ AI PR Review 会：
 | --- | --- | --- |
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可填写 base URL 或 `/responses` URL。 |
+| `AGENT_LOGIN` | Actions variable | PR comment 中 mention 该账号时手动触发 AI review。 |
 | `GITHUB_TOKEN` | GitHub 内置 token | workflow 自动提供，用于发布 PR review。 |
 
 Workflow 权限：
@@ -353,7 +363,7 @@ permissions:
 .github/workflows/create-implementation-from-issue.yml
 ```
 
-这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。
+这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。创建或更新 implementation PR 后不会自动触发 AI PR Review，因为该 PR 仍是 draft；需要 review 时，先把 PR 标记为 ready for review，再在 PR comment 中 `@AGENT_LOGIN` 手动触发。
 
 需要配置：
 
@@ -387,8 +397,8 @@ validation-error.txt
 这个 workflow 聚合人工对 bot review 的反馈，并更新：
 
 ```text
-.agents/skills/review-pr-local/SKILL.md
-.agents/skills/review-spec-local/SKILL.md
+.agents/skills/review-pr-repo/SKILL.md
+.agents/skills/review-spec-repo/SKILL.md
 ```
 
 它只允许写 repo-local companion skill，不允许修改核心 review contract。
@@ -436,7 +446,7 @@ rsync -a .github/ /path/to/target-repo/.github/
 1. 提交复制后的文件。
 2. 配置 `OPENAI_API_KEY` 和 `OPENAI_API_ENDPOINT`。
 3. 配置 `AGENT_LOGIN`，用于 spec 和 implementation workflow 的 assignment / mention gate。
-4. 根据目标仓库调整 `review-pr-local` 和 `review-spec-local` 的 repo-specific guidance。
+4. 根据目标仓库调整 `review-pr-repo` 和 `review-spec-repo` 的 repo-specific guidance。
 
 ## 本地开发与测试
 

@@ -32,9 +32,11 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -108,8 +110,8 @@ jobs:
             Write only under update-pr-review-output/.
             Always write update-pr-review-output/status.json.
             If status is changed, write complete replacement content only for:
-            - update-pr-review-output/review-pr-local/SKILL.md
-            - update-pr-review-output/review-spec-local/SKILL.md
+            - update-pr-review-output/review-pr-repo/SKILL.md
+            - update-pr-review-output/review-spec-repo/SKILL.md
             Use agent_comments only as context. Do not update guidance from agent_comments alone.
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
             Do not modify core skills, workflow files, scripts, tests, or product code.
@@ -126,7 +128,7 @@ jobs:
       - name: Check for guidance changes
         id: changes
         run: |
-          if git diff --quiet -- .agents/skills/review-pr-local .agents/skills/review-spec-local; then
+          if git diff --quiet -- .agents/skills/review-pr-repo .agents/skills/review-spec-repo; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -144,7 +146,7 @@ jobs:
 
           git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
           git switch -C "$branch"
-          git add .agents/skills/review-pr-local .agents/skills/review-spec-local
+          git add .agents/skills/review-pr-repo .agents/skills/review-spec-repo
           git commit -m "docs(skill): update PR review guidance"
           git push --force-with-lease origin "$branch"
 

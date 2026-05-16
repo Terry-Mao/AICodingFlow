@@ -7,24 +7,45 @@ on:
         description: "Pull request number to review"
         required: true
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, edited]
+    types: [opened, reopened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
   pull-requests: write
 
 concurrency:
-  group: ai-pr-review-${{ github.event.pull_request.number || inputs.pr_number }}
+  group: ai-pr-review-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
-  review:
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository)
+  preflight:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      ) ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        vars.AGENT_LOGIN != '' &&
+        contains(github.event.comment.body, format('@{0}', vars.AGENT_LOGIN))
+      )
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    outputs:
+      reviewable: ${{ steps.pr.outputs.reviewable }}
+      number: ${{ steps.pr.outputs.number }}
+      draft: ${{ steps.pr.outputs.draft }}
+      head_repo: ${{ steps.pr.outputs.head_repo }}
 
     steps:
       - name: Checkout workflow scripts
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -42,56 +63,89 @@ jobs:
             --output "$RUNNER_TEMP/pr_event.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Stop when PR is not reviewable
+      - name: Report skipped review
         if: steps.pr.outputs.reviewable != 'true'
-        run: echo "PR #${{ steps.pr.outputs.number }} is draft or from another repository; skipping AI review."
+        run: echo "PR #${{ steps.pr.outputs.number }} is draft or closed; skipping AI review."
+
+  review:
+    needs: preflight
+    if: needs.preflight.outputs.reviewable == 'true'
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: Checkout workflow scripts
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Resolve pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          python3 .github/scripts/resolve_pr_event.py \
+            --repo "${{ github.repository }}" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --pr-number "$PR_NUMBER" \
+            --output "$RUNNER_TEMP/pr_event.json" \
+            --github-output "$GITHUB_OUTPUT"
 
       - name: Checkout PR head
-        uses: actions/checkout@v4
-        if: steps.pr.outputs.reviewable == 'true'
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
+          repository: ${{ steps.pr.outputs.head_repo }}
           ref: ${{ steps.pr.outputs.head_sha }}
+          path: pr-worktree
 
       - name: Snapshot PR description
-        if: steps.pr.outputs.reviewable == 'true'
         env:
-          GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
-        run: python3 .github/scripts/write_pr_description.py --output pr_description.txt
+          PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
+        run: python3 .github/scripts/write_pr_description.py --output pr-worktree/pr_description.txt
 
       - name: Snapshot PR diff
-        if: steps.pr.outputs.reviewable == 'true'
         env:
           BASE_SHA: ${{ steps.pr.outputs.base_sha }}
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        working-directory: pr-worktree
         run: |
-          git fetch --no-tags --depth=1 origin "$BASE_SHA"
-          python3 .github/scripts/build_pr_diff.py \
+          git remote add base "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 base "$BASE_SHA"
+          python3 ../.github/scripts/build_pr_diff.py \
             --base "$BASE_SHA" \
             --head "$HEAD_SHA" \
             --output pr_diff.txt
 
       - name: Select review skill
-        if: steps.pr.outputs.reviewable == 'true'
         id: review_skill
-        run: python3 .github/scripts/select_review_skill.py --diff pr_diff.txt
+        run: python3 .github/scripts/select_review_skill.py --diff pr-worktree/pr_diff.txt
 
       - name: Snapshot spec context
-        if: steps.pr.outputs.reviewable == 'true' && steps.review_skill.outputs.needs_spec_context == 'true'
+        if: steps.review_skill.outputs.needs_spec_context == 'true'
         env:
-          GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
+          PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/write_spec_context.py --output spec_context.md
+        run: python3 .github/scripts/write_spec_context.py --output pr-worktree/spec_context.md
+
+      - name: Prepare review workspace
+        run: |
+          rm -rf pr-worktree/.agents/skills
+          mkdir -p pr-worktree/.agents
+          cp -R .agents/skills pr-worktree/.agents/skills
 
       - name: Install Codex sandbox prerequisites
-        if: steps.pr.outputs.reviewable == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
       - name: Configure Codex API endpoint
-        if: steps.pr.outputs.reviewable == 'true'
         id: codex_endpoint
         env:
           OPENAI_API_ENDPOINT: ${{ vars.OPENAI_API_ENDPOINT }}
@@ -108,36 +162,39 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: Run AI review
-        if: steps.pr.outputs.reviewable == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
-            Read ${{ steps.review_skill.outputs.path }} and follow it exactly.
-            Use the existing pr_description.txt and pr_diff.txt snapshots.
-            Use spec_context.md only when the selected review skill instructs you to.
-            Write review.json in the repository root.
+            First change directory to pr-worktree and do all file inspection from there.
+            Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.
+            Use the existing pr_description.txt and pr_diff.txt snapshots in pr-worktree.
+            Use spec_context.md in pr-worktree only when the selected review skill instructs you to.
+            review.json must include verdict with value APPROVE or REJECT.
+            It may include recommended_reviewers with at most one login when
+            a human reviewer recommendation is useful.
+            Write review.json in pr-worktree.
+            Do not run validator commands embedded in the selected skill; this
+            workflow validates review.json after Codex exits.
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
       - name: Validate review output
-        if: steps.pr.outputs.reviewable == 'true'
-        run: python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
+        run: python3 .github/scripts/validate_review_json.py pr-worktree/pr_diff.txt pr-worktree/review.json
 
       - name: Post PR review
-        if: steps.pr.outputs.reviewable == 'true'
         env:
-          GITHUB_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
+          PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/post_pr_review.py --review review.json
+        run: python3 .github/scripts/post_pr_review.py --review pr-worktree/review.json --diff pr-worktree/pr_diff.txt
 
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.pr.outputs.reviewable == 'true'
+      - uses: actions/upload-artifact@v7
+        if: always()
         with:
           name: pr-review-${{ github.run_id }}
           path: |
-            pr_description.txt
-            pr_diff.txt
-            spec_context.md
-            review.json
+            pr-worktree/pr_description.txt
+            pr-worktree/pr_diff.txt
+            pr-worktree/spec_context.md
+            pr-worktree/review.json

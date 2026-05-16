@@ -124,6 +124,11 @@ def event_comment_body(event_path: str | None) -> str:
     return comment.get("body") or ""
 
 
+def is_pull_request_issue_event(event: dict[str, Any]) -> bool:
+    issue = event.get("issue") or {}
+    return bool(issue.get("pull_request"))
+
+
 def comment_mentions_login(comment: str, login: str) -> bool:
     if not login:
         return False
@@ -181,6 +186,10 @@ def remove_triggering_comment(
 
 
 def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, str]:
+    event = load_event(args.event_path)
+    if args.event_name == "issue_comment" and is_pull_request_issue_event(event):
+        return False, "PR comments are handled by review-pr workflow"
+
     if args.force:
         return True, "forced"
 
@@ -195,7 +204,6 @@ def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, s
         return False, "agent login is not configured"
 
     assignees = set(assignee_logins(issue))
-    event = load_event(args.event_path)
 
     if args.event_name == "issues":
         action = event_action(event)
@@ -214,7 +222,7 @@ def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, s
     if args.event_name == "workflow_dispatch" and agent_login in assignees:
         return True, f"ready-to-spec assigned to {agent_login}"
 
-    comment = event_comment_body(args.event_path)
+    comment = (event.get("comment") or {}).get("body") or ""
     if args.event_name == "issue_comment" and comment_mentions_login(comment, agent_login):
         return True, f"ready-to-spec comment mentioned @{agent_login}"
 

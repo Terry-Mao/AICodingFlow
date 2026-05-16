@@ -16,8 +16,8 @@ class UpdatePrReviewWriteSurfaceTest(unittest.TestCase):
         self.assertEqual(
             validator.invalid_paths(
                 [
-                    ".agents/skills/review-pr-local/SKILL.md",
-                    ".agents/skills/review-spec-local/SKILL.md",
+                    ".agents/skills/review-pr-repo/SKILL.md",
+                    ".agents/skills/review-spec-repo/SKILL.md",
                 ]
             ),
             [],

@@ -188,6 +188,30 @@ class WriteSpecContextTest(unittest.TestCase):
         self.assertEqual(context["spec_entries"], [])
         self.assertEqual(context["changed_files"], ["core/foo.py"])
 
+    def test_resolve_spec_context_accepts_local_changed_files(self) -> None:
+        with (
+            mock.patch.object(write_spec_context, "fetch_pr_files") as fetch_pr_files,
+            mock.patch.object(write_spec_context, "fetch_spec_prs", return_value=[]),
+            mock.patch.object(write_spec_context, "collect_spec_entries", return_value=[]),
+        ):
+            context = write_spec_context.resolve_spec_context(
+                "owner/repo",
+                pr_event(),
+                ["core/foo.py", "tests/test_foo.py"],
+            )
+
+        fetch_pr_files.assert_not_called()
+        self.assertEqual(context["changed_files"], ["core/foo.py", "tests/test_foo.py"])
+        self.assertEqual(context["pr_files"], [{"filename": "core/foo.py"}, {"filename": "tests/test_foo.py"}])
+
+    def test_changed_files_from_diff_text_reads_pr_diff_file_entries(self) -> None:
+        self.assertEqual(
+            write_spec_context.changed_files_from_diff_text(
+                "\n".join(["# PR_DIFF_V1", "FILE core/foo.py", "END_FILE", "FILE tests/test_foo.py", "END_FILE"])
+            ),
+            ["core/foo.py", "tests/test_foo.py"],
+        )
+
     def test_resolves_issue_number_from_branch_suffix(self) -> None:
         self.assertEqual(
             write_spec_context.resolve_issue_number(pr_event(body="", head_ref="feat/thing-42")["pull_request"]),
@@ -335,6 +359,42 @@ class WriteSpecContextTest(unittest.TestCase):
                 self.assertEqual(write_spec_context.main(), 0)
 
             self.assertIn("## specs/issue-42/product.md", output_path.read_text(encoding="utf-8"))
+
+    def test_main_can_use_changed_files_from_diff(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            diff_path = Path(directory) / "pr_diff.txt"
+            output_path = Path(directory) / "spec_context.md"
+            event_path.write_text('{"pull_request": {"number": ""}}', encoding="utf-8")
+            diff_path.write_text("# PR_DIFF_V1\nFILE core/foo.py\nEND_FILE\n", encoding="utf-8")
+
+            with (
+                mock.patch.object(
+                    write_spec_context,
+                    "resolve_spec_context",
+                    return_value={
+                        "spec_context_source": "directory",
+                        "spec_entries": [{"path": "specs/issue-42/product.md", "content": "# Product\n"}],
+                    },
+                ) as resolve_spec_context,
+                mock.patch(
+                    "sys.argv",
+                    [
+                        "write_spec_context.py",
+                        "--repo",
+                        "owner/repo",
+                        "--event-path",
+                        str(event_path),
+                        "--changed-files-from-diff",
+                        str(diff_path),
+                        "--output",
+                        str(output_path),
+                    ],
+                ),
+            ):
+                self.assertEqual(write_spec_context.main(), 0)
+
+        resolve_spec_context.assert_called_once_with("owner/repo", {"pull_request": {"number": ""}}, ["core/foo.py"])
 
 
 if __name__ == "__main__":

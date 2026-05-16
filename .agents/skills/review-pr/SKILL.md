@@ -67,7 +67,7 @@ attached to an explicit changed line, put it in top-level `body`.
 ## Local Companion
 
 When a repository-specific companion such as
-`.agents/skills/review-pr-local/SKILL.md` is referenced by the prompt or local
+`.agents/skills/review-pr-repo/SKILL.md` is referenced by the prompt or local
 workflow, read it and apply any non-conflicting repository guidance.
 
 The local companion may add repository-specific checks and preferences, but it
@@ -144,6 +144,7 @@ Write `review.json` with exactly this shape:
 
 ```json
 {
+  "verdict": "APPROVE",
   "body": "Top-level review summary or issues that cannot be attached inline.",
   "comments": [
     {
@@ -155,6 +156,17 @@ Write `review.json` with exactly this shape:
   ]
 }
 ```
+
+Use `verdict: "APPROVE"` when there are no blocking-level findings. Use
+`verdict: "REJECT"` when the review finds material correctness, safety,
+permission, data-flow, test, spec-drift, or user-behavior problems that should
+be fixed before merge. `💡 [SUGGESTION]` and `🧹 [NIT]` findings alone do not
+justify `REJECT`.
+
+You may include `recommended_reviewers` only when the calling workflow asks for
+a human reviewer recommendation. If present, it must be an array containing at
+most one GitHub login. The workflow will validate the recommendation against
+repository CODEOWNERS and may ignore or replace it.
 
 For ranges, add `start_line`:
 
@@ -170,8 +182,10 @@ For ranges, add `start_line`:
 
 Constraints:
 
+- `verdict` is required and must be `APPROVE` or `REJECT`.
 - `body` is a string; use `""` when empty.
 - `comments` is an array; use `[]` when there are no inline findings.
+- `recommended_reviewers` is optional; when present, it is an array with at most one string.
 - Each comment has `path`, `side`, `line`, and `body`.
 - `side` is `LEFT` or `RIGHT`.
 - Inline targets must match changed `path/side/line` entries from `pr_diff.txt`.

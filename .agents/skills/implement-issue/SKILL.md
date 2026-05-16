@@ -76,7 +76,11 @@ repository root with these required fields:
 {
   "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n..."
+  "pr_summary": "Closes #42\n\n## Summary\n...",
+  "intended_files": [
+    "src/api/client.py",
+    "tests/test_client.py"
+  ]
 }
 ```
 
@@ -88,6 +92,11 @@ repository root with these required fields:
   changes.
 - `pr_summary`: the full markdown PR body. The first line must be exactly
   `Closes #<issue_number>` so GitHub auto-closes the issue when the PR merges.
+- `intended_files`: repository-relative paths that should be committed as the
+  implementation diff. Include every production, test, spec, `.agents`, or
+  workflow file intentionally changed by the implementation. Do not include
+  workflow handoff files, validation logs, generated cache files, or files that
+  were not changed.
 
 ## Workflow
 
@@ -115,7 +124,9 @@ repository root with these required fields:
 9. Write `implementation_summary.md` with what changed, how it was validated,
    and any remaining assumptions, spec updates, or follow-up notes.
 10. When requested by the prompt, write `pr-metadata.json` with the schema
-    above. The `pr_summary` field must start with `Closes #<issue_number>`.
+    above. The `pr_summary` field must start with `Closes #<issue_number>`, and
+    `intended_files` must exactly list the implementation files that should be
+    committed by the outer workflow.
 11. Treat `issue_context.json`, `spec_context.md`,
     `implementation_summary.md`, and `pr-metadata.json` as temporary workflow
     files. Do not include them in the final committed diff.
@@ -129,7 +140,7 @@ repository root with these required fields:
 
 - Leave implementation changes ready for the workflow to validate.
 - When requested, leave a ready-to-use `pr-metadata.json` with `branch_name`,
-  `pr_title`, and `pr_summary`.
+  `pr_title`, `pr_summary`, and `intended_files`.
 - If the issue is underspecified, make the smallest reasonable implementation
   choice, document it in `implementation_summary.md`, and avoid speculative
   extra changes.

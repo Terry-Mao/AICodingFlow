@@ -101,6 +101,7 @@ class CreateImplementationFlowTest(unittest.TestCase):
                         "branch_name": "spec/implement-issue-18",
                         "pr_title": "feat: implement issue workflow",
                         "pr_summary": "Closes #18\n\n## Summary\n- Implemented",
+                        "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                     }
                 ),
                 encoding="utf-8",

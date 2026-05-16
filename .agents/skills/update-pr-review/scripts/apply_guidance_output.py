@@ -10,8 +10,8 @@ from typing import Any
 
 
 ALLOWED_FILES = {
-    ".agents/skills/review-pr-local/SKILL.md": "review-pr-local/SKILL.md",
-    ".agents/skills/review-spec-local/SKILL.md": "review-spec-local/SKILL.md",
+    ".agents/skills/review-pr-repo/SKILL.md": "review-pr-repo/SKILL.md",
+    ".agents/skills/review-spec-repo/SKILL.md": "review-spec-repo/SKILL.md",
 }
 VALID_STATUSES = {"changed", "no_change", "error"}
 

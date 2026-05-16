@@ -15,6 +15,7 @@ from typing import Any
 
 APPROVED_LABEL = "plan-approved"
 SPEC_CONTEXT_NONE = "Spec Context: No approved or repository spec context was found for this PR."
+DIFF_FILE_RE = re.compile(r"^FILE\s+(.+?)\s*$")
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -67,6 +68,17 @@ def spec_file_paths(issue_number: int) -> list[str]:
 
 def changed_files_from_pr_files(pr_files: list[dict[str, Any]]) -> list[str]:
     return [item.get("filename", "") for item in pr_files if item.get("filename")]
+
+
+def changed_files_from_diff_text(pr_diff_text: str) -> list[str]:
+    files: list[str] = []
+    for line in pr_diff_text.splitlines():
+        match = DIFF_FILE_RE.match(line)
+        if match:
+            path = match.group(1).strip()
+            if path:
+                files.append(path)
+    return files
 
 
 def fetch_pr_files(repo: str, pr_number: int) -> list[dict[str, Any]]:
@@ -144,13 +156,21 @@ def build_empty_context(issue_number: int | None, changed_files: list[str], pr_f
     }
 
 
-def resolve_spec_context(repo: str, event: dict[str, Any]) -> dict[str, Any]:
+def resolve_spec_context(
+    repo: str,
+    event: dict[str, Any],
+    changed_files: list[str] | None = None,
+) -> dict[str, Any]:
     pr = event["pull_request"]
-    pr_number = int(pr["number"])
     issue_number = resolve_issue_number(pr)
-    pr_files = fetch_pr_files(repo, pr_number)
-    changed_files = changed_files_from_pr_files(pr_files)
-    context = build_empty_context(issue_number, changed_files, pr_files)
+    if changed_files is None:
+        pr_number = int(pr["number"])
+        pr_files = fetch_pr_files(repo, pr_number)
+        resolved_changed_files = changed_files_from_pr_files(pr_files)
+    else:
+        resolved_changed_files = changed_files
+        pr_files = [{"filename": path} for path in changed_files]
+    context = build_empty_context(issue_number, resolved_changed_files, pr_files)
 
     if issue_number is None:
         return context
@@ -214,16 +234,20 @@ def format_spec_context_text(context: dict[str, Any]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", ""))
-    parser.add_argument("--event-path", default=os.environ.get("GITHUB_EVENT_PATH", ""))
+    parser.add_argument("--event-path", default=os.environ.get("PR_EVENT_PATH") or os.environ.get("GITHUB_EVENT_PATH", ""))
+    parser.add_argument("--changed-files-from-diff", default="")
     parser.add_argument("--output", default="spec_context.md")
     args = parser.parse_args()
 
     if not args.repo:
         raise SystemExit("--repo or GITHUB_REPOSITORY is required")
     if not args.event_path:
-        raise SystemExit("--event-path or GITHUB_EVENT_PATH is required")
+        raise SystemExit("--event-path, PR_EVENT_PATH, or GITHUB_EVENT_PATH is required")
 
-    context = resolve_spec_context(args.repo, load_event(args.event_path))
+    changed_files = None
+    if args.changed_files_from_diff:
+        changed_files = changed_files_from_diff_text(Path(args.changed_files_from_diff).read_text(encoding="utf-8"))
+    context = resolve_spec_context(args.repo, load_event(args.event_path), changed_files)
     output_path = Path(args.output)
     if context.get("spec_entries"):
         output_path.write_text(format_spec_context_text(context), encoding="utf-8")
