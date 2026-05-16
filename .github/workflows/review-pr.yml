@@ -14,6 +14,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  statuses: write
 
 concurrency:
   group: ai-pr-review-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
@@ -97,6 +98,19 @@ jobs:
             --agent-login "${{ vars.AGENT_LOGIN }}" \
             --output "$RUNNER_TEMP/pr_event.json" \
             --github-output "$GITHUB_OUTPUT"
+
+      - name: Mark PR review status pending
+        if: github.event_name != 'pull_request' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+            -f state="pending" \
+            -f context="AI PR Review" \
+            -f description="AI PR review is running" \
+            -f target_url="$RUN_URL"
 
       - name: Checkout PR head
         uses: actions/checkout@v6
@@ -187,6 +201,12 @@ jobs:
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
+      - name: Normalize review output path
+        run: |
+          if [ ! -f pr-worktree/review.json ] && [ -f review.json ]; then
+            mv review.json pr-worktree/review.json
+          fi
+
       - name: Validate review output
         run: python3 .github/scripts/validate_review_json.py pr-worktree/pr_diff.txt pr-worktree/review.json
 
@@ -205,3 +225,18 @@ jobs:
             pr-worktree/pr_diff.txt
             pr-worktree/spec_context.md
             pr-worktree/review.json
+
+      - name: Mark PR review status complete
+        if: always() && github.event_name != 'pull_request' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          DESCRIPTION: ${{ job.status == 'success' && 'AI PR review completed' || 'AI PR review failed' }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+            -f state="$STATE" \
+            -f context="AI PR Review" \
+            -f description="$DESCRIPTION" \
+            -f target_url="$RUN_URL"
