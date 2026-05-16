@@ -23,7 +23,35 @@ def fetch_pr(repo: str, pr_number: str) -> dict[str, Any]:
     )
 
 
-def resolve_event(repo: str, event_name: str, event_path: Path, pr_number: str) -> dict[str, Any]:
+def comment_has_review_command(body: object, agent_login: str) -> bool:
+    if not isinstance(body, str) or not body.strip() or not agent_login.strip():
+        return False
+
+    expected = f"@{agent_login.strip()} /review"
+    in_fenced_code = False
+
+    for line in body.splitlines():
+        stripped_left = line.lstrip()
+        if stripped_left.startswith(">"):
+            continue
+        if stripped_left.startswith("```"):
+            in_fenced_code = not in_fenced_code
+            continue
+        if in_fenced_code:
+            continue
+        if line.strip() == expected:
+            return True
+
+    return False
+
+
+def resolve_event(
+    repo: str,
+    event_name: str,
+    event_path: Path,
+    pr_number: str,
+    agent_login: str = "",
+) -> dict[str, Any]:
     if event_name == "pull_request":
         event = load_json(event_path)
         if "pull_request" not in event:
@@ -38,7 +66,12 @@ def resolve_event(repo: str, event_name: str, event_path: Path, pr_number: str) 
         number = issue.get("number")
         if not number:
             raise SystemExit("issue_comment event payload is missing issue number")
-        return {"pull_request": fetch_pr(repo, str(number))}
+        comment_body = (event.get("comment") or {}).get("body", "")
+        return {
+            "pull_request": fetch_pr(repo, str(number)),
+            "comment": {"body": comment_body},
+            "review_command": comment_has_review_command(comment_body, agent_login),
+        }
 
     if event_name == "workflow_dispatch":
         if not pr_number:
@@ -55,8 +88,23 @@ def review_state(event: dict[str, Any], repo: str, event_name: str = "") -> dict
     head_repo = (head.get("repo") or {}).get("full_name") or ""
     draft = bool(pr.get("draft"))
     state = str(pr.get("state") or "").lower()
-    manual_comment_trigger = event_name == "issue_comment"
-    reviewable = (manual_comment_trigger or not draft) and state == "open"
+    is_open = state == "open"
+    is_comment_review = event_name == "issue_comment" and event.get("review_command") is True
+    if event_name == "workflow_dispatch":
+        reviewable = is_open
+    elif event_name == "issue_comment":
+        reviewable = is_open and not draft and is_comment_review
+    else:
+        reviewable = is_open and not draft
+
+    if not is_open:
+        skip_reason = "closed"
+    elif draft and event_name != "workflow_dispatch":
+        skip_reason = "draft"
+    elif event_name == "issue_comment" and not is_comment_review:
+        skip_reason = "missing valid @AGENT_LOGIN /review command"
+    else:
+        skip_reason = ""
 
     return {
         "number": str(pr.get("number") or ""),
@@ -66,6 +114,7 @@ def review_state(event: dict[str, Any], repo: str, event_name: str = "") -> dict
         "draft": str(draft).lower(),
         "head_repo": head_repo,
         "reviewable": str(reviewable).lower(),
+        "skip_reason": skip_reason,
     }
 
 
@@ -83,12 +132,13 @@ def main() -> None:
     parser.add_argument("--event-name", required=True)
     parser.add_argument("--event-path", required=True)
     parser.add_argument("--pr-number", default="")
+    parser.add_argument("--agent-login", default="")
     parser.add_argument("--output", default="pr_event.json")
     parser.add_argument("--github-output", default="")
     args = parser.parse_args()
 
     output_path = Path(args.output).resolve()
-    event = resolve_event(args.repo, args.event_name, Path(args.event_path), args.pr_number)
+    event = resolve_event(args.repo, args.event_name, Path(args.event_path), args.pr_number, args.agent_login)
     output_path.write_text(json.dumps(event), encoding="utf-8")
 
     state = review_state(event, args.repo, args.event_name)
