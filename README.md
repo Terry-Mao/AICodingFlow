@@ -103,7 +103,7 @@ $git-branch #47
 - 读取 issue 标题和正文。
 - 推断 Conventional Commit 类型，例如 `feat`、`fix`、`docs`。
 - 生成 `<type>/<short-desc>-<issueID>` 格式的分支名。
-- 检查工作树是否干净、目标分支是否已存在、base 分支是否新鲜。
+- 用组合命令一次性检查工作树、当前分支和目标分支；只有必要时才检查远端或 fetch。
 - 从 `origin/<base>` 直接创建时使用 `--no-track`，避免新分支错误跟踪 base 分支；发布时再由 `git-push` 设置 upstream。
 
 示例：
@@ -123,11 +123,12 @@ $git-worktree #48
 它会：
 
 - 复用 `git-branch` 的命名和 base 分支安全规则。
-- 在 `.worktrees/<branch-slug>` 下创建新 worktree。
+- 在 `.worktrees/<branch-name>` 下创建新 worktree，保留分支名中的目录层级，例如 `.worktrees/feat/example-48`。
+- 优先把本地状态检查合并到一次 tool call；远端冲突或 freshness 只有影响结果时才检查。
 - 使用 `git worktree add --no-track -b <branch-name> ... <base-ref>`，避免新分支跟踪 base 分支。
 - 不复制当前工作树里的未提交改动。
 - 让 Codex 后续 tool calls 默认从新 worktree 运行。
-- 输出你自己的 shell 需要执行的 `cd .worktrees/<branch-slug>`；Codex 不能改变已有终端进程的当前目录。
+- 输出你自己的 shell 需要执行的 `cd .worktrees/<branch-name>`；Codex 不能改变已有终端进程的当前目录。
 
 ### 3. 创建提交
 
@@ -139,7 +140,7 @@ $git-commit
 
 它会：
 
-- 检查 `git status`、`git diff --stat`、完整 diff 和 staged diff。
+- 用一次组合检查读取 `git status`、diff stat、完整 diff 和 staged diff。
 - 判断变更是否应该拆分。
 - 精确 stage 目标文件，避免误提交无关改动。
 - 使用规范提交信息，例如 `feat(review): add spec context snapshots`。
@@ -155,7 +156,7 @@ $git-push
 
 它会：
 
-- 检查当前分支和远端。
+- 用一次组合检查读取当前分支、upstream 和待推送提交。
 - 避免直接推送 `main`、`master`、`develop` 等共享 base 分支。
 - 没有 upstream 时执行 `git push -u origin <branch>`。
 - 已有 upstream 时执行普通 `git push`。

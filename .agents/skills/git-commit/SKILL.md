@@ -1,80 +1,67 @@
 ---
 name: git-commit
-description: Create clean, repo-aware git commits from real diffs with focused inspection and selective staging.
+description: Create clean, repo-aware commits from real diffs with focused inspection, selective staging, and minimal tool calls.
 ---
 
 # git-commit
 
-Use when committing changes, splitting work into commits, or drafting a commit message from actual repo changes.
+Commit current repo changes atomically, with accurate messages and no unrelated files.
 
-## Goal
+## Inspect
 
-Create atomic, reviewable commits with accurate messages while avoiding unnecessary repo scans and repeated git output.
+Use one tool call for the common inspection:
 
-## Fast Workflow
+```bash
+git status --short
+git diff --stat
+git diff
+git diff --cached --stat
+git diff --cached
+```
 
-1. Inspect the current diff:
-   ```bash
-   git status --short
-   git diff --stat
-   git diff
-   ```
-   If staged changes exist, also inspect:
-   ```bash
-   git diff --cached
-   ```
+If staged output is empty, ignore it. Check repo message conventions only when unknown: prefer existing context, then obvious files such as `.gitmessage`, `CONTRIBUTING.md`, or commit config. Use recent history only when style is still unclear.
 
-2. Check repo conventions only as needed:
-   - use known conversation context first;
-   - otherwise inspect obvious local files such as `.gitmessage`, `CONTRIBUTING.md`, or commit config;
-   - use recent history only when message style is unclear.
+## Commit Boundaries
 
-3. Decide commit boundaries from the diff. Split only when there are genuinely separate concerns, such as behavior vs refactor, dependency churn vs code, generated files without source changes, or unrelated docs/tests.
+Split only for real separate concerns: behavior vs refactor, dependency churn vs code, generated output without source, formatting-only churn, or unrelated docs/tests. Keep directly related tests with the fix/feature.
 
-4. Stage only intended files:
-   ```bash
-   git add <specific-files>
-   ```
-   Use `git add -p` only when file-level staging would mix unrelated changes.
+Stage only intended paths:
 
-5. Commit with the normal Git path so configured hooks run:
-   ```bash
-   git commit -m "<subject>"
-   ```
-   If a hook fails, stop and report it. Do not use `--no-verify` unless explicitly asked.
+```bash
+git add <specific-files>
+```
+
+Use `git add -p` only when file-level staging would mix unrelated changes.
 
 ## Approval
 
-If the user explicitly asked to commit a clear set of current changes, proceed after inspection without a long proposal. Ask first only when boundaries are ambiguous, risky files are present, unrelated changes would be included, or the message/issue semantics are uncertain.
+If the user asked to commit a clear current change, proceed after inspection. Ask first only when included files, boundaries, risky content, or issue semantics are ambiguous. Keep questions short: included files, excluded files, proposed message, and the ambiguity.
 
-When asking, keep it short: files included, files excluded, proposed message, and the ambiguity.
+## Message
 
-## Message Rules
-
-Default subject unless repo conventions say otherwise:
+Default format unless repo conventions say otherwise:
 
 ```text
 type(scope): summary
 ```
 
-Use a precise type: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `build`, `ci`, or `chore`. Prefer an obvious scope, keep the summary specific, and add a body only when the reason is not clear from the diff.
+Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `build`, `ci`, `chore`. Use a scope when obvious. Avoid `update`, `changes`, `misc`, and `wip`.
 
-Avoid vague subjects such as `update`, `misc fixes`, `wip`, or `changes`.
+Issue links:
 
-## Issue Linking
-
-Detect issue IDs from explicit user text first, then branch names like `<type>/<short-desc>-123`, `issue-123`, `gh-123`, or `#123`.
-
-- Use `Fixes #123` only when the user requested closing behavior or the staged diff clearly completes a narrowly scoped issue.
+- Detect explicit user issue IDs first, then branch patterns like `<type>/<desc>-123`, `issue-123`, `gh-123`, or `#123`.
+- Use `Fixes #123` only for explicit closing intent or a clearly complete narrow issue.
 - Use `Refs #123` for partial, preparatory, docs-only, cleanup-only, or ambiguous work.
-- If no issue ID is found, do not invent one.
+- Do not invent issue IDs.
 
-Follow any repo template if one is already known or easy to detect.
+## Commit
 
-## Guardrails
+Use normal Git so hooks run:
 
-- Inspect before staging or committing.
-- Do not bulk-stage unrelated files.
-- Do not commit secrets, credentials, conflict markers, local artifacts, accidental binaries, or unrelated changes.
-- Do not auto-push, rewrite history, force-push, or bypass hooks unless explicitly asked.
-- Report the final commit hash and whether hooks/checks ran.
+```bash
+git commit -m "<subject>"
+```
+
+If hooks fail, stop and report. Do not use `--no-verify`, push, rewrite history, or force anything unless explicitly asked.
+
+Report the final commit hash and whether hooks/checks ran.
