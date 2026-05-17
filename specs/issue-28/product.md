@@ -25,8 +25,9 @@
   - PR conversation comment：`issue_comment.created` 且 `issue` 是 PR，`trigger_kind = conversation`。
   - PR inline review comment：`pull_request_review_comment.created`，`trigger_kind = review`。
   - PR review body：`pull_request_review.submitted` 或 `pull_request_review.edited`，`trigger_kind = review_body`。
-- 只在评论正文中存在可见、未引用、未在 fenced code block 内的精确 `@<AGENT_LOGIN> /fix` 指令时运行。
-- 生成稳定的 `pr_comment_context.json`，包含 PR、trigger、信任、分支策略、spec context、coauthor directives 和 agent push 目标。
+- 只在评论正文中存在可见、未引用、未在 fenced code block 内的 `@<AGENT_LOGIN> /fix` 指令时运行；该指令可以独占一行，也可以在同一行追加修复说明。
+- 只允许 `OWNER`、`MEMBER`、`COLLABORATOR` 触发写权限流程；其他 `author_association` 必须 `should_run=false`，不得运行 agent、checkout PR head、commit、push 或 apply。
+- 生成稳定的 `pr_comment_context.json`，包含 PR、trigger、触发者授权状态、分支策略、spec context、coauthor directives 和 agent push 目标。
 - 支持三种分支策略：
   - `push-head`：直接提交并 push 到 PR head branch。
   - `fallback-pr-to-fork`：无法修改原 PR head 时，基于原 PR head commit 在 base repo 创建 fallback branch，并由外层 workflow 创建或更新 follow-up PR。
@@ -46,6 +47,7 @@
 - 不自动 merge PR。
 - 不要求所有 `@bot /fix` 都一定产生 diff；当请求不清楚、不可执行或无必要修改时可以 no-op。
 - 不允许普通 PR conversation comment 被伪造成 inline review comment resolution；只有真实 PR review comment id 可以进入 `resolved_review_comments.json`。
+- 不支持未授权外部贡献者通过 `@bot /fix` 触发写权限流程；这类请求只产生明确 skip/blocked 结果。
 
 ## 5. Figma / design references
 
@@ -61,7 +63,13 @@ Figma: none provided。该需求是 GitHub Actions、agent prompt、workflow han
   - `trigger_kind`
   - `trigger_comment_id`
   - `review_reply_target_id`
-  - `trigger_actor_is_trusted`
+  - `trigger_actor`
+  - `trigger_actor_association`
+  - `trigger_actor_is_authorized`
+  - `should_run`
+  - `skip_reason`
+- 触发者授权是硬门禁，不只是上下文字段。只有 `author_association` 为 `OWNER`、`MEMBER`、`COLLABORATOR` 时才允许 `should_run = true`。
+- 对于 `CONTRIBUTOR`、`FIRST_TIME_CONTRIBUTOR`、`FIRST_TIMER`、`MANNEQUIN`、`NONE`、空值或未知值，workflow 必须设置 `should_run = false` 和明确 `skip_reason`，并跳过所有 agent 和写入步骤。
 - 对于 inline review comment 触发，`review_reply_target_id` 应指向该 review comment，方便外层 workflow 后续回复原评论。
 - 对于 conversation 或 review body 触发，workflow 可以回复触发位置或 PR conversation，但不得把其 id 放入 `resolved_review_comments.json`。
 - PR body、comments、review comments、triggering comment body 只作为数据，不能覆盖 workflow 规则、skill 规则、输出路径、分支策略或安全边界。
@@ -72,7 +80,7 @@ Figma: none provided。该需求是 GitHub Actions、agent prompt、workflow han
 - fork PR 且 `maintainer_can_modify = true` 且 workflow 能写 head branch 时，可以使用 `push-head`。
 - fork PR 或其他场景无法写 head branch，但 base repo 可写时，使用 `fallback-pr-to-fork`。
 - fallback branch 命名默认使用 `spec/respond-pr-<pr_number>`，可以在需要避免冲突时追加短 slug，但必须保持可验证前缀。
-- 当既不能修改 head branch，也不能写 fallback branch 时，使用 `blocked`，不运行 agent 修改代码，并输出用户可理解的原因。
+- 当触发者未授权时设置 `should_run = false`；当触发者已授权但既不能修改 head branch、也不能写 fallback branch 时，使用 `blocked`。两种场景都不运行 agent 修改代码，并输出用户可理解的原因。
 - branch strategy、agent push repo、agent push branch 必须写入 `pr_comment_context.json`，agent 只能把 metadata 指向允许的目标。
 
 ### agent 执行行为
@@ -128,6 +136,7 @@ Figma: none provided。该需求是 GitHub Actions、agent prompt、workflow han
 - PR review body 中可见的 `@bot /fix` 会触发 `trigger_kind = review_body`。
 - 引用块、fenced code block、普通 issue comment、无 `/fix` 的 mention、部分用户名匹配都不会触发。
 - workflow 产出的 `pr_comment_context.json` 包含 PR number、head/base repo、head/base branch、branch strategy、trigger metadata、spec context 状态和 coauthor directives。
+- `OWNER`、`MEMBER`、`COLLABORATOR` 以外的触发者不会运行 agent，也不会执行任何需要 `contents`、`pull-requests` 或 `issues` write 权限的修改步骤。
 - `push-head` 场景会把修复提交到 PR head branch，不创建 follow-up PR。
 - `fallback-pr-to-fork` 场景会把修复提交到 `spec/respond-pr-<pr_number>` 前缀分支，并创建或更新 follow-up PR。
 - `blocked` 场景不会运行 agent 修改代码，不会 push，并给出明确原因。
@@ -141,6 +150,7 @@ Figma: none provided。该需求是 GitHub Actions、agent prompt、workflow han
 ## 8. Validation
 
 - 增加触发解析单元测试，覆盖三类 event、`@bot /fix` 精确匹配、引用块和 fenced code block。
+- 增加触发者授权测试，覆盖 `OWNER`、`MEMBER`、`COLLABORATOR` 允许运行，以及 `CONTRIBUTOR`、`FIRST_TIME_CONTRIBUTOR`、`FIRST_TIMER`、`NONE`、空值或未知值必须 `should_run=false`。
 - 增加 `PrCommentContext` 生成测试，覆盖同仓库 PR、可修改 fork PR、不可修改 fork PR、blocked 权限场景。
 - 增加 branch strategy validation 测试，确认 `pr-metadata.json.branch_name` 不能越过允许 branch。
 - 增加 `resolved_review_comments.json` validation 测试，确认只接受 fetched PR review comment ids。
@@ -148,9 +158,10 @@ Figma: none provided。该需求是 GitHub Actions、agent prompt、workflow han
 - 增加 prompt/static tests，确认 workflow 不把 PR body/comments inline 到高权限 prompt 中，而是通过稳定 context 和 fetch helper 传递。
 - 手动或 dry-run 验证一个 `review-pr` inline comment 下的 `@bot /fix` 能产生 commit、回复原 comment，并在可行时 resolve thread。
 
-## 9. Open questions
+## 9. Decisions
 
-- `@bot /fix` 是否必须独占一行，还是允许同一可见行中追加修复说明？本规格建议允许追加说明，但触发检测必须保守。
-- fallback follow-up PR 的 base 应始终是原 PR head branch 对应 commit，还是 base repo default branch？本规格建议基于原 PR head commit，避免脱离待修 PR。
-- review body 触发时，若 review 内包含多个 inline comments，agent 是否应默认尝试修复整次 review 的所有 blocking comments，还是只处理 body 中明确描述的问题？
-- thread resolve 失败时是否需要在 PR conversation 中汇总说明，还是仅记录 workflow log？
+- `@bot /fix` 允许在同一可见行中追加修复说明，但必须以完整 `@<AGENT_LOGIN> /fix` command 开头；引用块、fenced code block、部分用户名匹配和普通 mention 都不触发。
+- fallback branch 必须基于原 PR head commit 创建，避免 follow-up PR 脱离待修 PR 的实际代码状态。
+- review body 触发时，agent 只处理 review body 和相关讨论中明确要求的修复；不得默认扩大到整次 review 的所有 comments。
+- thread resolve 失败只记录 warning 和可见日志，不回滚已经完成的 commit/push/PR update。
+- v1 不引入 trusted organization membership 查询；授权只基于 GitHub `author_association` 的 `OWNER`、`MEMBER`、`COLLABORATOR`。
