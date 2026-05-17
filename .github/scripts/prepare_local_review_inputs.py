@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -178,6 +179,54 @@ def local_pr_event(repo: str, base: str, base_sha: str, head_sha: str) -> dict[s
     }
 
 
+def github_pr_event(repo: str, branch: str) -> dict[str, Any]:
+    fields = ",".join(
+        [
+            "number",
+            "state",
+            "isDraft",
+            "title",
+            "body",
+            "url",
+            "author",
+            "baseRefName",
+            "baseRefOid",
+            "headRefName",
+            "headRefOid",
+        ]
+    )
+    data = json.loads(run(["gh", "pr", "view", branch, "--repo", repo, "--json", fields]))
+    return {
+        "pull_request": {
+            "number": data.get("number") or "",
+            "state": data.get("state") or "",
+            "draft": bool(data.get("isDraft")),
+            "title": data.get("title") or "",
+            "body": data.get("body") or "",
+            "html_url": data.get("url") or "",
+            "user": {"login": (data.get("author") or {}).get("login") or ""},
+            "base": {
+                "ref": data.get("baseRefName") or "",
+                "sha": data.get("baseRefOid") or "",
+                "repo": {"full_name": repo, "default_branch": data.get("baseRefName") or ""},
+            },
+            "head": {
+                "ref": data.get("headRefName") or "",
+                "sha": data.get("headRefOid") or "",
+                "repo": {"full_name": repo},
+            },
+        }
+    }
+
+
+def github_pr_event_for_current_branch(repo: str) -> dict[str, Any] | None:
+    branch = current_branch()
+    try:
+        return github_pr_event(repo, branch)
+    except (OSError, json.JSONDecodeError, subprocess.CalledProcessError):
+        return None
+
+
 def run_git_with_index(args: list[str], index_path: str) -> str:
     env = os.environ.copy()
     env["GIT_INDEX_FILE"] = index_path
@@ -270,7 +319,7 @@ def main() -> int:
     base = args.base or default_base()
     base_sha = resolve_ref(base)
     head_sha = resolve_ref(args.head)
-    event = local_pr_event(repo, base, base_sha, head_sha)
+    event = github_pr_event_for_current_branch(repo) or local_pr_event(repo, base, base_sha, head_sha)
 
     Path("pr_description.txt").write_text(write_pr_description.format_pr_description(event), encoding="utf-8")
     pr_diff_text = write_local_diff(base_sha, Path("pr_diff.txt"))
