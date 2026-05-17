@@ -134,7 +134,20 @@ class ValidatePrCommentResultTest(unittest.TestCase):
             self.write_json(root, "review_comment_ids.json", {"review_comments": []})
             with (
                 mock.patch.object(validator, "status_paths", return_value=["app.py", "pr-metadata.json"]),
-                mock.patch("sys.argv", ["validate_pr_comment_result.py", "--context", str(root / "pr_comment_context.json"), "--metadata", str(root / "pr-metadata.json"), "--review-comment-ids", str(root / "review_comment_ids.json")]),
+                mock.patch(
+                    "sys.argv",
+                    [
+                        "validate_pr_comment_result.py",
+                        "--context",
+                        str(root / "pr_comment_context.json"),
+                        "--metadata",
+                        str(root / "pr-metadata.json"),
+                        "--resolved",
+                        str(root / "resolved_review_comments.json"),
+                        "--review-comment-ids",
+                        str(root / "review_comment_ids.json"),
+                    ],
+                ),
             ):
                 validator.main()
 

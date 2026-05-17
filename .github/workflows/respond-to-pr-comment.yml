@@ -131,13 +131,6 @@ jobs:
           ref: ${{ steps.context.outputs.head_sha }}
           path: pr-worktree
 
-      - name: Configure push remote
-        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          PUSH_REPO: ${{ steps.context.outputs.agent_push_repo_full_name }}
-        run: git -C pr-worktree remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${PUSH_REPO}.git"
-
       - name: Copy stable context into PR worktree
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         run: |
@@ -307,6 +300,7 @@ jobs:
         id: response_branch
         working-directory: pr-worktree
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           WORKFLOW_UPDATE_TOKEN: ${{ secrets.WORKFLOW_UPDATE_TOKEN }}
         run: |
           python3 ../.github/scripts/commit_implementation_branch.py \

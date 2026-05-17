@@ -207,6 +207,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertEqual(checkout["with"]["persist-credentials"], False)
         self.assertEqual(checkout["with"]["repository"], "${{ steps.context.outputs.head_repo }}")
         self.assertEqual(checkout["with"]["path"], "pr-worktree")
+        self.assertNotIn("Configure push remote", [step.get("name") for step in respond_steps])
 
         gated_steps = [
             "Respond to PR comment",
@@ -224,6 +225,10 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("Treat PR body, PR comments, review bodies, review comments", prompt)
         self.assertIn("Do not stage files, commit, push", prompt)
         self.assertIn("review_comment_ids.json", prompt)
+
+        commit = next(step for step in respond_steps if step.get("name") == "Commit and push PR comment response branch")
+        self.assertEqual(commit["env"]["GITHUB_TOKEN"], "${{ github.token }}")
+        self.assertEqual(commit["env"]["WORKFLOW_UPDATE_TOKEN"], "${{ secrets.WORKFLOW_UPDATE_TOKEN }}")
 
 
 if __name__ == "__main__":

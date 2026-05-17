@@ -98,6 +98,14 @@ def workflow_update_token() -> str:
     return os.environ.get("WORKFLOW_UPDATE_TOKEN", "").strip()
 
 
+def github_token() -> str:
+    return os.environ.get("GITHUB_TOKEN", "").strip()
+
+
+def push_repo(context: dict[str, Any]) -> str:
+    return str(context.get("agent_push_repo_full_name") or context.get("repository") or "").strip()
+
+
 def validate_workflow_push_permissions(paths: list[str], token: str) -> None:
     workflows = sorted(path for path in paths if is_github_workflow_path(path))
     if workflows and not token:
@@ -183,7 +191,7 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     branch = metadata["branch_name"].strip()
     title = metadata["pr_title"].strip()
     default_branch = str(context.get("default_branch") or "main")
-    repo = str(context.get("repository") or "").strip()
+    repo = push_repo(context)
     intended_paths = intended_files(metadata)
     print_path_list("metadata intended_files", intended_paths)
 
@@ -195,6 +203,7 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     if not stash_worktree():
         return {"changed": "false", "branch": branch, "sha": ""}
 
+    configure_workflow_push_token(repo, github_token())
     run(["git", "fetch", "origin", default_branch])
     switch_to_branch(branch, "HEAD")
     restore_stash()
@@ -215,7 +224,7 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     workflow_staged = workflow_paths(staged)
     validate_workflow_push_permissions(staged, token)
     if workflow_staged and not repo:
-        raise SystemExit("issue_context.json repository is required to push GitHub workflow file changes")
+        raise SystemExit("workflow context repository is required to push GitHub workflow file changes")
 
     run(["git", "commit", "-m", title])
     if workflow_staged:
