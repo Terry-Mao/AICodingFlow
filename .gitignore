@@ -13,4 +13,5 @@ htmlcov/
 /spec_context.md
 /review.json
 /.local_review_baseline.status
+/implementation_summary.md
 /.worktrees/

@@ -10,7 +10,8 @@ branch, especially for parallel issue work without disturbing the current
 working tree.
 
 This skill mirrors `git-branch` naming and safety rules, but creates a Git
-worktree instead of switching the current directory.
+worktree and then defaults subsequent work in the conversation to the new
+worktree directory.
 
 ## Goal
 
@@ -21,6 +22,8 @@ branch, safely and predictably:
 - Custom branch names are normalized like `git-branch`.
 - Existing branches or worktrees are reported, not overwritten.
 - Current uncommitted changes are not copied into the new worktree.
+- After successful creation, subsequent commands should run from the new
+  worktree directory by default.
 - No commit, push, delete, prune, stash, or force operation is performed.
 
 ## Directory Rules
@@ -122,13 +125,20 @@ stop.
    git worktree list --porcelain
    git -C .worktrees/<branch-slug> branch --show-current
    git -C .worktrees/<branch-slug> status --short
+   pwd
    ```
-6. Report:
+   Run `pwd` with the command working directory set to
+   `.worktrees/<branch-slug>` so the user can confirm the active directory.
+6. Treat `.worktrees/<branch-slug>` as the default working directory for
+   subsequent tool calls and implementation work in this conversation unless
+   the user explicitly switches elsewhere.
+7. Report:
    - branch name
    - worktree path
    - base ref
    - whether current dirty changes were excluded
-   - next command to enter the worktree
+   - current working directory inside the new worktree
+   - next command to enter the worktree in the user's own shell
 
 ## Guardrails
 
