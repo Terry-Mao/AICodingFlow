@@ -11,7 +11,10 @@ delegates review logic to `review-spec-repo`.
 
 ## Workflow
 
-1. From the repository root, prepare local review inputs:
+1. From the repository root, prepare local review inputs. This prefers the
+   GitHub PR associated with the current branch for `pr_description.txt`, then
+   falls back to locally built PR metadata when the GitHub PR cannot be fetched.
+   The `pr_diff.txt` snapshot is built from the local worktree diff:
    ```bash
    python3 .github/scripts/prepare_local_review_inputs.py \
      --expected-skill .agents/skills/review-spec-repo/SKILL.md
