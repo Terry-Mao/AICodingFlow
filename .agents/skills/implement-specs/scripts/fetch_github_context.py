@@ -34,15 +34,38 @@ def association(item: dict[str, Any]) -> str:
     return item.get("author_association") or item.get("authorAssociation") or ""
 
 
-def section_header(kind: str, author: str, assoc: str, created: str = "") -> str:
+def section_header(kind: str, author: str, assoc: str, created: str = "", **metadata: object) -> str:
     trust = " trust=TRUSTED" if assoc in TRUSTED_ASSOCIATIONS else ""
     created_text = f" created_at={created}" if created else ""
-    return f"--- source={kind} author={author} author_association={assoc or 'UNKNOWN'}{trust}{created_text} ---"
+    metadata_text = "".join(
+        f" {key}={value}"
+        for key, value in metadata.items()
+        if value is not None and str(value) != ""
+    )
+    return f"--- source={kind}{metadata_text} author={author} author_association={assoc or 'UNKNOWN'}{trust}{created_text} ---"
 
 
 def print_section(kind: str, item: dict[str, Any], body: str) -> None:
     print(section_header(kind, author_login(item), association(item), item.get("created_at") or ""))
     print(body or "")
+    print()
+
+
+def print_review_comment(comment: dict[str, Any]) -> None:
+    print(
+        section_header(
+            "pr_review_comment",
+            author_login(comment),
+            association(comment),
+            comment.get("created_at") or "",
+            id=comment.get("id"),
+            review_id=comment.get("pull_request_review_id"),
+            path=comment.get("path"),
+            line=comment.get("line") or comment.get("original_line"),
+            side=comment.get("side") or comment.get("original_side"),
+        )
+    )
+    print(comment.get("body") or "")
     print()
 
 
@@ -106,7 +129,7 @@ def fetch_pr(repo: str, number: int, include_diff: bool) -> None:
         )
     )
     for comment in review_comments:
-        print_section("pr_review_comment", comment, comment.get("body") or "")
+        print_review_comment(comment)
     if include_diff:
         fetch_pr_diff(repo, number)
 

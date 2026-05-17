@@ -47,6 +47,23 @@ class ResolvePrEventTest(unittest.TestCase):
         self.assertFalse(resolver.comment_has_review_command("@codex /review", ""))
         self.assertFalse(resolver.comment_has_review_command(None, "codex"))
 
+    def test_comment_has_fix_command_allows_trailing_request_text(self) -> None:
+        self.assertTrue(resolver.comment_has_fix_command("@codex /fix", "codex"))
+        self.assertTrue(resolver.comment_has_fix_command("@codex /fix please address this", "codex"))
+        self.assertTrue(resolver.comment_has_fix_command("hello\n@codex /fix this edge case", "codex"))
+
+    def test_comment_has_fix_command_rejects_invisible_or_partial_commands(self) -> None:
+        invalid_bodies = [
+            "please @codex /fix",
+            "@codex /review",
+            "@codex-bot /fix",
+            "> @codex /fix",
+            "```\n@codex /fix\n```",
+        ]
+        for body in invalid_bodies:
+            with self.subTest(body=body):
+                self.assertFalse(resolver.comment_has_fix_command(body, "codex"))
+
     def test_pull_request_event_reuses_existing_payload(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"

@@ -23,11 +23,20 @@ def fetch_pr(repo: str, pr_number: str) -> dict[str, Any]:
     )
 
 
-def comment_has_review_command(body: object, agent_login: str) -> bool:
+def comment_has_agent_command(
+    body: object,
+    agent_login: str,
+    command: str,
+    *,
+    allow_trailing_text: bool = False,
+) -> bool:
     if not isinstance(body, str) or not body.strip() or not agent_login.strip():
         return False
 
-    expected = f"@{agent_login.strip()} /review"
+    normalized_command = command.strip()
+    if not normalized_command.startswith("/"):
+        normalized_command = f"/{normalized_command}"
+    expected = f"@{agent_login.strip()} {normalized_command}"
     in_fenced_code = False
 
     for line in body.splitlines():
@@ -39,10 +48,21 @@ def comment_has_review_command(body: object, agent_login: str) -> bool:
             continue
         if in_fenced_code:
             continue
-        if line.strip() == expected:
+        stripped = line.strip()
+        if stripped == expected:
+            return True
+        if allow_trailing_text and stripped.startswith(f"{expected} "):
             return True
 
     return False
+
+
+def comment_has_review_command(body: object, agent_login: str) -> bool:
+    return comment_has_agent_command(body, agent_login, "/review")
+
+
+def comment_has_fix_command(body: object, agent_login: str) -> bool:
+    return comment_has_agent_command(body, agent_login, "/fix", allow_trailing_text=True)
 
 
 def resolve_event(

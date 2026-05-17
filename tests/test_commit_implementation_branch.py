@@ -20,18 +20,28 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "issue_context.json",
                     "implementation_summary.md",
                     "pr-metadata.json",
+                    "pr_comment_context.json",
+                    "pr_event.json",
                     "pr_description.md",
                     "pr_description.txt",
                     "pr_diff.txt",
                     "review.json",
+                    "review_comment_ids.json",
+                    "resolved_review_comments.json",
                     ".local_review_baseline.status",
+                    ".codex-runtime/skills/implement-specs/SKILL.md",
                     ".github/scripts/post_pr_review.py",
                     ".github/scripts/__pycache__/post_pr_review.cpython-312.pyc",
+                    ".agents/skills/review-pr-repo/SKILL.md",
                     "tests/test_post_pr_review.py",
                     "tests/__pycache__/test_post_pr_review.cpython-312.pyc",
                 ]
             ),
-            [".github/scripts/post_pr_review.py", "tests/test_post_pr_review.py"],
+            [
+                ".agents/skills/review-pr-repo/SKILL.md",
+                ".github/scripts/post_pr_review.py",
+                "tests/test_post_pr_review.py",
+            ],
         )
 
     def test_status_paths_parses_simple_and_rename_entries(self) -> None:
@@ -146,6 +156,17 @@ class CommitImplementationBranchTest(unittest.TestCase):
             commit_impl.validate_workflow_push_permissions([".github/workflows/review-pr.yml"], "")
         commit_impl.validate_workflow_push_permissions([".github/workflows/review-pr.yml"], "token")
 
+    def test_push_repo_prefers_agent_push_repo(self) -> None:
+        self.assertEqual(
+            commit_impl.push_repo(
+                {
+                    "repository": "owner/base",
+                    "agent_push_repo_full_name": "owner/head",
+                }
+            ),
+            "owner/head",
+        )
+
     def test_validate_intended_files_rejects_missing_and_unexpected_files(self) -> None:
         commit_impl.validate_intended_files([".agents/skills/review-pr-repo/SKILL.md", "app.py"], ["app.py", ".agents/skills/review-pr-repo/SKILL.md"])
         with self.assertRaisesRegex(SystemExit, "without implementation changes"):
@@ -156,8 +177,9 @@ class CommitImplementationBranchTest(unittest.TestCase):
     def test_commit_and_push_stashes_before_switching_branch(self) -> None:
         calls: list[list[str]] = []
         with (
+            mock.patch.dict("os.environ", {"GITHUB_TOKEN": "github-token"}, clear=False),
             mock.patch.object(commit_impl, "load_json", side_effect=[
-                {"default_branch": "main"},
+                {"default_branch": "main", "agent_push_repo_full_name": "owner/repo"},
                 {
                     "branch_name": "spec/implement-issue-18-workflow",
                     "pr_title": "feat: add workflow",
@@ -189,6 +211,10 @@ class CommitImplementationBranchTest(unittest.TestCase):
             )
 
         self.assertEqual(result, {"changed": "true", "branch": "spec/implement-issue-18-workflow", "sha": "abc123"})
+        self.assertLess(
+            calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:github-token@github.com/owner/repo.git"]),
+            calls.index(["git", "fetch", "origin", "main"]),
+        )
         self.assertLess(
             calls.index(["git", "stash", "push", "--include-untracked", "-m", "implementation workflow handoff"]),
             calls.index(["git", "switch", "-C", "spec/implement-issue-18-workflow", "HEAD"]),
@@ -230,7 +256,7 @@ class CommitImplementationBranchTest(unittest.TestCase):
     def test_commit_and_push_uses_workflow_token_for_workflow_files(self) -> None:
         calls: list[list[str]] = []
         with (
-            mock.patch.dict("os.environ", {"WORKFLOW_UPDATE_TOKEN": "workflow-token"}, clear=False),
+            mock.patch.dict("os.environ", {"GITHUB_TOKEN": "github-token", "WORKFLOW_UPDATE_TOKEN": "workflow-token"}, clear=False),
             mock.patch.object(commit_impl, "load_json", side_effect=[
                 {"default_branch": "main", "repository": "owner/repo"},
                 {
@@ -266,24 +292,40 @@ class CommitImplementationBranchTest(unittest.TestCase):
             )
 
         self.assertEqual(result, {"changed": "true", "branch": "spec/implement-issue-51", "sha": "abc123"})
+        commit_index = calls.index(["git", "commit", "-m", "fix: update workflow"])
+        workflow_remote_index = calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:workflow-token@github.com/owner/repo.git"])
         self.assertLess(
-            calls.index(["git", "commit", "-m", "fix: update workflow"]),
-            calls.index(["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"]),
+            calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:github-token@github.com/owner/repo.git"]),
+            calls.index(["git", "fetch", "origin", "main"]),
         )
         self.assertLess(
-            calls.index(["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"]),
-            calls.index(["git", "config", "--local", "--name-only", "--get-regexp", r"^includeIf\..*\.path$"]),
+            commit_index,
+            workflow_remote_index,
         )
         self.assertLess(
-            calls.index(["git", "config", "--local", "--name-only", "--get-regexp", r"^includeIf\..*\.path$"]),
+            max(
+                index
+                for index, call in enumerate(calls)
+                if call == ["git", "config", "--local", "--unset-all", "http.https://github.com/.extraheader"]
+                and index > commit_index
+            ),
+            workflow_remote_index,
+        )
+        self.assertLess(
+            max(
+                index
+                for index, call in enumerate(calls)
+                if call == ["git", "config", "--local", "--name-only", "--get-regexp", r"^includeIf\..*\.path$"]
+                and index > commit_index
+            ),
+            workflow_remote_index,
+        )
+        self.assertLess(
             calls.index(["git", "config", "--local", "--unset-all", "includeif.gitdir:/home/runner/work/AICodingFlow/AICodingFlow/.git.path"]),
+            workflow_remote_index,
         )
         self.assertLess(
-            calls.index(["git", "config", "--local", "--unset-all", "includeif.gitdir:/home/runner/work/AICodingFlow/AICodingFlow/.git.path"]),
-            calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:workflow-token@github.com/owner/repo.git"]),
-        )
-        self.assertLess(
-            calls.index(["git", "remote", "set-url", "origin", "https://x-access-token:workflow-token@github.com/owner/repo.git"]),
+            workflow_remote_index,
             calls.index(["git", "push", "-u", "origin", "spec/implement-issue-51"]),
         )
 
