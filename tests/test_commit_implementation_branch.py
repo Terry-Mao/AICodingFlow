@@ -29,13 +29,19 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "review_comment_ids.json",
                     "resolved_review_comments.json",
                     ".local_review_baseline.status",
+                    ".codex-runtime/skills/implement-specs/SKILL.md",
                     ".github/scripts/post_pr_review.py",
                     ".github/scripts/__pycache__/post_pr_review.cpython-312.pyc",
+                    ".agents/skills/review-pr-repo/SKILL.md",
                     "tests/test_post_pr_review.py",
                     "tests/__pycache__/test_post_pr_review.cpython-312.pyc",
                 ]
             ),
-            [".github/scripts/post_pr_review.py", "tests/test_post_pr_review.py"],
+            [
+                ".agents/skills/review-pr-repo/SKILL.md",
+                ".github/scripts/post_pr_review.py",
+                "tests/test_post_pr_review.py",
+            ],
         )
 
     def test_status_paths_parses_simple_and_rename_entries(self) -> None:

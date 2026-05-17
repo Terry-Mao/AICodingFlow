@@ -26,11 +26,14 @@ TEMP_WORKFLOW_PATHS = {
     "validation-error.txt",
 }
 
+RUNTIME_WORKFLOW_DIRS = {".codex-runtime"}
+
 
 def is_generated_path(path: str) -> bool:
     parts = Path(path).parts
     return (
-        "__pycache__" in parts
+        bool(parts and parts[0] in RUNTIME_WORKFLOW_DIRS)
+        or "__pycache__" in parts
         or ".pytest_cache" in parts
         or ".mypy_cache" in parts
         or ".ruff_cache" in parts

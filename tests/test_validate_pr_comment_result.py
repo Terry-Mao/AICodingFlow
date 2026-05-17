@@ -92,6 +92,48 @@ class ValidatePrCommentResultTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "not listed"):
                 validator.validate_metadata(metadata, context, ["app.py", "tests/test_app.py"])
 
+    def test_metadata_ignores_runtime_skill_copy_but_not_tracked_skill_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            context = self.write_json(root, "pr_comment_context.json", {"agent_push_branch": "feature"})
+            metadata = self.write_json(
+                root,
+                "pr-metadata.json",
+                {
+                    "branch_name": "feature",
+                    "pr_title": "fix: update parser",
+                    "pr_summary": "Refs #42\n\nBody",
+                    "intended_files": ["app.py"],
+                },
+            )
+
+            validator.validate_metadata(
+                metadata,
+                context,
+                ["app.py", ".codex-runtime/skills/implement-specs/SKILL.md"],
+            )
+
+            with self.assertRaisesRegex(SystemExit, "not listed"):
+                validator.validate_metadata(
+                    metadata,
+                    context,
+                    ["app.py", ".agents/skills/implement-specs/SKILL.md"],
+                )
+
+            metadata.write_text(
+                json.dumps(
+                    {
+                        "branch_name": "feature",
+                        "pr_title": "fix: update parser",
+                        "pr_summary": "Refs #42\n\nBody",
+                        "intended_files": [".codex-runtime/skills/implement-specs/SKILL.md"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(SystemExit, "generated/cache"):
+                validator.validate_metadata(metadata, context, [".codex-runtime/skills/implement-specs/SKILL.md"])
+
     def test_resolved_comments_reject_unknown_and_duplicate_ids(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

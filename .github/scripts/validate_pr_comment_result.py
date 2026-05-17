@@ -71,7 +71,7 @@ def validate_metadata(metadata_path: Path, context_path: Path, candidate_paths: 
         raise SystemExit("pr-metadata.json field intended_files must be a non-empty list")
     intended = sorted(dict.fromkeys(validate_intended_path(path, index) for index, path in enumerate(raw_files)))
 
-    candidates = sorted(candidate_paths if candidate_paths is not None else implementation_paths(status_paths()))
+    candidates = implementation_paths(candidate_paths if candidate_paths is not None else status_paths())
     missing_changes = sorted(set(intended) - set(candidates))
     unexpected = sorted(set(candidates) - set(intended))
     if missing_changes:

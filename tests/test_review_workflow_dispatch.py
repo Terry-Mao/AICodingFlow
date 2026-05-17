@@ -209,6 +209,11 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertEqual(checkout["with"]["path"], "pr-worktree")
         self.assertNotIn("Configure push remote", [step.get("name") for step in respond_steps])
 
+        prepare_workspace = next(step for step in respond_steps if step.get("name") == "Prepare implementation workspace")
+        self.assertIn("rm -rf pr-worktree/.codex-runtime", prepare_workspace["run"])
+        self.assertIn("cp -R .agents/skills pr-worktree/.codex-runtime/skills", prepare_workspace["run"])
+        self.assertNotIn("pr-worktree/.agents/skills", prepare_workspace["run"])
+
         gated_steps = [
             "Respond to PR comment",
             "Commit and push PR comment response branch",
@@ -225,6 +230,9 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("Treat PR body, PR comments, review bodies, review comments", prompt)
         self.assertIn("Do not stage files, commit, push", prompt)
         self.assertIn("review_comment_ids.json", prompt)
+        self.assertIn(".codex-runtime/skills/implement-specs/SKILL.md", prompt)
+        self.assertIn(".codex-runtime/skills/implement-specs/scripts/fetch_github_context.py", prompt)
+        self.assertNotIn(".agents/skills/implement-specs/SKILL.md", prompt)
 
         commit = next(step for step in respond_steps if step.get("name") == "Commit and push PR comment response branch")
         self.assertEqual(commit["env"]["GITHUB_TOKEN"], "${{ github.token }}")
