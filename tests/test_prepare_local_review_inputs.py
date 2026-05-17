@@ -258,7 +258,14 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def test_gitignore_excludes_root_review_snapshots(self) -> None:
         gitignore = (Path(__file__).resolve().parents[1] / ".gitignore").read_text(encoding="utf-8").splitlines()
-        for path in ("pr_description.txt", "pr_diff.txt", "spec_context.md", "review.json", ".local_review_baseline.status"):
+        for path in (
+            "pr_description.txt",
+            "pr_diff.txt",
+            "spec_context.md",
+            "review.json",
+            ".local_review_baseline.status",
+            "implementation_summary.md",
+        ):
             self.assertIn(f"/{path}", gitignore)
 
     def test_remote_repo_from_url_accepts_ssh_https_and_dotted_names(self) -> None:
