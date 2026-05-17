@@ -10,8 +10,9 @@ branch, especially for parallel issue work without disturbing the current
 working tree.
 
 This skill mirrors `git-branch` naming and safety rules, but creates a Git
-worktree and then defaults subsequent work in the conversation to the new
-worktree directory.
+worktree and then defaults Codex tool calls in the conversation to the new
+worktree directory. It cannot change the user's existing shell process; report
+the `cd` command the user should run locally.
 
 ## Goal
 
@@ -22,8 +23,10 @@ branch, safely and predictably:
 - Custom branch names are normalized like `git-branch`.
 - Existing branches or worktrees are reported, not overwritten.
 - Current uncommitted changes are not copied into the new worktree.
-- After successful creation, subsequent commands should run from the new
-  worktree directory by default.
+- After successful creation, Codex should run subsequent tool calls from the
+  new worktree directory by default.
+- The user's own terminal stays wherever it is; tell the user to `cd` into the
+  new worktree when they want their shell there too.
 - No commit, push, delete, prune, stash, or force operation is performed.
 
 ## Directory Rules
@@ -79,30 +82,41 @@ Run these checks before creating a worktree:
    ```
 2. If the current worktree is dirty, continue only after clearly reporting that
    these uncommitted changes will not be copied into the new worktree.
-3. Refresh remote refs when possible:
+3. Resolve the expected base branch using the same policy as `git-branch`:
+   prefer the repository's documented development base, usually `main`,
+   `master`, `develop`, or a release branch named by repo guidance. In this
+   repository, default to `main` unless repo guidance or the user names a
+   different base.
+4. For same-repository development, prefer `origin/<base-branch>` over
+   `upstream/<base-branch>`. Use `upstream` only for fork workflows or explicit
+   repo guidance.
+5. Refresh the selected base refs when possible. For the default case,
+   run:
    ```bash
-   git fetch
+   git fetch origin main
    ```
    If fetch fails, continue only if the user accepts that base freshness was
    not verified.
-4. Choose the base ref in this order:
-   - `upstream/main`
-   - `origin/main`
-   - `main`
-5. Compare the selected base with its upstream when applicable:
+6. Choose the base ref in this order:
+   - `origin/<base-branch>` when it exists
+   - local `<base-branch>` when it exists
+   - `upstream/<base-branch>` only for fork workflows or explicit repo guidance
+7. Compare the local base with `origin/<base-branch>` when both exist:
    ```bash
-   git rev-list --left-right --count <base>...<upstream>
+   git rev-list --left-right --count <base-branch>...origin/<base-branch>
    ```
-   If the base is behind, stop and ask whether to update it before creating the
-   worktree.
-6. Check for an existing local or remote branch:
+   If the local base is behind and `<base-ref>` is local `<base-branch>`, stop
+   and ask whether to update it before creating the worktree. If `<base-ref>` is
+   `origin/<base-branch>`, proceed from the fetched remote base and report that
+   the local base branch was not updated.
+8. Check for an existing local or remote branch:
    ```bash
    git branch --list <branch-name>
    git branch --remotes --list "*/<branch-name>"
    ```
-7. Check for an existing worktree already using the target branch by inspecting
+9. Check for an existing worktree already using the target branch by inspecting
    `git worktree list --porcelain`.
-8. Check whether the target directory already exists:
+10. Check whether the target directory already exists:
    ```bash
    test -e .worktrees/<branch-slug>
    ```
@@ -120,6 +134,9 @@ stop.
    ```bash
    git worktree add --no-track -b <branch-name> .worktrees/<branch-slug> <base-ref>
    ```
+   For same-repository development, `<base-ref>` should normally be
+   `origin/main` after `git fetch origin main`. Keep `--no-track` so the new
+   branch does not track the base; `git-push` sets its upstream when published.
 5. Verify the result:
    ```bash
    git worktree list --porcelain
@@ -130,8 +147,9 @@ stop.
    Run `pwd` with the command working directory set to
    `.worktrees/<branch-slug>` so the user can confirm the active directory.
 6. Treat `.worktrees/<branch-slug>` as the default working directory for
-   subsequent tool calls and implementation work in this conversation unless
-   the user explicitly switches elsewhere.
+   subsequent Codex tool calls and implementation work in this conversation
+   unless the user explicitly switches elsewhere. This does not change the
+   user's existing shell directory.
 7. Report:
    - branch name
    - worktree path
