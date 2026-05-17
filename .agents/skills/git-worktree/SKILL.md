@@ -105,9 +105,10 @@ Run these checks before creating a worktree:
    ```bash
    git rev-list --left-right --count <base-branch>...origin/<base-branch>
    ```
-   If the local base is behind, stop and ask whether to update it before
-   creating the worktree. If creating directly from `origin/<base-branch>`,
-   report that the local base branch was not updated.
+   If the local base is behind and `<base-ref>` is local `<base-branch>`, stop
+   and ask whether to update it before creating the worktree. If `<base-ref>` is
+   `origin/<base-branch>`, proceed from the fetched remote base and report that
+   the local base branch was not updated.
 8. Check for an existing local or remote branch:
    ```bash
    git branch --list <branch-name>
