@@ -1,6 +1,6 @@
 ---
 name: create-product-spec
-description: Create a product spec from a GitHub issue in this repository by applying the local shared `write-product-spec` workflow with issue context and output paths. Use when an issue should be turned into a product spec artifact stored under `specs/issue-<issue-number>/product.md` and the agent should prepare file changes only, without creating commits or pull requests itself unless a cloud workflow explicitly asks for it.
+description: Create a product spec from a GitHub issue in this repository by applying the local shared `write-product-spec` workflow with issue context and output paths. Use when an issue should be turned into a product spec artifact stored under `specs/issue-<issue-number>/product.md` and the agent should prepare file changes only, without creating commits or pull requests itself.
 ---
 
 # create-product-spec
@@ -53,7 +53,7 @@ Write the product spec in the primary natural language of the issue title, issue
 8. Do not implement the feature or modify production code as part of this task. Limit changes to the product spec artifact. Treat temporary context files such as `issue_context.json` and `issue_comments.txt` as scratch input only and do not commit them.
 9. Do not include issue number references (e.g. `(#N)`, `Refs #N`) in commit messages. The issue is already linked in the PR.
 10. If the prompt asks for it, write `pr-metadata.json` at the repository root containing a JSON object with the fields `branch_name`, `pr_title`, and `pr_summary`. The `pr_summary` should summarize the product and technical planning clearly enough that reviewers can use it directly as the PR body. For spec-only PRs, include a non-closing reference to the source issue such as `Refs #<issue-number>` rather than closing keywords like `Closes` or `Fixes`.
-11. Default behavior: do not stage files, create commits, push branches, open pull requests, or use the GitHub CLI. If the prompt explicitly says you are running in a cloud-environment workflow where the caller cannot read your local diff and instructs you to publish a named branch, you may commit and push exactly the requested spec changes to that branch, but still do not open or update the pull request yourself unless the prompt explicitly asks for it.
+11. Default behavior: do not stage files, create commits, push branches, open pull requests, or use the GitHub CLI.
 12. In your final response, provide a brief summary of the product spec and call out any assumptions or open questions so the workflow can reuse that summary when creating the PR.
 
 ## Output expectations
