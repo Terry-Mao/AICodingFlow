@@ -70,8 +70,9 @@ Before running `git switch -c <branch-name>`, verify the local repository state:
 - Check whether the target branch already exists with `git branch --list <branch-name>` and `git branch --remotes --list "*/<branch-name>"`. If it exists, switch to it only after the user confirms that is intended.
 - Check the current branch with `git branch --show-current`. Prefer creating development branches from the repo's documented base branch, usually `main`, `master`, `develop`, or a release branch named by repo guidance.
 - If the current branch is not a suitable base, ask whether to switch to the expected base before creating the new branch.
-- If the repo has a remote and network access is available, run `git fetch` before checking whether the base branch is current. If fetching is unavailable or not allowed, tell the user the base freshness was not verified.
-- Compare the local base with its upstream using `git status -sb` or `git rev-list --left-right --count <base>...<upstream>`. If the base is behind, ask whether to update it before branching.
+- For same-repository development, prefer `origin/<base>` over `upstream/<base>`. Use `upstream` only for fork workflows or explicit repo guidance.
+- If the repo has a remote and network access is available, refresh the selected base before checking freshness. For the default `main` base, run `git fetch origin main`. If fetching is unavailable or not allowed, tell the user the base freshness was not verified.
+- Compare the local base with `origin/<base>` using `git status -sb` or `git rev-list --left-right --count <base>...origin/<base>`. If the local base is behind, ask whether to update it before branching. If creating directly from `origin/<base>`, report that the local base branch was not updated.
 - If already on the target branch, do not recreate it; report that the branch is already active.
 
 ## Workflow
@@ -90,7 +91,7 @@ Before running `git switch -c <branch-name>`, verify the local repository state:
 3. Build the branch name, using the issue-backed format when an IssueID is recognized and `<type>/<user-provided-name>` otherwise.
 4. Validate the final branch name with `git check-ref-format --branch <branch-name>`.
 5. Run the safety checks for uncommitted changes, existing branches, base branch suitability, and base freshness.
-6. Create the branch with `git switch -c <branch-name>` only after the checks pass or the user explicitly approves continuing.
+6. Create the branch only after the checks pass or the user explicitly approves continuing. Prefer `git switch -c <branch-name> <base>` from an up-to-date local base; use `git switch -c <branch-name> origin/<base>` when intentionally branching from the fetched remote base without updating the local base. Do not make the new feature branch track `origin/<base>`; `git-push` sets its upstream when published.
 7. Verify the branch with `git branch --show-current`.
 
 ## Validation
