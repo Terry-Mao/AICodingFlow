@@ -10,8 +10,9 @@ branch, especially for parallel issue work without disturbing the current
 working tree.
 
 This skill mirrors `git-branch` naming and safety rules, but creates a Git
-worktree and then defaults subsequent work in the conversation to the new
-worktree directory.
+worktree and then defaults Codex tool calls in the conversation to the new
+worktree directory. It cannot change the user's existing shell process; report
+the `cd` command the user should run locally.
 
 ## Goal
 
@@ -22,8 +23,10 @@ branch, safely and predictably:
 - Custom branch names are normalized like `git-branch`.
 - Existing branches or worktrees are reported, not overwritten.
 - Current uncommitted changes are not copied into the new worktree.
-- After successful creation, subsequent commands should run from the new
-  worktree directory by default.
+- After successful creation, Codex should run subsequent tool calls from the
+  new worktree directory by default.
+- The user's own terminal stays wherever it is; tell the user to `cd` into the
+  new worktree when they want their shell there too.
 - No commit, push, delete, prune, stash, or force operation is performed.
 
 ## Directory Rules
@@ -143,8 +146,9 @@ stop.
    Run `pwd` with the command working directory set to
    `.worktrees/<branch-slug>` so the user can confirm the active directory.
 6. Treat `.worktrees/<branch-slug>` as the default working directory for
-   subsequent tool calls and implementation work in this conversation unless
-   the user explicitly switches elsewhere.
+   subsequent Codex tool calls and implementation work in this conversation
+   unless the user explicitly switches elsewhere. This does not change the
+   user's existing shell directory.
 7. Report:
    - branch name
    - worktree path
