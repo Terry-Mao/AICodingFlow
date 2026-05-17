@@ -1,90 +1,79 @@
 ---
 name: git-branch
-description: Create branches that match the repo's naming rules, especially when a branch must include an IssueID or follow the type/short-desc format.
+description: Create repository-compliant branches with efficient issue naming, base selection, and safety checks.
 ---
 
 # git-branch
 
-Create a working branch that follows repo naming and base-branch safety rules.
+Create a development branch with the fewest checks needed to avoid wrong names, wrong bases, or overwrites.
 
 ## Naming
 
-- Check `CONTRIBUTING.md` and nearby Git guidance first.
-- Issue-backed branch: `<type>/<short-desc>-<issueID>`.
-- Non-issue branch: `<type>/<user-provided-name>`; do not invent an IssueID.
-- Valid types: `feat`, `fix`, `refactor`, `docs`, `test`, `perf`, `chore`.
-- Names must be lowercase, hyphen-separated, under 80 chars when possible, and
-  must not use Chinese, uppercase letters, or multi-task descriptions.
+- Issue-backed: `<type>/<short-desc>-<issueID>`.
+- Non-issue: `<type>/<user-provided-name>`; never invent an issue ID.
+- Types: `feat`, `fix`, `refactor`, `docs`, `test`, `perf`, `chore`.
+- Preserve a valid user type; otherwise infer from the task, defaulting to `chore`.
+- Normalize to short lowercase English words separated by `-`; remove punctuation, filler words, repeated separators, and non-branch characters.
 
-For an IssueID, fetch `gh issue view <issueID> --json title,body,number`, derive
-`short-desc` from the title, and fall back to body/task context only when
-needed. If issue data cannot be fetched, use task context only when it is enough
-and state that GitHub issue data was not verified.
+If the user gives an issue reference, run one `gh` call:
 
-For a non-issue branch, preserve a valid user-provided type prefix first, then
-use an explicit valid type, then infer from task context, then default to
-`chore` for a bare name. Do not override an explicit valid type.
+```bash
+gh issue view <issueID> --json title,body,number
+```
 
-Recognize IssueID from explicit wording, GitHub issue URLs, repo issue
-shorthands, and branch-like issue references. If several issue numbers appear,
-prefer the one explicitly described as the issue or task ID. Do not treat a PR
-number as an IssueID unless the user says it is the task reference. See
-`references/issue-id-examples.md`.
+Use the title for `short-desc`; fall back to body or user context only when needed. If no issue is mentioned, do not call `gh`. If `gh` fails but context is enough, continue and report that issue metadata was not verified.
 
-Normalize names by lowercasing; replacing spaces, underscores, and repeated
-separators with `-`; removing punctuation, symbols, and Chinese characters
-except the single `/` between type and name; removing filler words such as
-`the`, `a`, `an`, `update`, `change`, `task`, `fix`, `issue`; collapsing
-repeated `/` and `-`; trimming separators; and shortening to the smallest
-meaningful phrase, preferably 2-5 words.
-
-Validate with:
+Validate:
 
 ```bash
 git check-ref-format --branch <branch-name>
 ```
 
-## Safety
+## Efficient Checks
 
-Before creating a branch, check:
+Prefer one shell call for local checks:
 
 ```bash
 git status --short
 git branch --show-current
 git branch --list <branch-name>
-git branch --remotes --list "*/<branch-name>"
 ```
 
-- If the worktree is dirty, ask whether to commit, stash, or continue.
-- If the target branch exists, switch only after user confirmation.
-- Prefer the repo's documented base, usually `main`, `master`, `develop`, or a
-  release branch.
-- For same-repo work, prefer `origin/<base>` over `upstream/<base>`; use
-  `upstream` only for fork workflows or explicit repo guidance.
-- Refresh the selected base when possible, for example `git fetch origin main`.
-  If fetch is unavailable, report that freshness was not verified.
-- Compare local and remote base with `git status -sb` or
-  `git rev-list --left-right --count <base>...origin/<base>`. If local base is
-  behind, ask whether to update it or branch directly from `origin/<base>`.
-- If already on the target branch, do not recreate it.
+Add remote/freshness checks only when they affect the result:
+
+```bash
+git branch --remotes --list '*/<branch-name>'
+git fetch origin <base>
+git rev-list --left-right --count <base>...origin/<base>
+```
+
+Base policy:
+
+- Default `<base>` to `main` unless repo guidance or the user names another base.
+- Same-repo work prefers `origin/<base>` over `upstream/<base>`.
+- Use `upstream` only for fork workflows or explicit guidance.
+- Do not make the new branch track the base; `git-push` sets upstream later.
+
+Stop only when the target branch exists, dirty worktree intent is ambiguous, the current/base branch is clearly unsafe, or freshness checks show the selected base is stale.
 
 ## Create
 
-After checks pass or the user approves continuing:
+Use one of:
 
 ```bash
-# From an up-to-date local base
 git switch -c <branch-name> <base>
-
-# Directly from a fetched remote base, without tracking the base
 git switch --no-track -c <branch-name> origin/<base>
 ```
 
-Do not make the feature branch track `origin/<base>`; `git-push` sets its
-upstream when published.
-
-Verify with:
+Then verify with:
 
 ```bash
 git branch --show-current
 ```
+
+## Guardrails
+
+- No overwrite, reset, stash, delete, or force operations unless explicitly asked.
+- Do not switch to an existing branch without user intent.
+- Do not create protected/shared base branches (`main`, `master`, `develop`, release branches) unless explicitly asked.
+- Report skipped freshness checks only when they could matter.
