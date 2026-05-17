@@ -65,6 +65,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                     }
                 },
             ),
+            mock.patch.object(prepare_local, "github_pr_event_for_current_branch", return_value=None),
             mock.patch.object(prepare_local, "local_worktree_diff", return_value=diff_lines),
             mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status"),
         )
@@ -167,6 +168,93 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                     prepare_local.main()
 
         self.run_in_tempdir(scenario)
+
+    def test_prefers_github_pr_description_over_local_description_only(self) -> None:
+        def scenario(directory: Path) -> None:
+            github_event = {
+                "pull_request": {
+                    "number": 12,
+                    "title": "fix: github pr",
+                    "body": "remote body",
+                    "html_url": "https://github.com/owner/repo/pull/12",
+                    "user": {"login": "reviewer"},
+                    "base": {"ref": "main", "sha": "github-base", "repo": {"default_branch": "main"}},
+                    "head": {"ref": "fix/github-pr", "sha": "github-head"},
+                }
+            }
+
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(prepare_local, "default_repo", return_value="owner/repo"))
+                default_base = stack.enter_context(mock.patch.object(prepare_local, "default_base", return_value="upstream/main"))
+                resolve_ref = stack.enter_context(mock.patch.object(prepare_local, "resolve_ref", side_effect=["base-sha", "head-sha"]))
+                local_pr_event = stack.enter_context(mock.patch.object(prepare_local, "local_pr_event"))
+                local_worktree_diff = stack.enter_context(mock.patch.object(prepare_local, "local_worktree_diff", return_value=CODE_DIFF))
+                stack.enter_context(
+                    mock.patch.object(
+                        prepare_local,
+                        "github_pr_event_for_current_branch",
+                        return_value=github_event,
+                    )
+                )
+                stack.enter_context(
+                    mock.patch.object(
+                        prepare_local.write_spec_context,
+                        "resolve_spec_context",
+                        return_value={"spec_context_source": "", "spec_entries": []},
+                    )
+                )
+                stack.enter_context(
+                    mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status")
+                )
+                stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py", "--github-output", ""]))
+                self.assertEqual(prepare_local.main(), 0)
+
+            self.assertIn("Title: fix: github pr", Path("pr_description.txt").read_text(encoding="utf-8"))
+            self.assertIn("Body:\nremote body", Path("pr_description.txt").read_text(encoding="utf-8"))
+            self.assertIn("FILE core/foo.py", Path("pr_diff.txt").read_text(encoding="utf-8"))
+            default_base.assert_called_once()
+            self.assertEqual(resolve_ref.call_args_list, [mock.call("upstream/main"), mock.call("HEAD")])
+            local_pr_event.assert_not_called()
+            local_worktree_diff.assert_called_once_with("base-sha", 3)
+
+        self.run_in_tempdir(scenario)
+
+    def test_github_pr_event_for_current_branch_fetches_description(self) -> None:
+        def fake_run(args: list[str], env: dict[str, str] | None = None) -> str:
+            if args[:5] == ["gh", "pr", "view", "fix/github-pr", "--repo"]:
+                return """
+                {
+                  "number": 12,
+                  "state": "OPEN",
+                  "isDraft": false,
+                  "title": "fix: github pr",
+                  "body": "remote body",
+                  "url": "https://github.com/owner/repo/pull/12",
+                  "author": {"login": "reviewer"},
+                  "baseRefName": "main",
+                  "baseRefOid": "github-base",
+                  "headRefName": "fix/github-pr",
+                  "headRefOid": "github-head"
+                }
+                """
+            raise AssertionError(args)
+
+        with (
+            mock.patch.object(prepare_local, "current_branch", return_value="fix/github-pr"),
+            mock.patch.object(prepare_local, "run", side_effect=fake_run),
+        ):
+            event = prepare_local.github_pr_event_for_current_branch("owner/repo")
+
+        self.assertIsNotNone(event)
+        self.assertEqual(event["pull_request"]["title"], "fix: github pr")
+        self.assertEqual(event["pull_request"]["body"], "remote body")
+
+    def test_github_pr_event_for_current_branch_returns_none_when_fetch_fails(self) -> None:
+        with (
+            mock.patch.object(prepare_local, "current_branch", return_value="fix/github-pr"),
+            mock.patch.object(prepare_local, "run", side_effect=subprocess.CalledProcessError(1, ["gh"])),
+        ):
+            self.assertIsNone(prepare_local.github_pr_event_for_current_branch("owner/repo"))
 
     def test_gitignore_excludes_root_review_snapshots(self) -> None:
         gitignore = (Path(__file__).resolve().parents[1] / ".gitignore").read_text(encoding="utf-8").splitlines()
