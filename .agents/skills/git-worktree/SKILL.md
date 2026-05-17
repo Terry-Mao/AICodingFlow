@@ -1,152 +1,101 @@
 ---
 name: git-worktree
-description: Create isolated local Git worktrees for parallel branch development, using repo branch naming rules and safe defaults.
+description: Create isolated local Git worktrees for parallel branch development using efficient branch naming and safety checks.
 ---
 
 # git-worktree
 
-Use this when the user wants a separate local working directory for another
-branch, especially for parallel issue work without disturbing the current
-working tree.
-
-This skill mirrors `git-branch` naming and safety rules, but creates a Git
-worktree and then defaults subsequent work in the conversation to the new
-worktree directory.
+Use when the user wants a separate local working directory for another branch without disturbing the current worktree.
 
 ## Goal
 
-Create an isolated local worktree at `.worktrees/<branch-slug>` for a new
-branch, safely and predictably:
+Create `.worktrees/<branch-slug>` for a new branch, then treat that worktree as the default directory for subsequent Codex tool calls. This does not change the user's existing shell process; report the `cd` command the user should run locally.
 
-- Issue-backed work uses `<type>/<short-desc>-<issueID>`.
-- Custom branch names are normalized like `git-branch`.
-- Existing branches or worktrees are reported, not overwritten.
-- Current uncommitted changes are not copied into the new worktree.
-- After successful creation, subsequent commands should run from the new
-  worktree directory by default.
-- No commit, push, delete, prune, stash, or force operation is performed.
+- Issue-backed branch: `<type>/<short-desc>-<issueID>`.
+- Custom branch: normalize like `git-branch`.
+- Directory slug: replace `/` in the branch name with `-`.
+- Do not copy uncommitted changes into the new worktree.
+- Do not overwrite existing branches, worktrees, or directories.
 
-## Directory Rules
+## Branch Name
 
-- Default parent directory: `.worktrees/` at the repository root.
-- Convert the final branch name into the directory slug by replacing `/` with
-  `-`.
-- Example:
-  - branch: `feat/git-worktree-skill-92`
-  - directory: `.worktrees/feat-git-worktree-skill-92`
-- `.worktrees/` must stay ignored by Git.
+Follow `git-branch` naming rules. Fetch issue metadata only when an issue ID is given:
 
-## Branch Name Resolution
+```bash
+gh issue view <issueID> --json title,body,number
+```
 
-Follow the same naming rules as `.agents/skills/git-branch/SKILL.md`.
+If GitHub is unavailable but the request has enough context, continue and state that issue metadata was not verified; otherwise ask for the missing title or summary.
 
-For an issue reference such as `#92`:
-
-1. Fetch issue data:
-   ```bash
-   gh issue view <issueID> --json title,body,number
-   ```
-2. Derive the branch type and short description from the issue title.
-3. Build `<type>/<short-desc>-<issueID>`.
-
-For a custom branch name:
-
-1. Preserve a valid type prefix such as `fix/login-error`.
-2. Use an explicitly requested type when provided.
-3. Infer the type from task context when available.
-4. Use `chore` when no type or task context is available.
-
-Normalize branch names by lowercasing, replacing spaces and repeated
-separators with `-`, removing punctuation and non-branch characters, trimming
-leading/trailing separators, and keeping the result short and specific.
-
-Validate the final branch:
+Validate:
 
 ```bash
 git check-ref-format --branch <branch-name>
 ```
 
-## Safety Checks
+## Efficient Safety Checks
 
-Run these checks before creating a worktree:
+Run:
 
-1. Inspect the current repository state:
-   ```bash
-   git status --short
-   git branch --show-current
-   git worktree list --porcelain
-   git remote -v
-   ```
-2. If the current worktree is dirty, continue only after clearly reporting that
-   these uncommitted changes will not be copied into the new worktree.
-3. Refresh remote refs when possible:
-   ```bash
-   git fetch
-   ```
-   If fetch fails, continue only if the user accepts that base freshness was
-   not verified.
-4. Choose the base ref in this order:
-   - `upstream/main`
-   - `origin/main`
-   - `main`
-5. Compare the selected base with its upstream when applicable:
-   ```bash
-   git rev-list --left-right --count <base>...<upstream>
-   ```
-   If the base is behind, stop and ask whether to update it before creating the
-   worktree.
-6. Check for an existing local or remote branch:
-   ```bash
-   git branch --list <branch-name>
-   git branch --remotes --list "*/<branch-name>"
-   ```
-7. Check for an existing worktree already using the target branch by inspecting
-   `git worktree list --porcelain`.
-8. Check whether the target directory already exists:
-   ```bash
-   test -e .worktrees/<branch-slug>
-   ```
+```bash
+git status --short
+git branch --show-current
+git worktree list --porcelain
+git branch --list <branch-name>
+test -e .worktrees/<branch-slug>
+```
 
-If the branch, worktree, or target directory already exists, do not overwrite,
-delete, prune, or reuse it automatically. Report the existing branch/path and
-stop.
+Check remotes or fetch only when freshness matters, a remote branch conflict is plausible, or the user asked for up-to-date base state:
 
-## Workflow
+```bash
+git branch --remotes --list '*/<branch-name>'
+git fetch origin <base>
+```
 
-1. Resolve and validate the target branch name.
-2. Resolve the worktree directory as `.worktrees/<branch-slug>`.
-3. Run all safety checks above.
-4. Create the worktree and branch:
-   ```bash
-   git worktree add --no-track -b <branch-name> .worktrees/<branch-slug> <base-ref>
-   ```
-5. Verify the result:
-   ```bash
-   git worktree list --porcelain
-   git -C .worktrees/<branch-slug> branch --show-current
-   git -C .worktrees/<branch-slug> status --short
-   pwd
-   ```
-   Run `pwd` with the command working directory set to
-   `.worktrees/<branch-slug>` so the user can confirm the active directory.
-6. Treat `.worktrees/<branch-slug>` as the default working directory for
-   subsequent tool calls and implementation work in this conversation unless
-   the user explicitly switches elsewhere.
-7. Report:
-   - branch name
-   - worktree path
-   - base ref
-   - whether current dirty changes were excluded
-   - current working directory inside the new worktree
-   - next command to enter the worktree in the user's own shell
+For same-repository work, prefer `origin/<base>` over `upstream/<base>`. Use `upstream` only for fork workflows or explicit repo guidance. Default `<base>` to `main` unless repo guidance or the user names another base. Choose the base from the first suitable available ref:
+
+1. `origin/<base>`
+2. local `<base>`
+3. `upstream/<base>` only for fork workflows or explicit repo guidance
+
+Compare freshness only when using a local base that may be behind and that matters for this work:
+
+```bash
+git rev-list --left-right --count <base>...origin/<base>
+```
+
+If local `<base>` is behind and you are using local `<base>`, ask whether to update it or branch directly from `origin/<base>`. If using `origin/<base>`, proceed and report that local `<base>` was not updated.
+
+Stop and ask only if the branch/worktree/directory exists, base choice is unsafe or stale for the requested work, or dirty current changes make intent ambiguous. Otherwise report that dirty current changes, if any, will not be copied.
+
+## Create And Verify
+
+Create:
+
+```bash
+git worktree add --no-track -b <branch-name> .worktrees/<branch-slug> <base-ref>
+```
+
+For same-repository development, `<base-ref>` should normally be `origin/main` when it is available. Keep `--no-track` so the new branch does not track the base; `git-push` sets its upstream when published.
+
+Verify:
+
+```bash
+git worktree list --porcelain
+git -C .worktrees/<branch-slug> branch --show-current
+git -C .worktrees/<branch-slug> status --short
+pwd
+```
+
+Run `pwd` from inside the new worktree.
+
+## Reporting
+
+Report the branch name, worktree path, base ref, whether dirty current changes were excluded, current directory inside the new worktree, and the `cd` command for the user's shell.
 
 ## Guardrails
 
-- Do not run `git worktree remove`, `git worktree prune`, `rm`, `git reset`,
-  `git stash`, `git push`, or force commands unless the user explicitly asks.
-- Do not create a worktree on protected base branches such as `main`, `master`,
-  `develop`, or release branches unless the user explicitly asks.
-- Do not copy current uncommitted changes into the new worktree.
-- Do not overwrite an existing directory, branch, or worktree.
-- If GitHub issue data cannot be fetched, use task context only when it is
-  sufficient to name the branch; otherwise ask for the missing title or summary.
+- Do not run `git worktree remove`, `git worktree prune`, `rm`, `git reset`, `git stash`, `git push`, or force commands unless explicitly asked.
+- Do not create worktrees on protected base branches as the target branch (`main`, `master`, `develop`, release branches) unless explicitly asked.
+- Do not overwrite or reuse existing branch/worktree/directory automatically.
+- Keep `.worktrees/` ignored by Git.

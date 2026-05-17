@@ -34,6 +34,7 @@ issue -> branch -> commit -> push -> pr -> review -> CI -> merge
 核心 SKILL：
 
 - `git-branch`：根据 issue 创建规范分支。
+- `git-worktree`：为并行任务创建独立 worktree。
 - `git-commit`：从真实 diff 中整理原子提交。
 - `git-push`：安全推送当前分支。
 - `create-pr`：创建或更新 GitHub PR。
@@ -79,6 +80,7 @@ done
 
 ```text
 $git-branch #47
+$git-worktree #48
 $git-commit
 $git-push
 $create-pr
@@ -102,6 +104,7 @@ $git-branch #47
 - 推断 Conventional Commit 类型，例如 `feat`、`fix`、`docs`。
 - 生成 `<type>/<short-desc>-<issueID>` 格式的分支名。
 - 检查工作树是否干净、目标分支是否已存在、base 分支是否新鲜。
+- 从 `origin/<base>` 直接创建时使用 `--no-track`，避免新分支错误跟踪 base 分支；发布时再由 `git-push` 设置 upstream。
 
 示例：
 
@@ -109,7 +112,24 @@ $git-branch #47
 docs/optimize-readme-47
 ```
 
-### 2. 创建提交
+### 2. 创建并行 worktree
+
+使用 `git-worktree` 为另一个 issue 创建独立工作目录：
+
+```text
+$git-worktree #48
+```
+
+它会：
+
+- 复用 `git-branch` 的命名和 base 分支安全规则。
+- 在 `.worktrees/<branch-slug>` 下创建新 worktree。
+- 使用 `git worktree add --no-track -b <branch-name> ... <base-ref>`，避免新分支跟踪 base 分支。
+- 不复制当前工作树里的未提交改动。
+- 让 Codex 后续 tool calls 默认从新 worktree 运行。
+- 输出你自己的 shell 需要执行的 `cd .worktrees/<branch-slug>`；Codex 不能改变已有终端进程的当前目录。
+
+### 3. 创建提交
 
 使用 `git-commit` 整理提交：
 
@@ -125,7 +145,7 @@ $git-commit
 - 使用规范提交信息，例如 `feat(review): add spec context snapshots`。
 - 在存在 native git hook 时走正常 `git commit` 流程，让 hook 自动运行。
 
-### 3. 推送分支
+### 4. 推送分支
 
 使用 `git-push` 推送当前分支：
 
@@ -141,7 +161,7 @@ $git-push
 - 已有 upstream 时执行普通 `git push`。
 - 遇到 rejected push 时不会默认 force push。
 
-### 4. 创建或更新 PR
+### 5. 创建或更新 PR
 
 使用 `create-pr` 创建或更新 PR：
 
@@ -279,6 +299,7 @@ AI PR Review 会：
 | SKILL | 用途 |
 | --- | --- |
 | `git-branch` | 根据 issue 或任务描述创建规范分支。 |
+| `git-worktree` | 为并行 issue 或任务创建独立 worktree，并让 Codex 后续操作默认进入该目录。 |
 | `git-commit` | 从真实 diff 中整理原子提交。 |
 | `git-push` | 安全推送分支，避免误推 base 分支或强推。 |
 | `create-pr` | 创建或更新 GitHub PR。 |

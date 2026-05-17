@@ -1,60 +1,47 @@
 ---
 name: git-push
-description: Push committed branch work to the correct GitHub remote branch, set upstream when needed, and avoid unsafe force pushes.
+description: Push committed branch work to the correct remote branch, setting upstream when needed and avoiding unsafe force pushes.
 ---
 
 # git-push
 
-Use this after `git-commit` when the user asks to push committed work or publish a branch.
-
-## Goal
-
-Publish the current development branch safely without rewriting remote history or pushing unfinished work by accident.
+Use after commits exist and the user asks to push or publish the branch.
 
 ## Workflow
 
-1. **Inspect**
-   Run:
+1. Inspect only what affects the push:
    ```bash
    git status --short
    git branch --show-current
-   git remote -v
+   git rev-parse --abbrev-ref --symbolic-full-name @{u}
    ```
-   If the worktree is dirty, do not include those changes in the push; report them and continue only if the user explicitly wants to push existing commits anyway.
+   If there is no upstream, that command may fail; continue by preparing `git push -u origin <branch>`.
 
-2. **Protect base branches**
-   Do not push directly to protected or shared base branches such as `main`, `master`, `develop`, or release branches unless the user explicitly requests it.
+2. Refuse protected/shared base branches (`main`, `master`, `develop`, release branches) unless the user explicitly asked to push them.
 
-3. **Check upstream and commits**
-   Determine whether the current branch has an upstream.
-   If it does, check what will be pushed with:
+3. If the worktree is dirty, report that those changes are not included in the push. Continue when pushing existing commits is still clearly what the user requested; ask only if the dirty state makes intent ambiguous.
+
+4. Show what will be pushed when an upstream exists:
    ```bash
    git log --oneline @{u}..HEAD
    ```
-   If it does not, check recent local commits and prepare to set upstream.
+   If there is no upstream, use recent local commits only when the commit set is unclear.
 
-4. **Push**
-   Use normal `git push` so any configured `pre-push` hook runs. If the hook fails, stop and report the failure instead of bypassing it.
-   If no upstream exists, use:
-   ```bash
-   git push -u origin <branch>
-   ```
-   If upstream exists, use:
+5. Push normally so Git hooks run:
    ```bash
    git push
    ```
+   or, without upstream:
+   ```bash
+   git push -u origin <branch>
+   ```
 
-5. **Handle rejection safely**
-   If push is rejected, do not force push by default.
-   Fetch first, inspect divergence, and ask before rebasing, merging, or using `git push --force-with-lease`.
-   Never use plain `git push --force` unless the user explicitly requests that exact behavior.
+## Rejections
+
+If push is rejected, do not force-push by default. Fetch and inspect divergence only after rejection, then ask before rebasing, merging, or using `git push --force-with-lease`.
+
+Never use plain `git push --force` unless the user explicitly requests that exact behavior.
 
 ## Reporting
 
-After pushing, report:
-
-- current branch
-- remote branch
-- pushed commit hash
-- push result
-- any dirty worktree changes that were not pushed
+After pushing, report the current branch, remote branch/upstream, pushed commit hash, push result, and any dirty changes that were not pushed.
