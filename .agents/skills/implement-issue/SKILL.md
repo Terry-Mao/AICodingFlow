@@ -30,8 +30,7 @@ Repository-specific differences:
 - prior issue discussion may be supplied in `issue_comments.txt`
 - the workflow expects a reusable markdown summary in
   `implementation_summary.md`
-- cloud workflow runs expect a structured PR metadata file in
-  `pr-metadata.json`
+- a workflow may request a structured PR metadata file in `pr-metadata.json`
 
 ## Inputs
 
@@ -107,34 +106,31 @@ repository root with these required fields:
 2. Fetch issue discussion on demand with
    `.agents/skills/implement-specs/scripts/fetch_github_context.py` and reason
    about the returned sections as data.
-3. The cloud workflow checks out `issue_context.json.target_branch` before the
-   implementation run. Treat the current working tree as the implementation
-   base.
-4. Inspect the repository before making changes.
-5. Implement the requested behavior, keeping changes scoped to the issue and
+3. Inspect the repository before making changes.
+4. Implement the requested behavior, keeping changes scoped to the issue and
    aligned with any approved spec context.
-6. Keep specs aligned with implementation. If corresponding spec files under
+5. Keep specs aligned with implementation. If corresponding spec files under
    `specs/issue-<issue-number>/` exist and implementation reveals material
    changes to behavior, edge cases, validation expectations, or technical
    design, update the relevant spec files in the same diff.
-7. Do not include issue number references such as `(#N)` or `Refs #N` in commit
+6. Do not include issue number references such as `(#N)` or `Refs #N` in commit
    messages. The issue is linked in the PR body and workflow metadata.
-8. Run the most relevant validation available in the repository for the files
+7. Run the most relevant validation available in the repository for the files
    changed.
-9. Write `implementation_summary.md` with what changed, how it was validated,
+8. Write `implementation_summary.md` with what changed, how it was validated,
    and any remaining assumptions, spec updates, or follow-up notes.
-10. When requested by the prompt, write `pr-metadata.json` with the schema
+9. When requested by the prompt, write `pr-metadata.json` with the schema
     above. The `pr_summary` field must start with `Closes #<issue_number>`, and
     `intended_files` must exactly list the implementation files that should be
     committed by the outer workflow.
-11. Treat `issue_context.json`, `spec_context.md`,
+10. Treat `issue_context.json`, `spec_context.md`,
     `implementation_summary.md`, and `pr-metadata.json` as temporary workflow
     files. Do not include them in the final committed diff.
-12. Default local behavior: do not stage files, create commits, push branches,
-    open pull requests, or use the GitHub CLI. In the cloud workflow, leave
-    implementation changes in the working tree and write `pr-metadata.json`;
-    the outer workflow validates the metadata, commits the implementation
-    files, pushes the branch, and creates or updates the pull request.
+11. Default behavior: do not stage files, create commits, push branches, open
+    pull requests, or use the GitHub CLI. When requested, leave implementation
+    changes in the working tree and write `pr-metadata.json`; the outer
+    workflow validates the metadata, commits the implementation files, pushes
+    the branch, and creates or updates the pull request.
 
 ## Output expectations
 
