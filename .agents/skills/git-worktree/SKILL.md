@@ -118,7 +118,7 @@ stop.
 3. Run all safety checks above.
 4. Create the worktree and branch:
    ```bash
-   git worktree add -b <branch-name> .worktrees/<branch-slug> <base-ref>
+   git worktree add --no-track -b <branch-name> .worktrees/<branch-slug> <base-ref>
    ```
 5. Verify the result:
    ```bash
