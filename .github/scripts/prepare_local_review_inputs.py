@@ -110,7 +110,7 @@ def resolve_ref(ref: str) -> str:
 
 
 def default_base() -> str:
-    for ref in ("upstream/main", "origin/main", "main"):
+    for ref in ("origin/main", "upstream/main", "main"):
         if optional_git(["rev-parse", "--verify", "--quiet", ref]):
             return ref
     raise SystemExit("could not resolve default review base; pass --base")
@@ -227,6 +227,28 @@ def github_pr_event_for_current_branch(repo: str) -> dict[str, Any] | None:
         return None
 
 
+def pr_base_sha(event: dict[str, Any] | None) -> str:
+    if not event:
+        return ""
+    return str(((event.get("pull_request") or {}).get("base") or {}).get("sha") or "")
+
+
+def pr_base_ref(event: dict[str, Any] | None) -> str:
+    if not event:
+        return ""
+    return str(((event.get("pull_request") or {}).get("base") or {}).get("ref") or "")
+
+
+def sync_event_base(event: dict[str, Any], base: str, base_sha: str) -> None:
+    pull_request = event.setdefault("pull_request", {})
+    base_record = pull_request.setdefault("base", {})
+    base_ref = display_base_ref(base)
+    base_record["ref"] = base_ref
+    base_record["sha"] = base_sha
+    repo = base_record.setdefault("repo", {})
+    repo["default_branch"] = base_ref
+
+
 def run_git_with_index(args: list[str], index_path: str) -> str:
     env = os.environ.copy()
     env["GIT_INDEX_FILE"] = index_path
@@ -316,10 +338,25 @@ def main() -> int:
     remove_stale_review_files()
 
     repo = args.repo or default_repo()
-    base = args.base or default_base()
-    base_sha = resolve_ref(base)
     head_sha = resolve_ref(args.head)
-    event = github_pr_event_for_current_branch(repo) or local_pr_event(repo, base, base_sha, head_sha)
+    event = github_pr_event_for_current_branch(repo)
+
+    if args.base:
+        base = args.base
+        base_sha = resolve_ref(base)
+        if event:
+            sync_event_base(event, base, base_sha)
+    elif pr_base_sha(event):
+        base_sha = pr_base_sha(event)
+        base = pr_base_ref(event) or base_sha
+    else:
+        base = default_base()
+        base_sha = resolve_ref(base)
+        if event:
+            sync_event_base(event, base, base_sha)
+
+    if not event:
+        event = local_pr_event(repo, base, base_sha, head_sha)
 
     Path("pr_description.txt").write_text(write_pr_description.format_pr_description(event), encoding="utf-8")
     pr_diff_text = write_local_diff(base_sha, Path("pr_diff.txt"))
