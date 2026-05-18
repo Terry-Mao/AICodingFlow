@@ -65,7 +65,7 @@ This skill produces two files:
 - Write the file using CODEOWNERS conventions:
   ```
   # Syntax follows CODEOWNERS conventions: later rules take precedence.
-  # NOTE: This file is advisory only — GitHub does not enforce it.
+  # GitHub may request code owner review when branch protection requires it.
 
   # --- Section comment ---
   /path/pattern/ @owner1 @owner2
