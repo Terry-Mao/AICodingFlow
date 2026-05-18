@@ -49,7 +49,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
         return (
             mock.patch.object(prepare_local, "default_repo", return_value="owner/repo"),
             mock.patch.object(prepare_local, "default_base", return_value="upstream/main"),
-            mock.patch.object(prepare_local, "resolve_ref", side_effect=["base-sha", "head-sha"]),
+            mock.patch.object(prepare_local, "resolve_ref", side_effect=["head-sha", "base-sha"]),
             mock.patch.object(
                 prepare_local,
                 "local_pr_event",
@@ -169,7 +169,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
         self.run_in_tempdir(scenario)
 
-    def test_prefers_github_pr_description_over_local_description_only(self) -> None:
+    def test_prefers_github_pr_base_sha_for_diff_and_description(self) -> None:
         def scenario(directory: Path) -> None:
             github_event = {
                 "pull_request": {
@@ -186,7 +186,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             with ExitStack() as stack:
                 stack.enter_context(mock.patch.object(prepare_local, "default_repo", return_value="owner/repo"))
                 default_base = stack.enter_context(mock.patch.object(prepare_local, "default_base", return_value="upstream/main"))
-                resolve_ref = stack.enter_context(mock.patch.object(prepare_local, "resolve_ref", side_effect=["base-sha", "head-sha"]))
+                resolve_ref = stack.enter_context(mock.patch.object(prepare_local, "resolve_ref", return_value="head-sha"))
                 local_pr_event = stack.enter_context(mock.patch.object(prepare_local, "local_pr_event"))
                 local_worktree_diff = stack.enter_context(mock.patch.object(prepare_local, "local_worktree_diff", return_value=CODE_DIFF))
                 stack.enter_context(
@@ -209,15 +209,140 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                 stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py", "--github-output", ""]))
                 self.assertEqual(prepare_local.main(), 0)
 
-            self.assertIn("Title: fix: github pr", Path("pr_description.txt").read_text(encoding="utf-8"))
-            self.assertIn("Body:\nremote body", Path("pr_description.txt").read_text(encoding="utf-8"))
+            description = Path("pr_description.txt").read_text(encoding="utf-8")
+            self.assertIn("Title: fix: github pr", description)
+            self.assertIn("Body:\nremote body", description)
+            self.assertIn("Base: main @ github-base", description)
             self.assertIn("FILE core/foo.py", Path("pr_diff.txt").read_text(encoding="utf-8"))
-            default_base.assert_called_once()
-            self.assertEqual(resolve_ref.call_args_list, [mock.call("upstream/main"), mock.call("HEAD")])
+            default_base.assert_not_called()
+            resolve_ref.assert_called_once_with("HEAD")
             local_pr_event.assert_not_called()
-            local_worktree_diff.assert_called_once_with("base-sha", 3)
+            local_worktree_diff.assert_called_once_with("github-base", 3)
 
         self.run_in_tempdir(scenario)
+
+    def test_explicit_base_overrides_github_pr_base_and_updates_description(self) -> None:
+        def scenario(directory: Path) -> None:
+            github_event = {
+                "pull_request": {
+                    "number": 12,
+                    "title": "fix: github pr",
+                    "body": "remote body",
+                    "html_url": "https://github.com/owner/repo/pull/12",
+                    "user": {"login": "reviewer"},
+                    "base": {"ref": "main", "sha": "github-base", "repo": {"default_branch": "main"}},
+                    "head": {"ref": "fix/github-pr", "sha": "github-head"},
+                }
+            }
+
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(prepare_local, "default_repo", return_value="owner/repo"))
+                default_base = stack.enter_context(mock.patch.object(prepare_local, "default_base"))
+                resolve_ref = stack.enter_context(mock.patch.object(prepare_local, "resolve_ref", side_effect=["head-sha", "explicit-base-sha"]))
+                local_worktree_diff = stack.enter_context(mock.patch.object(prepare_local, "local_worktree_diff", return_value=CODE_DIFF))
+                stack.enter_context(
+                    mock.patch.object(
+                        prepare_local,
+                        "github_pr_event_for_current_branch",
+                        return_value=github_event,
+                    )
+                )
+                stack.enter_context(
+                    mock.patch.object(
+                        prepare_local.write_spec_context,
+                        "resolve_spec_context",
+                        return_value={"spec_context_source": "", "spec_entries": []},
+                    )
+                )
+                stack.enter_context(
+                    mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status")
+                )
+                stack.enter_context(
+                    mock.patch(
+                        "sys.argv",
+                        ["prepare_local_review_inputs.py", "--github-output", "", "--base", "origin/main"],
+                    )
+                )
+                self.assertEqual(prepare_local.main(), 0)
+
+            description = Path("pr_description.txt").read_text(encoding="utf-8")
+            self.assertIn("Title: fix: github pr", description)
+            self.assertIn("Base: main @ explicit-base-sha", description)
+            default_base.assert_not_called()
+            self.assertEqual(resolve_ref.call_args_list, [mock.call("HEAD"), mock.call("origin/main")])
+            local_worktree_diff.assert_called_once_with("explicit-base-sha", 3)
+
+        self.run_in_tempdir(scenario)
+
+    def test_github_pr_event_without_base_sha_uses_fallback_base(self) -> None:
+        def scenario(directory: Path) -> None:
+            github_event = {
+                "pull_request": {
+                    "number": 12,
+                    "title": "fix: github pr",
+                    "body": "remote body",
+                    "html_url": "https://github.com/owner/repo/pull/12",
+                    "user": {"login": "reviewer"},
+                    "base": {"ref": "main", "sha": "", "repo": {"default_branch": "main"}},
+                    "head": {"ref": "fix/github-pr", "sha": "github-head"},
+                }
+            }
+
+            with ExitStack() as stack:
+                stack.enter_context(mock.patch.object(prepare_local, "default_repo", return_value="owner/repo"))
+                default_base = stack.enter_context(mock.patch.object(prepare_local, "default_base", return_value="origin/main"))
+                resolve_ref = stack.enter_context(mock.patch.object(prepare_local, "resolve_ref", side_effect=["head-sha", "fallback-base-sha"]))
+                local_worktree_diff = stack.enter_context(mock.patch.object(prepare_local, "local_worktree_diff", return_value=CODE_DIFF))
+                stack.enter_context(
+                    mock.patch.object(
+                        prepare_local,
+                        "github_pr_event_for_current_branch",
+                        return_value=github_event,
+                    )
+                )
+                stack.enter_context(
+                    mock.patch.object(
+                        prepare_local.write_spec_context,
+                        "resolve_spec_context",
+                        return_value={"spec_context_source": "", "spec_entries": []},
+                    )
+                )
+                stack.enter_context(
+                    mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status")
+                )
+                stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py", "--github-output", ""]))
+                self.assertEqual(prepare_local.main(), 0)
+
+            description = Path("pr_description.txt").read_text(encoding="utf-8")
+            self.assertIn("Base: main @ fallback-base-sha", description)
+            default_base.assert_called_once()
+            self.assertEqual(resolve_ref.call_args_list, [mock.call("HEAD"), mock.call("origin/main")])
+            local_worktree_diff.assert_called_once_with("fallback-base-sha", 3)
+
+        self.run_in_tempdir(scenario)
+
+    def test_default_base_prefers_origin_before_upstream(self) -> None:
+        def exists(ref: str) -> bool:
+            with mock.patch.object(
+                prepare_local,
+                "optional_git",
+                side_effect=lambda args: "sha" if args[-1] == ref else "",
+            ):
+                return prepare_local.default_base() == ref
+
+        with mock.patch.object(
+            prepare_local,
+            "optional_git",
+            side_effect=lambda args: "sha" if args[-1] in {"origin/main", "upstream/main", "main"} else "",
+        ):
+            self.assertEqual(prepare_local.default_base(), "origin/main")
+
+        self.assertTrue(exists("upstream/main"))
+        self.assertTrue(exists("main"))
+
+        with mock.patch.object(prepare_local, "optional_git", return_value=""):
+            with self.assertRaisesRegex(SystemExit, "could not resolve default review base"):
+                prepare_local.default_base()
 
     def test_github_pr_event_for_current_branch_fetches_description(self) -> None:
         def fake_run(args: list[str], env: dict[str, str] | None = None) -> str:
