@@ -146,6 +146,32 @@ class ExtractConflictContextTest(unittest.TestCase):
         self.assertIn("-mode=ours", stdout)
         self.assertIn("+mode=theirs", stdout)
 
+    def test_empty_stage_renders_as_empty_and_still_has_diff(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            self.init_repo(repo)
+            (repo / "empty.txt").write_text("base line\n", encoding="utf-8")
+            self.run_git(repo, "add", "empty.txt")
+            self.run_git(repo, "commit", "-m", "base")
+            self.run_git(repo, "checkout", "-b", "theirs")
+            (repo / "empty.txt").write_text("theirs line\n", encoding="utf-8")
+            self.run_git(repo, "commit", "-am", "theirs nonempty")
+            self.run_git(repo, "checkout", "main")
+            (repo / "empty.txt").write_text("", encoding="utf-8")
+            self.run_git(repo, "commit", "-am", "ours empty")
+            merge = self.run_git(repo, "merge", "theirs", check=False)
+            self.assertNotEqual(merge.returncode, 0)
+            (repo / "empty.txt").write_text("", encoding="utf-8")
+
+            result, stdout, stderr = self.run_script(repo, "--file", "empty.txt")
+
+        self.assertEqual(result, 0)
+        self.assertEqual(stderr, "")
+        self.assertIn("ours:\n  (empty)", stdout)
+        self.assertIn("theirs:\n  theirs line", stdout)
+        self.assertIn("ours vs theirs diff:", stdout)
+        self.assertIn("+theirs line", stdout)
+
     def test_binary_index_preview_does_not_crash_on_invalid_utf8(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)

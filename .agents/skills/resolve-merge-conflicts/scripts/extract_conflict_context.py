@@ -228,11 +228,11 @@ def build_index_preview(repo_root: Path, report: dict[str, object], max_lines: i
     theirs = read_stage_text(repo_root, path, 3)
     base = read_stage_text(repo_root, path, 1)
     preview: dict[str, object] = {
-        "ours": truncate_lines(ours, max_lines) if ours else None,
-        "theirs": truncate_lines(theirs, max_lines) if theirs else None,
-        "base": truncate_lines(base, max_lines) if base else None,
+        "ours": truncate_lines(ours, max_lines) if ours is not None else None,
+        "theirs": truncate_lines(theirs, max_lines) if theirs is not None else None,
+        "base": truncate_lines(base, max_lines) if base is not None else None,
     }
-    if ours and theirs:
+    if ours is not None and theirs is not None:
         preview["ours_vs_theirs_diff"] = build_diff(ours, theirs, "ours", "theirs", max_lines)
     return preview
 
