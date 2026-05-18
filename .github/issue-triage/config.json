@@ -1,0 +1,92 @@
+{
+  "labels": {
+    "bug": {
+      "color": "D73A4A",
+      "description": "Something is not working as expected"
+    },
+    "documentation": {
+      "color": "0075CA",
+      "description": "Documentation or guidance update"
+    },
+    "duplicate": {
+      "color": "CFD3D7",
+      "description": "This issue has been identified as a duplicate of one or more existing issues"
+    },
+    "enhancement": {
+      "color": "A2EEEF",
+      "description": "New capability or improvement request"
+    },
+    "good first issue": {
+      "color": "7057FF",
+      "description": "Issue suitable for a first contribution"
+    },
+    "help wanted": {
+      "color": "008672",
+      "description": "Extra maintainer or contributor attention is needed"
+    },
+    "invalid": {
+      "color": "E4E669",
+      "description": "The issue does not describe a valid task or problem"
+    },
+    "question": {
+      "color": "D876E3",
+      "description": "The issue is primarily a question or discussion"
+    },
+    "wontfix": {
+      "color": "FFFFFF",
+      "description": "This issue will not be worked on"
+    },
+    "ready-to-spec": {
+      "color": "1D76DB",
+      "description": "Ready to write or refine the spec"
+    },
+    "needs-info": {
+      "color": "D876E3",
+      "description": "More information is needed before progress"
+    },
+    "plan-approved": {
+      "color": "5319E7",
+      "description": "Implementation plan has been approved"
+    },
+    "ready-to-implement": {
+      "color": "0E8A16",
+      "description": "Spec is ready for implementation"
+    },
+    "repro:high": {
+      "color": "B60205",
+      "description": "High-confidence or easily reproducible issue"
+    },
+    "repro:medium": {
+      "color": "FBCA04",
+      "description": "Moderate-confidence or partially reproducible issue"
+    },
+    "repro:low": {
+      "color": "C5DEF5",
+      "description": "Low-confidence or hard-to-reproduce issue"
+    },
+    "repro:unknown": {
+      "color": "CFD3D7",
+      "description": "There is not enough information to estimate reproducibility"
+    },
+    "triaged": {
+      "color": "C2E0C6",
+      "description": "Issue has been reviewed and categorized"
+    },
+    "area:workflow": {
+      "color": "7057FF",
+      "description": "GitHub workflows and Python automation scripts"
+    },
+    "area:skills": {
+      "color": "D4C5F9",
+      "description": "Codex skills and agent behavior guidance"
+    },
+    "area:specs": {
+      "color": "0075CA",
+      "description": "Product specs, technical specs, and spec-driven workflows"
+    },
+    "area:tests": {
+      "color": "BFDADC",
+      "description": "Automated tests and test fixtures"
+    }
+  }
+}

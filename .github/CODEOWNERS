@@ -1,0 +1,19 @@
+# Syntax follows CODEOWNERS conventions: later rules take precedence.
+# NOTE: This file is advisory only - GitHub does not enforce it.
+
+# --- Default ownership ---
+* @Terry-Mao
+
+# --- Agent skills ---
+/.agents/ @Terry-Mao
+
+# --- GitHub workflows and automation ---
+/.github/ @Terry-Mao
+
+# --- Specs and documentation ---
+/specs/ @Terry-Mao
+/README.md @Terry-Mao
+
+# --- Tests ---
+/tests/ @Terry-Mao
+/testdata/ @Terry-Mao
