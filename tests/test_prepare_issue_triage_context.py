@@ -4,7 +4,9 @@ import argparse
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 from tests.script_imports import import_script
 
@@ -169,6 +171,52 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
             event = prepare.load_event(str(event_path))
 
         self.assertEqual(prepare.extract_issue_number("", event), 42)
+
+    def test_dedupe_candidates_fetches_open_and_recent_closed_issues(self) -> None:
+        open_issues = [
+            {"number": 1, "title": "current", "body": "current"},
+            {"number": 2, "title": "same", "body": "same failure", "state": "open", "user": {"login": "alice"}},
+            {"number": 3, "title": "pr", "pull_request": {}, "state": "open"},
+        ]
+        closed_issues = [
+            {
+                "number": 4,
+                "title": "recent",
+                "body": "same error",
+                "state": "closed",
+                "closed_at": "2026-05-18T00:00:00Z",
+                "labels": [{"name": "bug"}],
+            },
+            {
+                "number": 5,
+                "title": "old but updated",
+                "body": "same error",
+                "state": "closed",
+                "closed_at": "2026-05-01T00:00:00Z",
+            },
+            {"number": 2, "title": "duplicate fetch", "state": "closed"},
+        ]
+
+        with mock.patch.object(prepare, "fetch_issue_candidates", side_effect=[open_issues, closed_issues]) as fetch:
+            candidates = prepare.dedupe_candidates(
+                "owner/repo",
+                1,
+                now=datetime(2026, 5, 19, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(fetch.call_args_list[0].args, ("owner/repo", "open"))
+        self.assertEqual(fetch.call_args_list[1].args, ("owner/repo", "closed"))
+        self.assertEqual(fetch.call_args_list[1].kwargs, {"since": "2026-05-12T00:00:00Z"})
+        self.assertEqual([candidate["number"] for candidate in candidates], [2, 4])
+        self.assertEqual(candidates[0]["author"], "alice")
+        self.assertEqual(candidates[1]["labels"], ["bug"])
+
+    def test_write_dedupe_candidates_writes_json(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "dedupe_candidates.json"
+            prepare.write_dedupe_candidates(path, [{"number": 2, "title": "same"}])
+
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), [{"number": 2, "title": "same"}])
 
 
 if __name__ == "__main__":

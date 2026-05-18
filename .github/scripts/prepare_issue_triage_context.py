@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import subprocess
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -173,6 +174,78 @@ def fetch_comments(repo: str, issue_number: int) -> list[dict[str, Any]]:
     return flatten_pages(pages)
 
 
+def fetch_issue_candidates(repo: str, state: str, *, since: str = "") -> list[dict[str, Any]]:
+    path = f"repos/{repo}/issues?state={state}&per_page=100"
+    if since:
+        path += f"&since={since}"
+    pages = run_gh_json(["api", path, "--paginate", "--slurp"])
+    return flatten_pages(pages)
+
+
+def is_pull_request_item(item: dict[str, Any]) -> bool:
+    return "pull_request" in item and item.get("pull_request") is not None
+
+
+def normalize_candidate_issue(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "number": item.get("number"),
+        "title": item.get("title") or "",
+        "body": item.get("body") or "",
+        "state": item.get("state") or "",
+        "labels": label_names(item),
+        "author": author_login(item),
+        "created_at": item.get("created_at") or "",
+        "updated_at": item.get("updated_at") or "",
+        "closed_at": item.get("closed_at") or "",
+        "url": item.get("html_url") or "",
+    }
+
+
+def recent_closed_since(now: datetime | None = None) -> str:
+    current = now or datetime.now(timezone.utc)
+    return (current - timedelta(days=7)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def parse_github_datetime(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def closed_within_window(item: dict[str, Any], since: datetime) -> bool:
+    closed_at = parse_github_datetime(item.get("closed_at") or "")
+    return closed_at is not None and closed_at >= since
+
+
+def dedupe_candidates(repo: str, current_issue_number: int, *, now: datetime | None = None) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for item in fetch_issue_candidates(repo, "open"):
+        number = item.get("number")
+        if number == current_issue_number or number in seen or is_pull_request_item(item):
+            continue
+        seen.add(number)
+        candidates.append(normalize_candidate_issue(item))
+
+    current = now or datetime.now(timezone.utc)
+    closed_since = current - timedelta(days=7)
+    for item in fetch_issue_candidates(repo, "closed", since=recent_closed_since(current)):
+        number = item.get("number")
+        if (
+            number == current_issue_number
+            or number in seen
+            or is_pull_request_item(item)
+            or not closed_within_window(item, closed_since)
+        ):
+            continue
+        seen.add(number)
+        candidates.append(normalize_candidate_issue(item))
+    return candidates
+
+
 def fetch_default_branch(repo: str) -> str:
     repository = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
     default_branch = (repository.get("defaultBranchRef") or {}).get("name")
@@ -237,6 +310,10 @@ def write_templates(path: Path, templates: list[dict[str, str]]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_dedupe_candidates(path: Path, candidates: list[dict[str, Any]]) -> None:
+    path.write_text(json.dumps(candidates, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def write_github_output(path: str | None, values: dict[str, str]) -> None:
     if not path:
         return
@@ -256,6 +333,7 @@ def main() -> None:
     parser.add_argument("--output", default="triage_context.json")
     parser.add_argument("--comments-output", default="issue_comments.txt")
     parser.add_argument("--templates-output", default="issue_templates.txt")
+    parser.add_argument("--dedupe-output", default="dedupe_candidates.json")
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
     args = parser.parse_args()
 
@@ -263,6 +341,7 @@ def main() -> None:
     issue_number = extract_issue_number(args.issue, event)
     issue = fetch_issue(args.repo, issue_number)
     comments = fetch_comments(args.repo, issue_number)
+    candidates = dedupe_candidates(args.repo, issue_number)
     default_branch = fetch_default_branch(args.repo)
     run, reason = should_run(args, event)
     trigger_comment = triggering_comment(event) if args.event_name == "issue_comment" else None
@@ -294,6 +373,8 @@ def main() -> None:
         "trigger_reason": reason if run else "",
         "triage_config": config,
         "issue_template_paths": [template["path"] for template in templates],
+        "dedupe_candidates_path": args.dedupe_output,
+        "dedupe_candidates_count": len(candidates),
         "include_issue_body": args.include_issue_body,
         "expected_output": "triage_result.json",
         "skill_paths": [
@@ -313,6 +394,7 @@ def main() -> None:
     Path(args.output).write_text(json.dumps(context, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write_comments(Path(args.comments_output), historical_comments)
     write_templates(Path(args.templates_output), templates)
+    write_dedupe_candidates(Path(args.dedupe_output), candidates)
     write_github_output(
         args.github_output,
         {
