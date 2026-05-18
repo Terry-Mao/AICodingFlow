@@ -69,7 +69,6 @@ def open_pr_for_branch(repo: str, branch_name: str) -> dict[str, Any] | None:
 
 
 def update_original_pr(repo: str, number: int, metadata: dict[str, Any]) -> str:
-    run_gh(["pr", "edit", str(number), "--repo", repo, "--title", metadata["pr_title"], "--body", metadata["pr_summary"]])
     pr = run_gh_json(["pr", "view", str(number), "--repo", repo, "--json", "url"])
     return str(pr["url"])
 
@@ -109,6 +108,26 @@ def reply_to_issue_comment(repo: str, pr_number: int, message: str) -> None:
 
 def reply_to_review_comment(repo: str, pr_number: int, comment_id: int, message: str) -> None:
     run_gh(["api", f"repos/{repo}/pulls/{pr_number}/comments/{comment_id}/replies", "-f", f"body={message}"])
+
+
+def response_summary(metadata: dict[str, Any]) -> str:
+    summary = str(metadata.get("pr_summary") or "").strip()
+    if not summary:
+        return ""
+    lines = [
+        line
+        for line in summary.splitlines()
+        if line.strip() and not line.strip().lower().startswith(("refs #", "closes #", "fixes #"))
+    ]
+    return "\n".join(lines).strip()
+
+
+def issue_reply_body(metadata: dict[str, Any], pr_url: str) -> str:
+    body = f"Applied requested changes on `{metadata['branch_name']}`."
+    summary = response_summary(metadata)
+    if summary:
+        body = f"{body}\n\nSummary:\n{summary}"
+    return f"{body}\n\n{pr_url}"
 
 
 def extend_connection(connection: dict[str, Any], page: dict[str, Any]) -> None:
@@ -204,7 +223,7 @@ def apply_result(repo: str, context: dict[str, Any], metadata: dict[str, Any], r
     reply_to_issue_comment(
         repo,
         int(context["pr_number"]),
-        f"Applied requested changes on `{metadata['branch_name']}`.\n\n{pr_url}",
+        issue_reply_body(metadata, pr_url),
     )
 
     warnings: list[str] = []

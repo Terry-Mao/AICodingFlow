@@ -240,6 +240,10 @@ jobs:
             every intentionally changed repository file and must not include
             workflow handoff files, validation logs, generated cache files, or
             unchanged files.
+            When this workflow can push directly to the original PR branch,
+            pr_title and pr_summary are used for validation, commit metadata,
+            and the response comment summary only; the outer workflow must not
+            rewrite the original PR title or body.
 
             resolved_review_comments.json, when present, must contain only
             numeric inline review comment ids from review_comment_ids.json and

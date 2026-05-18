@@ -28,6 +28,31 @@ class ApplyPrCommentResultTest(unittest.TestCase):
         self.assertEqual(result["pr_url"], "https://pr/42")
         self.assertEqual(calls[0][0], "update")
         self.assertEqual(calls[1][0], "reply")
+        self.assertEqual(
+            calls[1][1],
+            (
+                "owner/repo",
+                42,
+                "Applied requested changes on `feature`.\n\nSummary:\nBody\n\nhttps://pr/42",
+            ),
+        )
+
+    def test_update_original_pr_does_not_edit_title_or_body(self) -> None:
+        gh_calls: list[list[str]] = []
+        metadata = {
+            "branch_name": "feature",
+            "pr_title": "fix: update parser",
+            "pr_summary": "Refs #42\n\nBody",
+        }
+
+        with (
+            mock.patch.object(apply_result, "run_gh", side_effect=lambda args, **_: gh_calls.append(args) or ""),
+            mock.patch.object(apply_result, "run_gh_json", return_value={"url": "https://pr/42"}),
+        ):
+            url = apply_result.update_original_pr("owner/repo", 42, metadata)
+
+        self.assertEqual(url, "https://pr/42")
+        self.assertEqual(gh_calls, [])
 
     def test_fallback_creates_followup_and_resolves_review_comments(self) -> None:
         calls: list[tuple[str, object]] = []
@@ -49,8 +74,21 @@ class ApplyPrCommentResultTest(unittest.TestCase):
 
         self.assertEqual(result["pr_url"], "https://pr/99")
         self.assertEqual([name for name, _ in calls], ["followup", "reply", "review_reply", "resolve"])
+        self.assertEqual(
+            calls[1][1],
+            (
+                "owner/repo",
+                42,
+                "Applied requested changes on `spec/respond-pr-42`.\n\nSummary:\nBody\n\nhttps://pr/99",
+            ),
+        )
         self.assertEqual(calls[-2][1], ("owner/repo", 42, 123, "Updated `app.py`."))
         self.assertEqual(calls[-1][1], ("owner/repo", 42, 123))
+
+    def test_issue_reply_body_omits_summary_when_pr_summary_is_empty(self) -> None:
+        body = apply_result.issue_reply_body({"branch_name": "feature", "pr_summary": ""}, "https://pr/42")
+
+        self.assertEqual(body, "Applied requested changes on `feature`.\n\nhttps://pr/42")
 
     def test_reply_to_review_comment_uses_pull_request_reply_endpoint(self) -> None:
         calls: list[list[str]] = []
