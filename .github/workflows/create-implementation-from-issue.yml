@@ -138,6 +138,12 @@ jobs:
             git switch -C "$branch" "origin/$default_branch"
           fi
 
+      - name: Prepare implementation output directory
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        run: |
+          rm -rf implementation-output
+          mkdir -p implementation-output
+
       - name: Implement issue
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         uses: openai/codex-action@v1
@@ -180,6 +186,15 @@ jobs:
             - pr-metadata.json
             - implementation file changes in the working tree if there are changes
 
+            If a required implementation file is under .agents and .agents is
+            read-only in the Codex sandbox, write the complete replacement file
+            under implementation-output using the same repository-relative path
+            instead. For example, write
+            implementation-output/.agents/skills/example/SKILL.md for target
+            file .agents/skills/example/SKILL.md. The outer workflow will apply
+            those files to the working tree after Codex exits. Do not use
+            implementation-output for files outside .agents.
+
             pr-metadata.json must be a JSON object with:
             - branch_name: the branch the outer workflow should commit and push
             - pr_title: conventional commit style title based on actual changes
@@ -205,6 +220,10 @@ jobs:
             Do not create or update pull requests, post GitHub comments, or
             edit GitHub issues. The outer workflow handles GitHub API writes
             after validating pr-metadata.json.
+
+      - name: Apply implementation output
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        run: python3 .github/scripts/apply_implementation_output.py
 
       - name: Check implementation worktree changes
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
@@ -333,5 +352,6 @@ jobs:
             branch-start-shas.json
             implementation_summary.md
             pr-metadata.json
+            implementation-output
             validation-output.txt
             validation-error.txt

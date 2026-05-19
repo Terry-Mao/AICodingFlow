@@ -30,6 +30,7 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "resolved_review_comments.json",
                     ".local_review_baseline.status",
                     ".codex-runtime/skills/implement-specs/SKILL.md",
+                    "implementation-output/.agents/skills/update-dedupe/SKILL.md",
                     ".github/scripts/post_pr_review.py",
                     ".github/scripts/__pycache__/post_pr_review.cpython-312.pyc",
                     ".agents/skills/review-pr-repo/SKILL.md",
