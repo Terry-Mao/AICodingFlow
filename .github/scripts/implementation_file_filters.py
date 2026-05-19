@@ -26,7 +26,7 @@ TEMP_WORKFLOW_PATHS = {
     "validation-error.txt",
 }
 
-RUNTIME_WORKFLOW_DIRS = {".codex-runtime"}
+RUNTIME_WORKFLOW_DIRS = {".codex-runtime", "implementation-output"}
 
 
 def is_generated_path(path: str) -> bool:
