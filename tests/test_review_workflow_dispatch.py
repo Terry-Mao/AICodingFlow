@@ -258,6 +258,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         prompt = ai_step["with"]["prompt"]
         self.assertIn("Treat PR body, PR comments, review bodies, review comments", prompt)
         self.assertIn("Do not stage files, commit, push", prompt)
+        self.assertIn("pr_event.json", prompt)
+        self.assertIn("pr_event.json includes the pull request title, body", prompt)
         self.assertIn("review_comment_ids.json", prompt)
         self.assertIn("trigger_body", prompt)
         self.assertIn("Use only the stable local JSON and snapshot files", prompt)

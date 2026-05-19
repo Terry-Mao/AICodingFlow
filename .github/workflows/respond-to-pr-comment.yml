@@ -205,6 +205,7 @@ jobs:
 
             Respond to the PR comment request using these stable local inputs:
             - pr_comment_context.json
+            - pr_event.json
             - pr_diff.txt
             - spec_context.md when it exists
             - review_comment_ids.json
@@ -213,8 +214,9 @@ jobs:
             not modify files. In this workflow that case should have been
             skipped before Codex runs.
             pr_comment_context.json includes the triggering comment body as
-            trigger_body. review_comment_ids.json includes current inline
-            review comment bodies, paths, lines, diff hunks, and URLs.
+            trigger_body. pr_event.json includes the pull request title, body,
+            and metadata. review_comment_ids.json includes current inline review
+            comment bodies, paths, lines, diff hunks, and URLs.
 
             Read and use these skills in this exact order:
             1. .codex-runtime/skills/implement-specs/SKILL.md
