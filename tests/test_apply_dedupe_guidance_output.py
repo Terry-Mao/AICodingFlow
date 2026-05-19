@@ -105,6 +105,29 @@ class ApplyDedupeGuidanceOutputTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 apply_guidance.apply_output(output, Path(tmp))
 
+    def test_changed_status_rejects_symlink_proposed_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "out"
+            proposed = output / "dedupe-issue-repo"
+            proposed.mkdir(parents=True)
+            outside = root / "outside.md"
+            outside.write_text("outside\n", encoding="utf-8")
+            (proposed / "SKILL.md").symlink_to(outside)
+            (output / "status.json").write_text(
+                json.dumps(
+                    {
+                        "status": "changed",
+                        "reason": "test",
+                        "updated_files": [".agents/skills/dedupe-issue-repo/SKILL.md"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SystemExit, "refusing to apply symlink output"):
+                apply_guidance.apply_output(output, root)
+
 
 if __name__ == "__main__":
     unittest.main()

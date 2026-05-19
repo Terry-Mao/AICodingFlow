@@ -39,6 +39,14 @@ def validate_updated_files(updated_files: Any) -> list[str]:
     return sorted(set(updated_files))
 
 
+def read_proposed_file(source: Path) -> str:
+    if source.is_symlink():
+        raise SystemExit(f"refusing to apply symlink output: {source}")
+    if not source.is_file():
+        raise SystemExit(f"missing proposed dedupe guidance file: {source}")
+    return source.read_text(encoding="utf-8")
+
+
 def apply_output(output_dir: Path, repo_root: Path) -> str:
     status_data = load_status(output_dir)
     status = status_data.get("status")
@@ -58,11 +66,10 @@ def apply_output(output_dir: Path, repo_root: Path) -> str:
     updated_files = validate_updated_files(status_data.get("updated_files"))
     for destination in updated_files:
         source = output_dir / ALLOWED_FILES[destination]
-        if not source.is_file():
-            raise SystemExit(f"missing proposed dedupe guidance file: {source}")
+        content = read_proposed_file(source)
         target = repo_root / destination
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+        target.write_text(content, encoding="utf-8")
         print(f"applied {destination}")
 
     return status
