@@ -202,19 +202,20 @@ def issue_ref(node: dict[str, Any] | None) -> dict[str, Any] | None:
 
 
 def duplicate_event(issue: dict[str, Any]) -> dict[str, Any] | None:
+    latest_event = None
     for event in issue.get("timelineItems", {}).get("nodes", []):
         if event and event.get("__typename") == "MarkedAsDuplicateEvent":
             canonical = issue_ref(event.get("canonical"))
             duplicate = issue_ref(event.get("duplicate"))
             if canonical and duplicate:
-                return {
+                latest_event = {
                     "event_type": "marked_as_duplicate",
                     "actor": actor_login(event) or "",
                     "created_at": event.get("createdAt"),
                     "canonical": canonical,
                     "duplicate": duplicate,
                 }
-    return None
+    return latest_event
 
 
 def normalize_issue(issue: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:

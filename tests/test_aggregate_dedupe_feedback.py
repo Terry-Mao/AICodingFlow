@@ -94,6 +94,34 @@ class AggregateDedupeFeedbackTest(unittest.TestCase):
         self.assertIsNone(normalized)
         self.assertEqual(skipped["reason"], "duplicate_event_does_not_match_issue")
 
+    def test_normalize_issue_uses_latest_valid_duplicate_event(self) -> None:
+        issue = self.duplicate_issue(11)
+        first_event = issue["timelineItems"]["nodes"][0]
+        first_event["createdAt"] = "2026-05-19T00:01:00Z"
+        first_event["canonical"]["number"] = 10
+        first_event["canonical"]["title"] = "Old canonical"
+        first_event["canonical"]["url"] = "https://github.com/o/r/issues/10"
+
+        second_event = {
+            **first_event,
+            "createdAt": "2026-05-19T00:02:00Z",
+            "canonical": {
+                **first_event["canonical"],
+                "number": 20,
+                "title": "Latest canonical",
+                "url": "https://github.com/o/r/issues/20",
+            },
+            "duplicate": {**first_event["duplicate"]},
+        }
+        issue["timelineItems"]["nodes"].append(second_event)
+
+        normalized, skipped = aggregate.normalize_issue(issue)
+
+        self.assertIsNone(skipped)
+        self.assertEqual(normalized["canonical"]["number"], 20)
+        self.assertEqual(normalized["canonical"]["title"], "Latest canonical")
+        self.assertEqual(normalized["evidence"]["created_at"], "2026-05-19T00:02:00Z")
+
     def test_build_clusters_groups_by_canonical_issue(self) -> None:
         issues, skipped = aggregate.normalize_issues(
             [self.duplicate_issue(11), self.duplicate_issue(12), self.duplicate_issue(13, 20)]
