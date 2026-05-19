@@ -7,6 +7,7 @@ import argparse
 import datetime as dt
 import json
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -54,7 +55,16 @@ ISSUE_FIELDS = f"""
 
 
 def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, capture_output=True, text=True)
+    result = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if result.returncode != 0:
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="" if result.stderr.endswith("\n") else "\n")
+        raise subprocess.CalledProcessError(
+            result.returncode,
+            result.args,
+            output=result.stdout,
+            stderr=result.stderr,
+        )
     text = result.stdout.strip()
     return json.loads(text) if text else None
 
@@ -107,8 +117,8 @@ def search_issues(repo: str, days: int) -> list[dict[str, Any]]:
 
     while True:
         query = """
-query($query: String!, $after: String) {
-  search(query: $query, type: ISSUE, first: __PAGE_SIZE__, after: $after) {
+query($searchQuery: String!, $after: String) {
+  search(query: $searchQuery, type: ISSUE, first: __PAGE_SIZE__, after: $after) {
     __PAGE_INFO__
     nodes {
       ... on Issue {
@@ -118,7 +128,7 @@ query($query: String!, $after: String) {
   }
 }
 """
-        variables: dict[str, Any] = {"query": search_query}
+        variables: dict[str, Any] = {"searchQuery": search_query}
         if after is not None:
             variables["after"] = after
         data = run_graphql(issue_query(query), variables)
@@ -136,10 +146,10 @@ query($query: String!, $after: String) {
 
 def issue_query(query: str) -> str:
     return (
-        query.replace("__PAGE_SIZE__", str(PAGE_SIZE))
-        .replace("__PAGE_INFO__", PAGE_INFO)
-        .replace("__ISSUE_FIELDS__", ISSUE_FIELDS)
+        query.replace("__ISSUE_FIELDS__", ISSUE_FIELDS)
         .replace("__MARKED_AS_DUPLICATE_EVENT_FIELDS__", MARKED_AS_DUPLICATE_EVENT_FIELDS)
+        .replace("__PAGE_SIZE__", str(PAGE_SIZE))
+        .replace("__PAGE_INFO__", PAGE_INFO)
     )
 
 
