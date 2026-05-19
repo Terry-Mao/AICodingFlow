@@ -243,6 +243,12 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("cp -R .agents/skills pr-worktree/.codex-runtime/skills", prepare_workspace["run"])
         self.assertNotIn("pr-worktree/.agents/skills", prepare_workspace["run"])
 
+        worktree = next(step for step in respond_steps if step.get("name") == "Check PR comment response worktree changes")
+        self.assertIn("':!pr_comment_context.json'", worktree["run"])
+        self.assertIn("':!pr_event.json'", worktree["run"])
+        self.assertIn("':!review_comment_ids.json'", worktree["run"])
+        self.assertIn("':!pr_diff.txt'", worktree["run"])
+
         gated_steps = [
             "Respond to PR comment",
             "Commit and push PR comment response branch",
@@ -258,10 +264,18 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         prompt = ai_step["with"]["prompt"]
         self.assertIn("Treat PR body, PR comments, review bodies, review comments", prompt)
         self.assertIn("Do not stage files, commit, push", prompt)
+        self.assertIn("pr_event.json", prompt)
+        self.assertIn("pr_event.json includes the pull request title, body", prompt)
         self.assertIn("review_comment_ids.json", prompt)
+        self.assertIn("trigger_body", prompt)
+        self.assertIn("Use only the stable local JSON and snapshot files", prompt)
+        self.assertIn("do not fetch additional GitHub", prompt)
+        self.assertIn("or call GitHub APIs", prompt)
         self.assertIn(".codex-runtime/skills/implement-specs/SKILL.md", prompt)
-        self.assertIn(".codex-runtime/skills/implement-specs/scripts/fetch_github_context.py", prompt)
+        self.assertNotIn(".codex-runtime/skills/implement-specs/scripts/fetch_github_context.py", prompt)
         self.assertNotIn(".agents/skills/implement-specs/SKILL.md", prompt)
+        self.assertNotIn("GH_TOKEN", ai_step.get("env", {}))
+        self.assertNotIn("GITHUB_TOKEN", ai_step.get("env", {}))
 
         commit = next(step for step in respond_steps if step.get("name") == "Commit and push PR comment response branch")
         self.assertEqual(commit["env"]["GITHUB_TOKEN"], "${{ github.token }}")

@@ -179,6 +179,9 @@ def review_comment_index(comments: list[dict[str, Any]]) -> dict[str, Any]:
                 "line": comment.get("line") or comment.get("original_line"),
                 "author": author_login(comment),
                 "author_association": association(comment),
+                "body": comment.get("body") or "",
+                "diff_hunk": comment.get("diff_hunk") or "",
+                "url": comment.get("html_url") or "",
             }
         )
     return {"review_comments": items}
@@ -231,6 +234,7 @@ def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login
         "maintainer_can_modify": bool(pr.get("maintainer_can_modify")),
         **strategy,
         **{key: value for key, value in trigger.items() if key != "body"},
+        "trigger_body": trigger["body"],
         "trigger_actor_is_authorized": authorized,
         "trigger_command_present": has_command,
         "has_spec_context": False,
