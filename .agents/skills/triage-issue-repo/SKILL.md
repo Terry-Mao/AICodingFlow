@@ -24,8 +24,7 @@ The label taxonomy for this repository is managed in `.github/issue-triage/confi
 
 ## Recurring follow-up patterns
 
-No repo-specific follow-up patterns have been captured for this repository yet. The weekly `update-triage` loop will propose additions as maintainer overrides reveal recurring patterns that are actually specific to this repository.
-
-## Owner-inference hints
-
-No repo-specific owner-inference hints beyond `.github/CODEOWNERS` have been captured yet.
+No repo-specific follow-up patterns have been captured for this repository yet.
+Future updates may add concise, evidence-backed patterns when maintainer
+overrides reveal recurring follow-up needs that are actually specific to this
+repository.
