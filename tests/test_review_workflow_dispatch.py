@@ -190,6 +190,9 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("Evidence summary:", create_pr["run"])
         self.assertIn("${{ steps.guidance.outputs.reason }}", create_pr["run"])
 
+        changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
+        self.assertIn("git status --porcelain -- .agents/skills/dedupe-issue-repo", changes["run"])
+
     def test_respond_to_pr_comment_workflow_has_secure_triggers_and_gates(self) -> None:
         data = workflow(".github/workflows/respond-to-pr-comment.yml")
         triggers = data[True]

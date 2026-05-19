@@ -134,7 +134,7 @@ jobs:
       - name: Check for guidance changes
         id: changes
         run: |
-          if git diff --quiet -- .agents/skills/dedupe-issue-repo; then
+          if [ -z "$(git status --porcelain -- .agents/skills/dedupe-issue-repo)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
