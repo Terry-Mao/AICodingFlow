@@ -106,6 +106,25 @@ jobs:
       - name: Apply guidance output
         run: python3 .agents/skills/update-dedupe/scripts/apply_guidance_output.py
 
+      - name: Capture dedupe guidance summary
+        id: guidance
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import uuid
+          from pathlib import Path
+
+          status = json.loads(Path("update-dedupe-output/status.json").read_text(encoding="utf-8"))
+          reason = str(status.get("reason") or "No evidence summary provided.").strip()
+          delimiter = f"dedupe_summary_{uuid.uuid4().hex}"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print(f"reason<<{delimiter}", file=output)
+              print(reason, file=output)
+              print(delimiter, file=output)
+          PY
+
       - name: Remove temporary feedback
         run: rm -rf dedupe-feedback.json update-dedupe-output
 
@@ -144,6 +163,9 @@ jobs:
 
           body="$(cat <<'EOF'
           Updates repo-local dedupe guidance from recent maintainer duplicate closures.
+
+          Evidence summary:
+          ${{ steps.guidance.outputs.reason }}
 
           Source:
           - days: ${{ inputs.days }}

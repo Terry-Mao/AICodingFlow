@@ -24,6 +24,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
             ".github/workflows/create-spec-from-issue.yml": "create-spec",
             ".github/workflows/review-pr.yml": "review",
             ".github/workflows/respond-to-pr-comment.yml": "respond",
+            ".github/workflows/update-dedupe.yml": "update",
             ".github/workflows/update-pr-review.yml": "update",
         }
 
@@ -169,6 +170,25 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertEqual(create_pr["id"], "pr")
         self.assertIn("--github-output \"$GITHUB_OUTPUT\"", create_pr["run"])
         self.assertNotIn("Dispatch AI PR review", step_names)
+
+    def test_update_dedupe_pr_body_includes_captured_evidence_summary(self) -> None:
+        data = workflow(".github/workflows/update-dedupe.yml")
+        update_steps = steps(data, "update")
+        step_names = [step.get("name") for step in update_steps]
+
+        self.assertLess(
+            step_names.index("Capture dedupe guidance summary"),
+            step_names.index("Remove temporary feedback"),
+        )
+
+        capture = next(step for step in update_steps if step.get("name") == "Capture dedupe guidance summary")
+        self.assertEqual(capture["id"], "guidance")
+        self.assertIn("update-dedupe-output/status.json", capture["run"])
+        self.assertIn("GITHUB_OUTPUT", capture["run"])
+
+        create_pr = next(step for step in update_steps if step.get("name") == "Create or update pull request")
+        self.assertIn("Evidence summary:", create_pr["run"])
+        self.assertIn("${{ steps.guidance.outputs.reason }}", create_pr["run"])
 
     def test_respond_to_pr_comment_workflow_has_secure_triggers_and_gates(self) -> None:
         data = workflow(".github/workflows/respond-to-pr-comment.yml")
