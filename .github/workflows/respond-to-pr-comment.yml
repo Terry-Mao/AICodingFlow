@@ -267,6 +267,7 @@ jobs:
         run: |
           changed="$(git status --porcelain=v1 --untracked-files=all -- \
             ':!pr_comment_context.json' \
+            ':!pr_event.json' \
             ':!review_comment_ids.json' \
             ':!spec_context.md' \
             ':!pr_diff.txt' \

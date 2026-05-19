@@ -243,6 +243,12 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("cp -R .agents/skills pr-worktree/.codex-runtime/skills", prepare_workspace["run"])
         self.assertNotIn("pr-worktree/.agents/skills", prepare_workspace["run"])
 
+        worktree = next(step for step in respond_steps if step.get("name") == "Check PR comment response worktree changes")
+        self.assertIn("':!pr_comment_context.json'", worktree["run"])
+        self.assertIn("':!pr_event.json'", worktree["run"])
+        self.assertIn("':!review_comment_ids.json'", worktree["run"])
+        self.assertIn("':!pr_diff.txt'", worktree["run"])
+
         gated_steps = [
             "Respond to PR comment",
             "Commit and push PR comment response branch",
