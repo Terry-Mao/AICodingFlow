@@ -1,7 +1,7 @@
 ---
 name: review-spec-repo
 specializes: review-spec
-description: Repo-specific wrapper around the core review-spec workflow for AICodingFlow spec-only pull request reviews.
+description: Repo-specific wrapper around the core review-spec workflow for spec-only pull request reviews.
 ---
 
 # review-spec-repo

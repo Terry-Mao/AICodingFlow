@@ -1,7 +1,7 @@
 ---
 name: review-pr-repo
 specializes: review-pr
-description: Repo-specific wrapper around the core review-pr workflow for AICodingFlow pull request reviews.
+description: Repo-specific wrapper around the core review-pr workflow for pull request reviews.
 ---
 
 # review-pr-repo

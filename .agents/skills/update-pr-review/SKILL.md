@@ -1,6 +1,6 @@
 ---
 name: update-pr-review
-description: Improve repo-local PR review companion skills from human feedback on bot reviews. Use when updating AICodingFlow review guidance from recent GitHub PR review feedback.
+description: Improve repo-local PR review companion skills from human feedback on bot reviews. Use when updating review guidance from recent GitHub PR review feedback.
 ---
 
 # update-pr-review
