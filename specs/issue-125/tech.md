@@ -17,7 +17,7 @@
 - `.github/workflows/triage-issue.yml` — 当前 issue triage 调用 `triage-issue` 和 `dedupe-issue` 的入口；未来可通过 prompt 引用 companion guidance，但本功能不应改变 triage 输出合同。
 - `.agents/skills/review-pr-repo/SKILL.md` 和 `.agents/skills/review-spec-repo/SKILL.md` — repo-local companion skill 的现有格式参考。
 
-当前仓库中未看到 `.agents/skills/dedupe-issue-repo/` 目录；因此实现应支持首次创建 companion skill。
+当前仓库已经存在 `.agents/skills/dedupe-issue-repo/SKILL.md` 初始 companion，包含 wrapper flow、边界和空的 `Known-duplicate clusters` 区域。因此实现应优先更新该 companion 的 known-cluster guidance；如果未来在其他分支或仓库中该文件不存在，apply 脚本仍应允许 runner 创建 parent directory 后写入完整 replacement。
 
 ## 3. Current state
 
@@ -62,18 +62,17 @@
 - `no_change`：证据不足、重复模式已覆盖，或没有维护者强信号。
 - `error`：输入无法安全解释或缺少必要字段。
 
-### 新增 companion skill
+### Companion skill
 
-新增 `.agents/skills/dedupe-issue-repo/SKILL.md`，作为 `dedupe-issue` 的 repo-specific wrapper。初始结构建议：
+使用现有 `.agents/skills/dedupe-issue-repo/SKILL.md` 作为 `dedupe-issue` 的 repo-specific wrapper。`update-dedupe` 只应维护该文件中的 known-cluster guidance，并保留以下结构：
 
 - frontmatter：`name: dedupe-issue-repo`、`specializes: dedupe-issue`。
 - Required Wrapper Flow：读取 `.agents/skills/dedupe-issue/SKILL.md`，遵守核心流程，再应用 repo-specific guidance。
 - Boundaries：明确 companion 不能改变 duplicate algorithm、2-candidate minimum、similarity threshold、output contract 或 safety rules。
 - Known-duplicate clusters：由 `update-dedupe` 维护的简短规则列表。
-- Normalization guidance：如未来需要，可记录 repo-specific title/body normalization；第一版可为空或仅保留 heading。
 - Self-Evolution Boundary：说明 `update-dedupe` 可以更新该文件，但只能依据 repeated maintainer duplicate evidence。
 
-如果当前没有 cluster，是否预先创建该 companion 取决于实现策略。更贴近 `update-pr-review` 的做法是只有出现 `changed` 时才创建。
+第一版不需要在没有 repeated cluster 时改写 companion；无证据时 runtime skill 应输出 `no_change`。
 
 ### 聚合脚本
 
