@@ -144,6 +144,10 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          GUIDANCE_REASON: ${{ steps.guidance.outputs.reason }}
+          SOURCE_DAYS: ${{ inputs.days }}
+          SOURCE_ISSUE: ${{ inputs.issue || 'all recent duplicate closures' }}
+          SOURCE_REPO: ${{ inputs.repo || github.repository }}
         run: |
           branch="feat/update-dedupe"
 
@@ -161,17 +165,19 @@ jobs:
           git commit -m "docs(skill): update dedupe guidance"
           git push --force-with-lease origin "$branch"
 
-          body="$(cat <<'EOF'
-          Updates repo-local dedupe guidance from recent maintainer duplicate closures.
+          body="$(python3 <<'PY'
+          import os
 
-          Evidence summary:
-          ${{ steps.guidance.outputs.reason }}
-
-          Source:
-          - days: ${{ inputs.days }}
-          - issue: ${{ inputs.issue || 'all recent duplicate closures' }}
-          - repo: ${{ inputs.repo || github.repository }}
-          EOF
+          print("Updates repo-local dedupe guidance from recent maintainer duplicate closures.")
+          print()
+          print("Evidence summary:")
+          print(os.environ["GUIDANCE_REASON"])
+          print()
+          print("Source:")
+          print(f"- days: {os.environ['SOURCE_DAYS']}")
+          print(f"- issue: {os.environ['SOURCE_ISSUE']}")
+          print(f"- repo: {os.environ['SOURCE_REPO']}")
+          PY
           )"
 
           if gh pr view "$branch" --repo "${{ github.repository }}" >/dev/null 2>&1; then

@@ -188,7 +188,9 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
 
         create_pr = next(step for step in update_steps if step.get("name") == "Create or update pull request")
         self.assertIn("Evidence summary:", create_pr["run"])
-        self.assertIn("${{ steps.guidance.outputs.reason }}", create_pr["run"])
+        self.assertEqual(create_pr["env"]["GUIDANCE_REASON"], "${{ steps.guidance.outputs.reason }}")
+        self.assertIn('os.environ["GUIDANCE_REASON"]', create_pr["run"])
+        self.assertNotIn("${{ steps.guidance.outputs.reason }}", create_pr["run"])
 
         changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
         self.assertIn("git status --porcelain -- .agents/skills/dedupe-issue-repo", changes["run"])
