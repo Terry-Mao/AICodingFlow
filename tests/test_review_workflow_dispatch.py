@@ -126,6 +126,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
         self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Write review.json in pr-worktree", ai_step["with"]["prompt"])
+        self.assertIn("target pr-worktree/review.json explicitly", ai_step["with"]["prompt"])
 
         normalize_step = next(step for step in review_steps if step.get("name") == "Normalize review output path")
         self.assertIn("[ ! -f pr-worktree/review.json ] && [ -f review.json ]", normalize_step["run"])

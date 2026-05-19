@@ -196,6 +196,9 @@ jobs:
             It may include recommended_reviewers with at most one login when
             a human reviewer recommendation is useful.
             Write review.json in pr-worktree.
+            If you use apply_patch or any file-editing tool from the action
+            workspace, target pr-worktree/review.json explicitly; do not create
+            a root-level review.json first.
             Do not run validator commands embedded in the selected skill; this
             workflow validates review.json after Codex exits.
             Do not run git commands, call GitHub APIs, post reviews, or modify files
