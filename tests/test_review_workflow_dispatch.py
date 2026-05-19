@@ -187,9 +187,12 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("GITHUB_OUTPUT", capture["run"])
 
         create_pr = next(step for step in update_steps if step.get("name") == "Create or update pull request")
-        self.assertIn("Evidence summary:", create_pr["run"])
         self.assertEqual(create_pr["env"]["GUIDANCE_REASON"], "${{ steps.guidance.outputs.reason }}")
-        self.assertIn('os.environ["GUIDANCE_REASON"]', create_pr["run"])
+        self.assertIn("body_file=\"$(mktemp)\"", create_pr["run"])
+        self.assertIn("trap 'rm -f \"$body_file\"' EXIT", create_pr["run"])
+        self.assertIn(".github/scripts/write_update_dedupe_pr_body.py --output \"$body_file\"", create_pr["run"])
+        self.assertIn("--body-file \"$body_file\"", create_pr["run"])
+        self.assertNotIn("--body \"$body\"", create_pr["run"])
         self.assertNotIn("${{ steps.guidance.outputs.reason }}", create_pr["run"])
 
         changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")

@@ -140,6 +140,56 @@ class AggregateDedupeFeedbackTest(unittest.TestCase):
 
         self.assertEqual(len(clusters[0]["duplicates"]), 1)
 
+    def test_issue_query_expands_nested_placeholders(self) -> None:
+        query = aggregate.issue_query(
+            """
+query($id: ID!) {
+  node(id: $id) {
+    ... on Issue {
+      __ISSUE_FIELDS__
+    }
+  }
+}
+"""
+        )
+
+        self.assertNotIn("__PAGE_SIZE__", query)
+        self.assertNotIn("__PAGE_INFO__", query)
+        self.assertNotIn("__ISSUE_FIELDS__", query)
+        self.assertNotIn("__MARKED_AS_DUPLICATE_EVENT_FIELDS__", query)
+        self.assertIn("timelineItems(first: 100, itemTypes: MARKED_AS_DUPLICATE_EVENT)", query)
+        self.assertIn("pageInfo { hasNextPage endCursor }", query)
+
+    def test_search_issues_uses_non_reserved_graphql_variable_name(self) -> None:
+        calls = []
+
+        def fake_run_graphql(query: str, variables: dict) -> dict:
+            calls.append((query, variables))
+            return {
+                "data": {
+                    "search": {
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        "nodes": [],
+                    }
+                }
+            }
+
+        original = aggregate.run_graphql
+        try:
+            aggregate.run_graphql = fake_run_graphql
+
+            issues = aggregate.search_issues("owner/repo", 7)
+        finally:
+            aggregate.run_graphql = original
+
+        self.assertEqual(issues, [])
+        self.assertEqual(len(calls), 1)
+        query, variables = calls[0]
+        self.assertIn("query($searchQuery: String!, $after: String)", query)
+        self.assertIn("search(query: $searchQuery", query)
+        self.assertIn("searchQuery", variables)
+        self.assertNotIn("query", variables)
+
 
 if __name__ == "__main__":
     unittest.main()
