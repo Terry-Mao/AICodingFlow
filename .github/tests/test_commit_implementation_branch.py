@@ -278,7 +278,7 @@ class CommitImplementationBranchTest(unittest.TestCase):
                 "run",
                 side_effect=lambda args, **kwargs: calls.append(args) or (
                     "abc123" if args == ["git", "rev-parse", "HEAD"] else
-                    "includeif.gitdir:/home/runner/work/AICodingFlow/AICodingFlow/.git.path"
+                    "includeif.gitdir:/home/runner/work/example/example/.git.path"
                     if args[:5] == ["git", "config", "--local", "--name-only", "--get-regexp"] else
                     "Saved working directory" if args[:3] == ["git", "stash", "push"] else
                     ""
@@ -322,7 +322,7 @@ class CommitImplementationBranchTest(unittest.TestCase):
             workflow_remote_index,
         )
         self.assertLess(
-            calls.index(["git", "config", "--local", "--unset-all", "includeif.gitdir:/home/runner/work/AICodingFlow/AICodingFlow/.git.path"]),
+            calls.index(["git", "config", "--local", "--unset-all", "includeif.gitdir:/home/runner/work/example/example/.git.path"]),
             workflow_remote_index,
         )
         self.assertLess(

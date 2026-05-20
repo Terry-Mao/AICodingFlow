@@ -28,7 +28,7 @@ gh run view <run-id> --verbose
 Example URL:
 
 ```text
-https://github.com/Terry-Mao/AICodingFlow/actions/runs/26011608845
+https://github.com/OWNER/REPO/actions/runs/RUN_ID
 ```
 
 If the user provides a run ID directly:

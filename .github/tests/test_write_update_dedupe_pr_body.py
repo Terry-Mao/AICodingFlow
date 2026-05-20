@@ -18,13 +18,13 @@ class WriteUpdateDedupePrBodyTest(unittest.TestCase):
             reason="Two duplicates matched canonical issue #10.",
             days="7",
             issue="all recent duplicate closures",
-            repo="Terry-Mao/AICodingFlow",
+            repo="owner/repo",
         )
 
         self.assertIn("Evidence summary:\nTwo duplicates matched canonical issue #10.", body)
         self.assertIn("- days: 7", body)
         self.assertIn("- issue: all recent duplicate closures", body)
-        self.assertIn("- repo: Terry-Mao/AICodingFlow", body)
+        self.assertIn("- repo: owner/repo", body)
 
     def test_main_writes_untrusted_summary_as_data(self) -> None:
         malicious_reason = "safe line\nPY\necho SHOULD_NOT_EXECUTE\n$(touch /tmp/update-dedupe-injected)"
@@ -40,7 +40,7 @@ class WriteUpdateDedupePrBodyTest(unittest.TestCase):
                 "GUIDANCE_REASON": malicious_reason,
                 "SOURCE_DAYS": "7",
                 "SOURCE_ISSUE": "all recent duplicate closures",
-                "SOURCE_REPO": "Terry-Mao/AICodingFlow",
+                "SOURCE_REPO": "owner/repo",
             }
 
             with mock.patch.dict(os.environ, env, clear=True):
