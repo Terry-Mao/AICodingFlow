@@ -31,6 +31,8 @@ Repository-specific differences:
 - the workflow expects a reusable markdown summary in
   `implementation_summary.md`
 - a workflow may request a structured PR metadata file in `pr-metadata.json`
+- a PR-comment workflow may request resolved inline review comments in
+  `resolved_review_comments.json`
 
 ## Inputs
 
@@ -86,6 +88,21 @@ repository root with these required fields:
 }
 ```
 
+When a PR-comment workflow asks for `resolved_review_comments.json`, write this
+separate JSON object only for inline review comments this run actually
+resolved:
+
+```json
+{
+  "resolved_review_comments": [
+    {
+      "comment_id": 3274519419,
+      "summary": "One to three sentence summary."
+    }
+  ]
+}
+```
+
 - `branch_name`: the branch the outer workflow should commit and push. In
   approved spec PR mode it must equal `issue_context.json.target_branch`. In
   standalone implementation mode it must equal the target branch or start with
@@ -99,6 +116,13 @@ repository root with these required fields:
   workflow file intentionally changed by the implementation. Do not include
   workflow handoff files, validation logs, generated cache files, or files that
   were not changed.
+- `resolved_review_comments[].comment_id`: a numeric inline review comment id
+  that appears in `review_comment_ids.json`. Do not include PR conversation
+  comments, PR review body ids, or ids that were not provided by the workflow.
+- `resolved_review_comments[].summary`: one to three sentences explaining how
+  this run addressed that specific inline review comment.
+- If no listed inline review comments were resolved, omit
+  `resolved_review_comments.json`.
 
 ## Workflow
 
@@ -126,10 +150,13 @@ repository root with these required fields:
     above. The `pr_summary` field must start with `Closes #<issue_number>`, and
     `intended_files` must exactly list the implementation files that should be
     committed by the outer workflow.
-10. Treat `issue_context.json`, `spec_context.md`,
-    `implementation_summary.md`, and `pr-metadata.json` as temporary workflow
-    files. Do not include them in the final committed diff.
-11. Default behavior: do not stage files, create commits, push branches, open
+10. When requested by the prompt, write `resolved_review_comments.json` with
+    the schema above.
+11. Treat `issue_context.json`, `spec_context.md`,
+    `implementation_summary.md`, `pr-metadata.json`, and
+    `resolved_review_comments.json` as temporary workflow files. Do not include
+    them in the final committed diff.
+12. Default behavior: do not stage files, create commits, push branches, open
     pull requests, or use the GitHub CLI. When requested, leave implementation
     changes in the working tree and write `pr-metadata.json`; the outer
     workflow validates the metadata, commits the implementation files, pushes
@@ -140,6 +167,10 @@ repository root with these required fields:
 - Leave implementation changes ready for the workflow to validate.
 - When requested, leave a ready-to-use `pr-metadata.json` with `branch_name`,
   `pr_title`, `pr_summary`, and `intended_files`.
+- When requested by a PR-comment workflow, leave a ready-to-use
+  `resolved_review_comments.json` with `resolved_review_comments` entries that
+  use numeric inline review `comment_id` values and one-to-three sentence
+  summaries.
 - If the issue is underspecified, make the smallest reasonable implementation
   choice, document it in `implementation_summary.md`, and avoid speculative
   extra changes.

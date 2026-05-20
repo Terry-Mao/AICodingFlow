@@ -437,8 +437,8 @@ Workflow 文件更新：
 .agents/skills/                  # Codex SKILL
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper
+.github/tests/                   # AICoding Flow workflow/script unittest
 specs/                           # issue 对应的 product/tech spec
-tests/                           # Python unittest 测试
 ```
 
 常用脚本：
@@ -483,7 +483,7 @@ rsync -a .github/ /path/to/target-repo/.github/
 运行全部测试：
 
 ```bash
-python3 -m unittest discover -s tests
+python3 -m unittest discover -s .github/tests
 ```
 
 建议在修改 workflow 或 review 相关脚本后额外检查：
