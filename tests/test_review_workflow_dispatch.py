@@ -24,6 +24,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
             ".github/workflows/create-spec-from-issue.yml": "create-spec",
             ".github/workflows/review-pr.yml": "review",
             ".github/workflows/respond-to-pr-comment.yml": "respond",
+            ".github/workflows/triage-issue.yml": "generate",
             ".github/workflows/update-dedupe.yml": "update",
             ".github/workflows/update-pr-review.yml": "update",
         }
@@ -143,6 +144,25 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("steps.pr.outputs.head_repo == github.repository", complete_status_step["if"])
         self.assertEqual(complete_status_step["env"]["STATE"], "${{ job.status == 'success' && 'success' || 'failure' }}")
         self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", complete_status_step["run"])
+
+    def test_triage_workflow_allows_regular_issue_authors_through_preflight(self) -> None:
+        data = workflow(".github/workflows/triage-issue.yml")
+        triggers = data[True]
+
+        self.assertEqual(triggers["issues"]["types"], ["opened", "reopened"])
+        self.assertEqual(triggers["issue_comment"]["types"], ["created"])
+
+        job_gate = data["jobs"]["generate"]["if"]
+        self.assertIn("github.event.issue.pull_request == null", job_gate)
+        self.assertIn("github.event_name == 'issues'", job_gate)
+        self.assertIn("github.event_name == 'issue_comment'", job_gate)
+        self.assertIn("github.event.action == 'created'", job_gate)
+        self.assertIn("github.event.comment.user.type != 'Bot'", job_gate)
+        self.assertNotIn("github.event.comment.author_association", job_gate)
+        self.assertNotIn("contains(github.event.comment.body, '/triage')", job_gate)
+
+        triage = next(step for step in steps(data, "generate") if step.get("name") == "Triage issue")
+        self.assertEqual(triage["with"]["allow-users"], "*")
 
     def test_create_spec_workflow_does_not_dispatch_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-spec-from-issue.yml")

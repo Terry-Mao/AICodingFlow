@@ -23,22 +23,52 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
 
     def test_should_run_for_opened_issue(self) -> None:
         self.assertEqual(
-            prepare.should_run(self.args(event_name="issues"), {"action": "opened"}),
+            prepare.should_run(
+                self.args(event_name="issues"),
+                {"action": "opened", "issue": {"user": {"login": "external", "type": "User"}}},
+            ),
             (True, "issue opened"),
         )
 
     def test_should_run_for_reopened_issue(self) -> None:
         self.assertEqual(
-            prepare.should_run(self.args(event_name="issues"), {"action": "reopened"}),
+            prepare.should_run(
+                self.args(event_name="issues"),
+                {"action": "reopened", "issue": {"user": {"login": "external", "type": "User"}}},
+            ),
             (True, "issue reopened"),
+        )
+
+    def test_should_not_run_for_bot_authored_issue(self) -> None:
+        event = {
+            "action": "opened",
+            "issue": {"user": {"login": "github-actions[bot]", "type": "Bot"}},
+        }
+
+        self.assertEqual(
+            prepare.should_run(self.args(event_name="issues"), event),
+            (False, "issue author is a bot or automation user"),
+        )
+
+    def test_should_not_run_for_pr_issue_event(self) -> None:
+        event = {
+            "action": "opened",
+            "issue": {"number": 1, "pull_request": {}, "user": {"login": "alice", "type": "User"}},
+        }
+
+        self.assertEqual(
+            prepare.should_run(self.args(event_name="issues"), event),
+            (False, "PR issue events are not issue triage targets"),
         )
 
     def test_should_not_run_for_untrusted_comment_author(self) -> None:
         event = {
-            "issue": {"number": 1},
+            "action": "created",
+            "issue": {"number": 1, "user": {"login": "alice", "type": "User"}},
             "comment": {
                 "body": "@codex /triage please rerun",
                 "author_association": "CONTRIBUTOR",
+                "user": {"login": "bob", "type": "User"},
             },
         }
 
@@ -49,10 +79,12 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
 
     def test_should_run_for_trusted_triage_command(self) -> None:
         event = {
-            "issue": {"number": 1},
+            "action": "created",
+            "issue": {"number": 1, "user": {"login": "alice", "type": "User"}},
             "comment": {
                 "body": "@codex /triage check whether this is a duplicate of #123",
                 "author_association": "MEMBER",
+                "user": {"login": "maintainer", "type": "User"},
             },
         }
 
@@ -63,10 +95,12 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
 
     def test_issue_comment_uses_configured_agent_login_exactly(self) -> None:
         event = {
-            "issue": {"number": 1},
+            "action": "created",
+            "issue": {"number": 1, "user": {"login": "alice", "type": "User"}},
             "comment": {
                 "body": "@other-bot /triage",
                 "author_association": "MEMBER",
+                "user": {"login": "maintainer", "type": "User"},
             },
         }
 
@@ -77,10 +111,12 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
 
     def test_should_not_run_for_plain_bot_mention_without_triage_command(self) -> None:
         event = {
-            "issue": {"number": 1},
+            "action": "created",
+            "issue": {"number": 1, "user": {"login": "alice", "type": "User"}},
             "comment": {
                 "body": "@codex check whether this is a duplicate of #123",
                 "author_association": "MEMBER",
+                "user": {"login": "maintainer", "type": "User"},
             },
         }
 
@@ -91,10 +127,12 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
 
     def test_should_not_run_for_quoted_triage_command(self) -> None:
         event = {
-            "issue": {"number": 1},
+            "action": "created",
+            "issue": {"number": 1, "user": {"login": "alice", "type": "User"}},
             "comment": {
                 "body": "> @codex /triage old request\nI agree",
                 "author_association": "OWNER",
+                "user": {"login": "maintainer", "type": "User"},
             },
         }
 
@@ -105,10 +143,12 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
 
     def test_should_not_run_for_triage_command_inside_fenced_code(self) -> None:
         event = {
-            "issue": {"number": 1},
+            "action": "created",
+            "issue": {"number": 1, "user": {"login": "alice", "type": "User"}},
             "comment": {
                 "body": "```\n@codex /triage\n```",
                 "author_association": "OWNER",
+                "user": {"login": "maintainer", "type": "User"},
             },
         }
 
@@ -119,13 +159,98 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
 
     def test_should_not_run_for_pull_request_comment(self) -> None:
         event = {
+            "action": "created",
             "issue": {"number": 1, "pull_request": {}},
-            "comment": {"body": "@codex /triage", "author_association": "OWNER"},
+            "comment": {
+                "body": "@codex /triage",
+                "author_association": "OWNER",
+                "user": {"login": "maintainer", "type": "User"},
+            },
         }
 
         self.assertEqual(
             prepare.should_run(self.args(event_name="issue_comment"), event),
-            (False, "PR comments are not issue triage targets"),
+            (False, "PR issue events are not issue triage targets"),
+        )
+
+    def test_should_run_when_needs_info_issue_author_replies_without_command(self) -> None:
+        event = {
+            "action": "created",
+            "issue": {
+                "number": 1,
+                "labels": [{"name": "needs-info"}],
+                "user": {"login": "alice", "type": "User"},
+            },
+            "comment": {
+                "body": "Here is the missing detail.",
+                "author_association": "CONTRIBUTOR",
+                "user": {"login": "alice", "type": "User"},
+            },
+        }
+
+        self.assertEqual(
+            prepare.should_run(self.args(event_name="issue_comment", agent_login=""), event),
+            (True, "needs-info issue author replied"),
+        )
+
+    def test_should_not_run_when_non_author_replies_to_needs_info_without_command(self) -> None:
+        event = {
+            "action": "created",
+            "issue": {
+                "number": 1,
+                "labels": [{"name": "needs-info"}],
+                "user": {"login": "alice", "type": "User"},
+            },
+            "comment": {
+                "body": "I have the same problem.",
+                "author_association": "CONTRIBUTOR",
+                "user": {"login": "bob", "type": "User"},
+            },
+        }
+
+        self.assertEqual(
+            prepare.should_run(self.args(event_name="issue_comment"), event),
+            (False, "comment author association is not trusted: CONTRIBUTOR"),
+        )
+
+    def test_should_not_run_for_bot_comment(self) -> None:
+        event = {
+            "action": "created",
+            "issue": {
+                "number": 1,
+                "labels": [{"name": "needs-info"}],
+                "user": {"login": "alice", "type": "User"},
+            },
+            "comment": {
+                "body": "Automated update",
+                "author_association": "NONE",
+                "user": {"login": "github-actions[bot]", "type": "Bot"},
+            },
+        }
+
+        self.assertEqual(
+            prepare.should_run(self.args(event_name="issue_comment"), event),
+            (False, "comment author is a bot or automation user"),
+        )
+
+    def test_should_not_run_for_edited_comment(self) -> None:
+        event = {
+            "action": "edited",
+            "issue": {
+                "number": 1,
+                "labels": [{"name": "needs-info"}],
+                "user": {"login": "alice", "type": "User"},
+            },
+            "comment": {
+                "body": "Here is the missing detail.",
+                "author_association": "CONTRIBUTOR",
+                "user": {"login": "alice", "type": "User"},
+            },
+        }
+
+        self.assertEqual(
+            prepare.should_run(self.args(event_name="issue_comment"), event),
+            (False, "issue comment action is not a triage trigger: edited"),
         )
 
     def test_triggering_comment_extracts_stable_fields(self) -> None:
