@@ -13,6 +13,7 @@ from typing import Any
 
 
 TRUSTED_COMMENT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
+NEEDS_INFO_LABEL = "needs-info"
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -48,6 +49,13 @@ def author_login(item: dict[str, Any]) -> str:
     return user.get("login") or ""
 
 
+def is_automation_user(item: dict[str, Any]) -> bool:
+    user = item.get("user") or item.get("author") or {}
+    login = (user.get("login") or "").lower()
+    user_type = (user.get("type") or "").lower()
+    return user_type == "bot" or login.endswith("[bot]")
+
+
 def label_names(issue: dict[str, Any]) -> list[str]:
     return [label.get("name", "") for label in issue.get("labels", []) if label.get("name")]
 
@@ -61,9 +69,18 @@ def is_pull_request_issue_event(event: dict[str, Any]) -> bool:
     return "pull_request" in issue and issue.get("pull_request") is not None
 
 
+def event_issue(event: dict[str, Any]) -> dict[str, Any]:
+    issue = event.get("issue")
+    return issue if isinstance(issue, dict) else {}
+
+
 def event_comment(event: dict[str, Any]) -> dict[str, Any]:
     comment = event.get("comment")
     return comment if isinstance(comment, dict) else {}
+
+
+def issue_has_label(issue: dict[str, Any], label: str) -> bool:
+    return label in label_names(issue)
 
 
 def comment_has_triage_command(comment: object, login: str) -> bool:
@@ -121,20 +138,39 @@ def remove_triggering_comment(
 
 
 def should_run(args: argparse.Namespace, event: dict[str, Any]) -> tuple[bool, str]:
-    if args.event_name == "issue_comment" and is_pull_request_issue_event(event):
-        return False, "PR comments are not issue triage targets"
-
     if args.event_name == "workflow_dispatch":
         return True, "manual workflow dispatch"
+
+    issue = event_issue(event)
+    if is_pull_request_issue_event(event):
+        return False, "PR issue events are not issue triage targets"
 
     if args.event_name == "issues":
         action = event.get("action") or ""
         if action in {"opened", "reopened"}:
+            if is_automation_user(issue):
+                return False, "issue author is a bot or automation user"
             return True, f"issue {action}"
         return False, f"issue event action is not a triage trigger: {action or 'unknown'}"
 
     if args.event_name == "issue_comment":
+        action = event.get("action") or ""
+        if action != "created":
+            return False, f"issue comment action is not a triage trigger: {action or 'unknown'}"
         comment = event_comment(event)
+        if is_automation_user(comment):
+            return False, "comment author is a bot or automation user"
+
+        comment_author = author_login(comment)
+        issue_author = author_login(issue)
+        if (
+            issue_has_label(issue, NEEDS_INFO_LABEL)
+            and comment_author
+            and issue_author
+            and comment_author == issue_author
+        ):
+            return True, "needs-info issue author replied"
+
         agent_login = args.agent_login.strip()
         if not agent_login:
             return False, "agent login is not configured"
