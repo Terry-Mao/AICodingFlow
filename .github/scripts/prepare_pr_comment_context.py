@@ -19,6 +19,7 @@ from resolve_pr_event import comment_has_fix_command  # noqa: E402
 
 
 AUTHORIZED_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
+AUTHORIZED_PRIVATE_CONTRIBUTOR_PERMISSIONS = {"admin", "maintain", "write"}
 FALLBACK_BRANCH_PREFIX = "spec/respond-pr"
 
 
@@ -60,6 +61,16 @@ def fetch_default_branch(repo: str) -> str:
     if not default_branch:
         raise SystemExit("could not determine default branch")
     return default_branch
+
+
+def fetch_collaborator_permission(repo: str, login: str) -> str:
+    if not login:
+        return ""
+    try:
+        permission = run_gh_json(["api", f"repos/{repo}/collaborators/{login}/permission"])
+    except subprocess.CalledProcessError:
+        return ""
+    return str(permission.get("permission") or "").lower()
 
 
 def fetch_review_comments(repo: str, number: int) -> list[dict[str, Any]]:
@@ -165,6 +176,59 @@ def branch_strategy(repo: str, pr: dict[str, Any], authorized: bool) -> dict[str
     }
 
 
+def base_repo_is_private(pr: dict[str, Any]) -> bool:
+    base = pr.get("base") or {}
+    base_repo = base.get("repo") or {}
+    return bool(base_repo.get("private"))
+
+
+def trigger_authorization(repo: str, pr: dict[str, Any], trigger: dict[str, Any]) -> dict[str, Any]:
+    assoc = trigger["trigger_actor_association"]
+    actor = trigger["trigger_actor"]
+    is_private = base_repo_is_private(pr)
+    permission = ""
+
+    if assoc in AUTHORIZED_ASSOCIATIONS:
+        return {
+            "authorized": True,
+            "permission": permission,
+            "private_repo": is_private,
+            "skip_reason": "",
+        }
+    if assoc != "CONTRIBUTOR":
+        return {
+            "authorized": False,
+            "permission": permission,
+            "private_repo": is_private,
+            "skip_reason": f"trigger actor association {assoc or 'UNKNOWN'} is not authorized",
+        }
+    if not is_private:
+        return {
+            "authorized": False,
+            "permission": permission,
+            "private_repo": is_private,
+            "skip_reason": "trigger actor association CONTRIBUTOR is not authorized for public repositories",
+        }
+
+    permission = fetch_collaborator_permission(repo, actor)
+    if permission in AUTHORIZED_PRIVATE_CONTRIBUTOR_PERMISSIONS:
+        return {
+            "authorized": True,
+            "permission": permission,
+            "private_repo": is_private,
+            "skip_reason": "",
+        }
+    return {
+        "authorized": False,
+        "permission": permission,
+        "private_repo": is_private,
+        "skip_reason": (
+            f"trigger actor association CONTRIBUTOR has repository permission "
+            f"{permission or 'unknown'}, not write/maintain/admin"
+        ),
+    }
+
+
 def review_comment_index(comments: list[dict[str, Any]]) -> dict[str, Any]:
     items: list[dict[str, Any]] = []
     for comment in comments:
@@ -191,9 +255,9 @@ def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login
     trigger = event_trigger(event_name, event)
     pr = fetch_pr(repo, trigger["pr_number"])
     default_branch = fetch_default_branch(repo)
-    assoc = trigger["trigger_actor_association"]
     has_command = comment_has_fix_command(trigger["body"], agent_login)
-    authorized = assoc in AUTHORIZED_ASSOCIATIONS
+    auth = trigger_authorization(repo, pr, trigger)
+    authorized = bool(auth["authorized"])
     state = str(pr.get("state") or "").lower()
     strategy = branch_strategy(repo, pr, authorized)
 
@@ -203,7 +267,7 @@ def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login
     elif not has_command:
         skip_reason = "missing valid @AGENT_LOGIN /fix command"
     elif not authorized:
-        skip_reason = f"trigger actor association {assoc or 'UNKNOWN'} is not authorized"
+        skip_reason = str(auth["skip_reason"])
     elif state != "open":
         skip_reason = f"pull request is {state or 'not open'}"
     elif strategy["branch_strategy"] == "blocked":
@@ -236,6 +300,8 @@ def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login
         **{key: value for key, value in trigger.items() if key != "body"},
         "trigger_body": trigger["body"],
         "trigger_actor_is_authorized": authorized,
+        "trigger_actor_repository_permission": auth["permission"],
+        "base_repo_private": auth["private_repo"],
         "trigger_command_present": has_command,
         "has_spec_context": False,
         "coauthor_directives": collect_coauthor_directives(trigger["body"], pr.get("body") or ""),
