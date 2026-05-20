@@ -1,19 +1,22 @@
 # Syntax follows CODEOWNERS conventions: later rules take precedence.
 # GitHub may request code owner review when branch protection requires it.
 
+# Replace @OWNER with the GitHub user or team that owns AI workflow changes in
+# the target repository, for example @octo-org/maintainers.
+
 # --- Default ownership ---
-* @Terry-Mao
+* @OWNER
 
 # --- Agent skills ---
-/.agents/ @Terry-Mao
+/.agents/ @OWNER
 
 # --- GitHub workflows and automation ---
-/.github/ @Terry-Mao
+/.github/ @OWNER
 
 # --- Specs and documentation ---
-/specs/ @Terry-Mao
-/README.md @Terry-Mao
+/specs/ @OWNER
+/README.md @OWNER
 
 # --- Tests ---
-/.github/tests/ @Terry-Mao
-/testdata/ @Terry-Mao
+/.github/tests/ @OWNER
+/testdata/ @OWNER

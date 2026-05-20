@@ -20,7 +20,7 @@ severity labels, validation rules, and safety rules.
 
 ## Repository Review Focus
 
-Prioritize findings that affect AICodingFlow's skills and PR-review automation:
+Prioritize findings that affect this repository's skills and PR-review automation:
 
 - Skill files must be concise, operational, and safe for Codex to execute.
 - Git helpers must avoid destructive operations, broad staging, unsafe force

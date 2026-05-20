@@ -60,7 +60,7 @@ class ValidateReviewJsonTest(unittest.TestCase):
                     "verdict": "REJECT",
                     "body": "",
                     "comments": [],
-                    "recommended_reviewers": ["Terry-Mao"],
+                    "recommended_reviewers": ["reviewer-login"],
                 }
             )
         )

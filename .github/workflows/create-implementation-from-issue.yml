@@ -296,8 +296,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ vars.WORKFLOW_UPDATE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.WORKFLOW_UPDATE_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
           permission-contents: write
           permission-workflows: write
 
