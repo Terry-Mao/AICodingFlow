@@ -394,6 +394,8 @@ permissions:
 | `AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发 AI workflow 的 agent 登录名。 |
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint。 |
+| `WORKFLOW_UPDATE_APP_CLIENT_ID` | Actions variable | GitHub App client ID，用于在 job 内生成可写 workflow 文件的短期 installation token。 |
+| `WORKFLOW_UPDATE_APP_PRIVATE_KEY` | Actions secret | GitHub App private key。App 需要安装到目标 repo，并授予 Contents: Read and write、Workflows: Read and write。 |
 
 主要输出 artifact：
 
@@ -407,6 +409,10 @@ pr-metadata.json
 validation-output.txt
 validation-error.txt
 ```
+
+Workflow 文件更新：
+
+当 Codex 输出包含 `.github/workflows/*` 时，workflow 会先通过 `actions/create-github-app-token` 生成短期 GitHub App installation token，再把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。不要把生成出来的一次性 installation token 存成 secret；它会过期。
 
 ### Update PR Review
 
@@ -468,7 +474,9 @@ rsync -a .github/ /path/to/target-repo/.github/
 1. 提交复制后的文件。
 2. 配置 `OPENAI_API_KEY` 和 `OPENAI_API_ENDPOINT`。
 3. 配置 `AGENT_LOGIN`，用于 spec 和 implementation workflow 的 assignment / mention gate。
-4. 根据目标仓库调整 `review-pr-repo` 和 `review-spec-repo` 的 repo-specific guidance。
+4. 创建并安装 GitHub App，授予目标 repo `Contents: Read and write` 和 `Workflows: Read and write`。
+5. 配置 `WORKFLOW_UPDATE_APP_CLIENT_ID` 和 `WORKFLOW_UPDATE_APP_PRIVATE_KEY`，用于实现类 workflow 在需要更新 `.github/workflows/*` 时生成短期 installation token。
+6. 根据目标仓库调整 `review-pr-repo` 和 `review-spec-repo` 的 repo-specific guidance。
 
 ## 本地开发与测试
 

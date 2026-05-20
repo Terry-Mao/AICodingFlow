@@ -308,13 +308,38 @@ jobs:
             > validation-output.txt \
             2> validation-error.txt
 
+      - name: Check whether workflow update token is required
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
+        id: workflow_update
+        working-directory: pr-worktree
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+
+          with open("pr-metadata.json", encoding="utf-8") as handle:
+              metadata = json.load(handle)
+          intended_files = metadata.get("intended_files") or []
+          required = any(str(path).startswith(".github/workflows/") for path in intended_files)
+          print(f"required={str(required).lower()}")
+          PY
+
+      - name: Create GitHub App token for workflow updates
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.workflow_update.outputs.required == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.WORKFLOW_UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.WORKFLOW_UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+
       - name: Commit and push PR comment response branch
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
         id: response_branch
         working-directory: pr-worktree
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          WORKFLOW_UPDATE_TOKEN: ${{ secrets.WORKFLOW_UPDATE_TOKEN }}
+          WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           python3 ../.github/scripts/commit_implementation_branch.py \
             --context pr_comment_context.json \
