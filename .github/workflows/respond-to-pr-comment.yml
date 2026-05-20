@@ -144,10 +144,14 @@ jobs:
           BASE_SHA: ${{ steps.context.outputs.base_sha }}
           HEAD_SHA: ${{ steps.context.outputs.head_sha }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
         working-directory: pr-worktree
         run: |
-          git remote add base "https://github.com/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --depth=1 base "$BASE_SHA"
+          auth_header="$(printf '%s' "x-access-token:${GITHUB_TOKEN}" | base64 | tr -d '\n')"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" \
+            fetch --no-tags --depth=1 \
+            "https://github.com/${GITHUB_REPOSITORY}.git" \
+            "$BASE_SHA"
           python3 ../.github/scripts/build_pr_diff.py \
             --base "$BASE_SHA" \
             --head "$HEAD_SHA" \
