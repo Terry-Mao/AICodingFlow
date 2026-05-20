@@ -114,7 +114,13 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
 
         diff_step = next(step for step in review_steps if step.get("name") == "Snapshot PR diff")
         self.assertEqual(diff_step["working-directory"], "pr-worktree")
-        self.assertIn("git remote add base", diff_step["run"])
+        self.assertEqual(diff_step["env"]["GITHUB_TOKEN"], "${{ github.token }}")
+        self.assertIn("http.https://github.com/.extraheader", diff_step["run"])
+        self.assertIn("AUTHORIZATION: basic", diff_step["run"])
+        self.assertIn("fetch --no-tags --depth=1", diff_step["run"])
+        self.assertIn("\"https://github.com/${GITHUB_REPOSITORY}.git\"", diff_step["run"])
+        self.assertNotIn("git remote add base", diff_step["run"])
+        self.assertNotIn("x-access-token:${GITHUB_TOKEN}@github.com", diff_step["run"])
         self.assertIn("../.github/scripts/build_pr_diff.py", diff_step["run"])
         self.assertIn("--output pr_diff.txt", diff_step["run"])
 
@@ -273,6 +279,18 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertEqual(checkout["with"]["repository"], "${{ steps.context.outputs.head_repo }}")
         self.assertEqual(checkout["with"]["path"], "pr-worktree")
         self.assertNotIn("Configure push remote", [step.get("name") for step in respond_steps])
+
+        diff_step = next(step for step in respond_steps if step.get("name") == "Snapshot PR diff")
+        self.assertEqual(diff_step["working-directory"], "pr-worktree")
+        self.assertEqual(diff_step["env"]["GITHUB_TOKEN"], "${{ github.token }}")
+        self.assertIn("http.https://github.com/.extraheader", diff_step["run"])
+        self.assertIn("AUTHORIZATION: basic", diff_step["run"])
+        self.assertIn("fetch --no-tags --depth=1", diff_step["run"])
+        self.assertIn("\"https://github.com/${GITHUB_REPOSITORY}.git\"", diff_step["run"])
+        self.assertNotIn("git remote add base", diff_step["run"])
+        self.assertNotIn("x-access-token:${GITHUB_TOKEN}@github.com", diff_step["run"])
+        self.assertIn("../.github/scripts/build_pr_diff.py", diff_step["run"])
+        self.assertIn("--output pr_diff.txt", diff_step["run"])
 
         prepare_workspace = next(step for step in respond_steps if step.get("name") == "Prepare implementation workspace")
         self.assertIn("rm -rf pr-worktree/.codex-runtime", prepare_workspace["run"])
