@@ -14,13 +14,16 @@ delegates review logic to `review-pr`.
 1. From the repository root, prepare local review inputs. This prefers the
    GitHub PR associated with the current branch for `pr_description.txt`, then
    falls back to locally built PR metadata when the GitHub PR cannot be fetched.
-   The `pr_diff.txt` snapshot is built from the local worktree diff:
+   The `pr_diff.txt` snapshot is built from the local worktree diff, and the
+   command prints the selected review skill as `skill=<path>`:
    ```bash
    python3 .github/scripts/prepare_local_review_inputs.py
    ```
-2. Read `.agents/skills/review-pr/SKILL.md`.
-3. Follow `review-pr` exactly. It will apply any referenced local companion
-   guidance when present.
+2. Read the skill path printed by the command. For code or mixed changes this
+   is normally `.agents/skills/review-pr-repo/SKILL.md` when the repo-local
+   companion exists, otherwise `.agents/skills/review-pr/SKILL.md`.
+3. Follow the selected skill exactly. It will apply any referenced local
+   companion guidance when present.
 4. Use only these root-level snapshots as review inputs:
    - `pr_description.txt`
    - `pr_diff.txt`

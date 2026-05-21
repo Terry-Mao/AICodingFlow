@@ -40,7 +40,7 @@ Use the narrowest relevant validation first, then broaden when risk warrants it.
   ```
 - Local PR review, when requested:
   ```bash
-  python3 .github/scripts/prepare_local_review_inputs.py --expected-skill .agents/skills/review-pr-repo/SKILL.md
+  python3 .github/scripts/prepare_local_review_inputs.py
   python3 .github/scripts/validate_review_json.py pr_diff.txt review.json
   python3 .github/scripts/validate_local_review_result.py --baseline-status .local_review_baseline.status
   ```

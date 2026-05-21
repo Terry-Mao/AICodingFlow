@@ -40,6 +40,18 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
         self.assertIn("one to three sentences", compact_text)
         self.assertIn("omit `resolved_review_comments.json`", compact_text)
 
+    def test_local_review_skills_follow_selected_skill_output(self) -> None:
+        for path in (
+            ".agents/skills/review-pr-local/SKILL.md",
+            ".agents/skills/review-spec-local/SKILL.md",
+        ):
+            text = (ROOT / path).read_text(encoding="utf-8")
+            compact_text = compact(text)
+
+            self.assertIn("skill=<path>", text)
+            self.assertIn("Read the skill path printed by the command", compact_text)
+            self.assertIn("Follow the selected skill exactly", compact_text)
+
 
 if __name__ == "__main__":
     unittest.main()
