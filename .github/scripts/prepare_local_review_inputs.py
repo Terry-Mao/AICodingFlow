@@ -331,7 +331,6 @@ def main() -> int:
     parser.add_argument("--repo", default="")
     parser.add_argument("--base", default="")
     parser.add_argument("--head", default="HEAD")
-    parser.add_argument("--expected-skill", choices=[select_review_skill.CODE_REVIEW_SKILL, select_review_skill.SPEC_REVIEW_SKILL])
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
     args = parser.parse_args()
 
@@ -361,8 +360,6 @@ def main() -> int:
     Path("pr_description.txt").write_text(write_pr_description.format_pr_description(event), encoding="utf-8")
     pr_diff_text = write_local_diff(base_sha, Path("pr_diff.txt"))
     skill = select_review_skill.select_skill(pr_diff_text)
-    if args.expected_skill and skill != args.expected_skill:
-        raise SystemExit(f"local review selected {skill}; expected {args.expected_skill}")
 
     needs_spec_context = select_review_skill.needs_spec_context(skill)
     write_spec_context_if_needed(repo, event, pr_diff_text, needs_spec_context)

@@ -54,27 +54,36 @@ issue -> plan -> spec -> develop -> pr -> review -> comments -> merge
 
 ## 快速开始
 
-克隆仓库并安装本地 SKILL：
+一行安装到目标项目：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Terry-Mao/AICodingFlow/main/install.sh | bash -s -- --target /path/to/target-repo
+```
+
+也可以先克隆仓库再安装：
 
 ```bash
 git clone git@github.com:Terry-Mao/AICodingFlow.git
 cd AICodingFlow
 
-mkdir -p ~/.agents/skills
-for skill in .agents/skills/*; do
-  [ -d "$skill" ] || continue
-  rsync -a "$skill/" "$HOME/.agents/skills/$(basename "$skill")/"
-done
+./install.sh --target /path/to/target-repo
 ```
 
 如果想先预览将会写入哪些文件：
 
 ```bash
-for skill in .agents/skills/*; do
-  [ -d "$skill" ] || continue
-  rsync -ani "$skill/" "$HOME/.agents/skills/$(basename "$skill")/"
-done
+./install.sh --target /path/to/target-repo --dry-run
 ```
+
+安装脚本依赖 `bash`、`git` 和 `rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/` 以及 `.github/scripts/`、`.github/tests/`、`.github/workflows/`。仓库本地 companion skills（`.agents/skills/*-repo/SKILL.md`）不会安装到目标项目；目标项目已有的 companion skills 会保留不动，并由 `update-*` 系列 SKILL 在有证据时创建或更新。`.github` 下目标项目自己的其他文件也不会被删除。
+
+如果目标项目是首次接入 issue triage 自动化，安装后可以在目标项目中让 Codex 运行：
+
+```text
+$bootstrap-issue-config
+```
+
+这个步骤会使用 `gh` 分析 labels、issues 和 contributors，并可能创建 GitHub labels 或更新 `.github/CODEOWNERS`。它用于首次初始化或仓库 label/ownership 明显变化后的手动刷新，不需要定期执行，也不会由安装脚本默认运行。
 
 安装后，可以在 Codex 对话中直接点名 SKILL：
 
@@ -280,8 +289,8 @@ AI PR Review 会：
 - 生成稳定的 `pr_description.txt`。
 - 生成带行号的 `pr_diff.txt`。
 - 如果能找到相关 spec，生成 `spec_context.md`。
-- 纯 `specs/` PR 使用 `review-spec-repo`。
-- 其他 PR 使用 `review-pr-repo`。
+- 纯 `specs/` PR 选择核心 `review-spec`，并由该核心 skill 加载现有的 `review-spec-repo` companion。
+- 其他 PR 选择核心 `review-pr`，并由该核心 skill 加载现有的 `review-pr-repo` companion。
 - 如果 `spec_context.md` 存在，`review-pr` 会加载 `check-impl-against-spec`，把重要 spec drift 当成 review concern。
 - 输出并验证 `review.json`。
 - 通过 GitHub API 发布 PR review。
@@ -311,10 +320,10 @@ AI PR Review 会：
 | `spec-driven-implementation` | 组织 spec-first 的开发流程。 |
 | `implement-specs` | 从已批准 spec 推进实现，并保持 spec 与实现一致。 |
 | `implement-issue` | GitHub issue 实现场景包装器，约束 target branch、summary、metadata 和 push 边界。 |
-| `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`。 |
-| `review-pr-repo` | 仓库本地的普通 PR review 包装器，可按目标仓库调整 guidance。 |
-| `review-spec` | 审查纯 spec PR 的文档质量。 |
-| `review-spec-repo` | 仓库本地的 spec review 包装器，可按目标仓库调整 guidance。 |
+| `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`，并加载 `review-pr-repo` companion。 |
+| `review-pr-repo` | 仓库本地的普通 PR review companion，可按目标仓库调整 guidance。 |
+| `review-spec` | 审查纯 spec PR 的文档质量，并加载 `review-spec-repo` companion。 |
+| `review-spec-repo` | 仓库本地的 spec review companion，可按目标仓库调整 guidance。 |
 | `check-impl-against-spec` | 对照 `spec_context.md` 检查实现是否偏离 spec。 |
 | `update-pr-review` | 从人工反馈中更新本仓库的 review companion SKILL。 |
 
@@ -447,7 +456,7 @@ specs/                           # issue 对应的 product/tech spec
 | --- | --- |
 | `build_pr_diff.py` | 把 git diff 转成稳定的 `PR_DIFF_V1`。 |
 | `write_pr_description.py` | 从 GitHub event 写出 PR 描述快照。 |
-| `select_review_skill.py` | 根据 changed files 选择 review skill。 |
+| `select_review_skill.py` | 根据 changed files 选择核心 review skill。 |
 | `write_spec_context.py` | 为实现 PR 解析并格式化 spec context。 |
 | `post_pr_review.py` | 把 `review.json` 发布成 GitHub PR review。 |
 | `prepare_issue_spec_context.py` | 为 spec 生成准备稳定 issue context。 |
