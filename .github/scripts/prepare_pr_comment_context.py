@@ -75,6 +75,37 @@ def fetch_collaborator_permission(repo: str, login: str) -> str:
     return str(permission.get("permission") or "").lower()
 
 
+def fetch_trigger_item(repo: str, trigger: dict[str, Any]) -> dict[str, Any]:
+    kind = trigger.get("trigger_kind")
+    comment_id = trigger.get("trigger_comment_id")
+    if kind == "conversation" and comment_id:
+        return run_gh_json(["api", f"repos/{repo}/issues/comments/{comment_id}"])
+    if kind == "review" and comment_id:
+        return run_gh_json(["api", f"repos/{repo}/pulls/comments/{comment_id}"])
+    if kind == "review_body" and comment_id:
+        return run_gh_json(["api", f"repos/{repo}/pulls/{trigger['pr_number']}/reviews/{comment_id}"])
+    return {}
+
+
+def fill_trigger_author_metadata(repo: str, trigger: dict[str, Any]) -> dict[str, Any]:
+    association_value = str(trigger.get("trigger_actor_association") or "").upper()
+    if trigger.get("trigger_actor") and association_value and association_value != "NONE":
+        return trigger
+
+    try:
+        item = fetch_trigger_item(repo, trigger)
+    except subprocess.CalledProcessError:
+        return trigger
+
+    enriched = dict(trigger)
+    if not enriched.get("trigger_actor"):
+        enriched["trigger_actor"] = author_login(item)
+    enriched_association = str(enriched.get("trigger_actor_association") or "").upper()
+    if not enriched_association or enriched_association == "NONE":
+        enriched["trigger_actor_association"] = association(item)
+    return enriched
+
+
 def fetch_review_comments(repo: str, number: int) -> list[dict[str, Any]]:
     pages = run_gh_json(
         [
@@ -356,7 +387,7 @@ def review_comment_index(comments: list[dict[str, Any]], threads: list[dict[str,
 
 
 def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    trigger = event_trigger(event_name, event)
+    trigger = fill_trigger_author_metadata(repo, event_trigger(event_name, event))
     pr = fetch_pr(repo, trigger["pr_number"])
     default_branch = fetch_default_branch(repo)
     has_command = comment_has_fix_command(trigger["body"], agent_login)
