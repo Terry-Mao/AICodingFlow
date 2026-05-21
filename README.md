@@ -289,8 +289,8 @@ AI PR Review 会：
 - 生成稳定的 `pr_description.txt`。
 - 生成带行号的 `pr_diff.txt`。
 - 如果能找到相关 spec，生成 `spec_context.md`。
-- 纯 `specs/` PR 使用 `review-spec-repo`。
-- 其他 PR 使用 `review-pr-repo`。
+- 纯 `specs/` PR 选择核心 `review-spec`，并由该核心 skill 加载现有的 `review-spec-repo` companion。
+- 其他 PR 选择核心 `review-pr`，并由该核心 skill 加载现有的 `review-pr-repo` companion。
 - 如果 `spec_context.md` 存在，`review-pr` 会加载 `check-impl-against-spec`，把重要 spec drift 当成 review concern。
 - 输出并验证 `review.json`。
 - 通过 GitHub API 发布 PR review。
@@ -320,10 +320,10 @@ AI PR Review 会：
 | `spec-driven-implementation` | 组织 spec-first 的开发流程。 |
 | `implement-specs` | 从已批准 spec 推进实现，并保持 spec 与实现一致。 |
 | `implement-issue` | GitHub issue 实现场景包装器，约束 target branch、summary、metadata 和 push 边界。 |
-| `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`。 |
-| `review-pr-repo` | 仓库本地的普通 PR review 包装器，可按目标仓库调整 guidance。 |
-| `review-spec` | 审查纯 spec PR 的文档质量。 |
-| `review-spec-repo` | 仓库本地的 spec review 包装器，可按目标仓库调整 guidance。 |
+| `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`，并加载 `review-pr-repo` companion。 |
+| `review-pr-repo` | 仓库本地的普通 PR review companion，可按目标仓库调整 guidance。 |
+| `review-spec` | 审查纯 spec PR 的文档质量，并加载 `review-spec-repo` companion。 |
+| `review-spec-repo` | 仓库本地的 spec review companion，可按目标仓库调整 guidance。 |
 | `check-impl-against-spec` | 对照 `spec_context.md` 检查实现是否偏离 spec。 |
 | `update-pr-review` | 从人工反馈中更新本仓库的 review companion SKILL。 |
 
@@ -456,7 +456,7 @@ specs/                           # issue 对应的 product/tech spec
 | --- | --- |
 | `build_pr_diff.py` | 把 git diff 转成稳定的 `PR_DIFF_V1`。 |
 | `write_pr_description.py` | 从 GitHub event 写出 PR 描述快照。 |
-| `select_review_skill.py` | 根据 changed files 选择 review skill。 |
+| `select_review_skill.py` | 根据 changed files 选择核心 review skill。 |
 | `write_spec_context.py` | 为实现 PR 解析并格式化 spec context。 |
 | `post_pr_review.py` | 把 `review.json` 发布成 GitHub PR review。 |
 | `prepare_issue_spec_context.py` | 为 spec 生成准备稳定 issue context。 |
