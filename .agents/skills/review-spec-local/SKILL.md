@@ -7,7 +7,7 @@ description: Run the repository spec review workflow locally from the current br
 
 Use this skill after local spec work and before pushing or creating a spec PR.
 It prepares the same review inputs used by the GitHub review workflow, then
-delegates review logic to `review-spec-repo`.
+delegates review logic to `review-spec`.
 
 ## Workflow
 
@@ -17,10 +17,11 @@ delegates review logic to `review-spec-repo`.
    The `pr_diff.txt` snapshot is built from the local worktree diff:
    ```bash
    python3 .github/scripts/prepare_local_review_inputs.py \
-     --expected-skill .agents/skills/review-spec-repo/SKILL.md
+     --expected-skill .agents/skills/review-spec/SKILL.md
    ```
-2. Read `.agents/skills/review-spec-repo/SKILL.md`.
-3. Follow `review-spec-repo` exactly. It will read the core `review-spec` skill.
+2. Read `.agents/skills/review-spec/SKILL.md`.
+3. Follow `review-spec` exactly. It will apply any referenced local companion
+   guidance when present.
 4. Use only these root-level snapshots as review inputs:
    - `pr_description.txt`
    - `pr_diff.txt`

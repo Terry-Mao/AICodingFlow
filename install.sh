@@ -109,8 +109,8 @@ sync_skills() {
     name="$(basename "$skill")"
     dest="$skills_dest/$name"
 
-    if [[ "$name" == *-repo && -e "$dest/SKILL.md" ]]; then
-      info "Skipping existing repo-local companion skill: .agents/skills/$name/SKILL.md"
+    if [[ "$name" == *-repo ]]; then
+      info "Skipping repo-local companion skill: .agents/skills/$name/SKILL.md"
       continue
     fi
 

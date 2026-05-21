@@ -83,6 +83,10 @@ class InstallScriptTest(unittest.TestCase):
             self.run_install(target)
 
             self.assertTrue((target / ".agents/skills/git-branch/SKILL.md").is_file())
+            self.assertFalse((target / ".agents/skills/review-pr-repo/SKILL.md").exists())
+            self.assertFalse((target / ".agents/skills/review-spec-repo/SKILL.md").exists())
+            self.assertFalse((target / ".agents/skills/triage-issue-repo/SKILL.md").exists())
+            self.assertFalse((target / ".agents/skills/dedupe-issue-repo/SKILL.md").exists())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
             self.assertTrue((target / ".github/tests/test_validate_spec_output.py").is_file())
             self.assertFalse((target / ".github/tests/test_install_script.py").exists())
@@ -108,7 +112,7 @@ class InstallScriptTest(unittest.TestCase):
 
             result = self.run_install(target)
 
-            self.assertIn("Skipping existing repo-local companion skill", result.stdout)
+            self.assertIn("Skipping repo-local companion skill", result.stdout)
             self.assertEqual(existing.read_text(encoding="utf-8"), "target repo guidance\n")
 
     def test_preserves_unrelated_github_files(self) -> None:

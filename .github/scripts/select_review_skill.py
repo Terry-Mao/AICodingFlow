@@ -8,8 +8,10 @@ import os
 from pathlib import Path
 
 
-CODE_REVIEW_SKILL = ".agents/skills/review-pr-repo/SKILL.md"
-SPEC_REVIEW_SKILL = ".agents/skills/review-spec-repo/SKILL.md"
+CODE_REVIEW_SKILL = ".agents/skills/review-pr/SKILL.md"
+SPEC_REVIEW_SKILL = ".agents/skills/review-spec/SKILL.md"
+CODE_REVIEW_COMPANION_SKILL = ".agents/skills/review-pr-repo/SKILL.md"
+SPEC_REVIEW_COMPANION_SKILL = ".agents/skills/review-spec-repo/SKILL.md"
 
 
 def changed_files(pr_diff_text: str) -> list[str]:
@@ -28,11 +30,17 @@ def is_spec_only(files: list[str]) -> bool:
 
 def select_skill(pr_diff_text: str) -> str:
     files = changed_files(pr_diff_text)
-    return SPEC_REVIEW_SKILL if is_spec_only(files) else CODE_REVIEW_SKILL
+    if is_spec_only(files):
+        return skill_path(SPEC_REVIEW_COMPANION_SKILL, SPEC_REVIEW_SKILL)
+    return skill_path(CODE_REVIEW_COMPANION_SKILL, CODE_REVIEW_SKILL)
 
 
 def needs_spec_context(skill: str) -> bool:
-    return skill == CODE_REVIEW_SKILL
+    return skill in {CODE_REVIEW_SKILL, CODE_REVIEW_COMPANION_SKILL}
+
+
+def skill_path(companion: str, core: str) -> str:
+    return companion if Path(companion).is_file() else core
 
 
 def write_github_output(name: str, value: str) -> None:

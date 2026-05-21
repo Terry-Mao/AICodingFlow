@@ -135,7 +135,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                             "--github-output",
                             "",
                             "--expected-skill",
-                            ".agents/skills/review-spec-repo/SKILL.md",
+                            ".agents/skills/review-spec/SKILL.md",
                         ],
                     )
                 )
@@ -160,11 +160,11 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                             "--github-output",
                             "",
                             "--expected-skill",
-                            ".agents/skills/review-pr-repo/SKILL.md",
+                            ".agents/skills/review-pr/SKILL.md",
                         ],
                     )
                 )
-                with self.assertRaisesRegex(SystemExit, "expected .agents/skills/review-pr-repo/SKILL.md"):
+                with self.assertRaisesRegex(SystemExit, "expected .agents/skills/review-pr/SKILL.md"):
                     prepare_local.main()
 
         self.run_in_tempdir(scenario)

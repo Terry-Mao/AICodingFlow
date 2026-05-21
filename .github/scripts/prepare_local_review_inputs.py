@@ -331,7 +331,15 @@ def main() -> int:
     parser.add_argument("--repo", default="")
     parser.add_argument("--base", default="")
     parser.add_argument("--head", default="HEAD")
-    parser.add_argument("--expected-skill", choices=[select_review_skill.CODE_REVIEW_SKILL, select_review_skill.SPEC_REVIEW_SKILL])
+    parser.add_argument(
+        "--expected-skill",
+        choices=[
+            select_review_skill.CODE_REVIEW_SKILL,
+            select_review_skill.SPEC_REVIEW_SKILL,
+            select_review_skill.CODE_REVIEW_COMPANION_SKILL,
+            select_review_skill.SPEC_REVIEW_COMPANION_SKILL,
+        ],
+    )
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
     args = parser.parse_args()
 

@@ -75,7 +75,7 @@ cd AICodingFlow
 ./install.sh --target /path/to/target-repo --dry-run
 ```
 
-安装脚本依赖 `bash`、`git` 和 `rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/` 以及 `.github/scripts/`、`.github/tests/`、`.github/workflows/`。目标项目已有的 `.agents/skills/*-repo/SKILL.md` 不会被覆盖，`.github` 下目标项目自己的其他文件也不会被删除。
+安装脚本依赖 `bash`、`git` 和 `rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/` 以及 `.github/scripts/`、`.github/tests/`、`.github/workflows/`。仓库本地 companion skills（`.agents/skills/*-repo/SKILL.md`）不会安装到目标项目；目标项目已有的 companion skills 会保留不动，并由 `update-*` 系列 SKILL 在有证据时创建或更新。`.github` 下目标项目自己的其他文件也不会被删除。
 
 如果目标项目是首次接入 issue triage 自动化，安装后可以在目标项目中让 Codex 运行：
 
