@@ -84,13 +84,14 @@ target_dir="$(cd "$target_dir" && pwd)"
 copy_dir() {
   local src="$1"
   local dest="$2"
+  shift 2
 
   if [ "$dry_run" = true ]; then
     info "Would sync $src -> $dest"
-    rsync -ani "$src/" "$dest/"
+    rsync -ani "$@" "$src/" "$dest/"
   else
     mkdir -p "$dest"
-    rsync -a "$src/" "$dest/"
+    rsync -a "$@" "$src/" "$dest/"
   fi
 }
 
@@ -124,7 +125,11 @@ sync_github_dirs() {
     src="$script_dir/.github/$dirname"
     [ -d "$src" ] || continue
     dest="$target_dir/.github/$dirname"
-    copy_dir "$src" "$dest"
+    if [ "$dirname" = "tests" ]; then
+      copy_dir "$src" "$dest" --exclude test_install_script.py
+    else
+      copy_dir "$src" "$dest"
+    fi
   done
 }
 

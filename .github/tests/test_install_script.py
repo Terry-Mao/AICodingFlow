@@ -85,6 +85,7 @@ class InstallScriptTest(unittest.TestCase):
             self.assertTrue((target / ".agents/skills/git-branch/SKILL.md").is_file())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
             self.assertTrue((target / ".github/tests/test_validate_spec_output.py").is_file())
+            self.assertFalse((target / ".github/tests/test_install_script.py").exists())
             self.assertTrue((target / ".github/workflows/create-spec-from-issue.yml").is_file())
 
     def test_overwrites_regular_skill(self) -> None:
