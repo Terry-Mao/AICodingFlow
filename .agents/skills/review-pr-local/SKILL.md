@@ -16,8 +16,7 @@ delegates review logic to `review-pr`.
    falls back to locally built PR metadata when the GitHub PR cannot be fetched.
    The `pr_diff.txt` snapshot is built from the local worktree diff:
    ```bash
-   python3 .github/scripts/prepare_local_review_inputs.py \
-     --expected-skill .agents/skills/review-pr/SKILL.md
+   python3 .github/scripts/prepare_local_review_inputs.py
    ```
 2. Read `.agents/skills/review-pr/SKILL.md`.
 3. Follow `review-pr` exactly. It will apply any referenced local companion

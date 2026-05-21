@@ -134,8 +134,6 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                             "prepare_local_review_inputs.py",
                             "--github-output",
                             "",
-                            "--expected-skill",
-                            ".agents/skills/review-spec/SKILL.md",
                         ],
                     )
                 )
@@ -144,28 +142,6 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             self.assertIn("FILE specs/issue-80/product.md", Path("pr_diff.txt").read_text(encoding="utf-8"))
             self.assertFalse(Path("spec_context.md").exists())
             resolve_spec_context.assert_not_called()
-
-        self.run_in_tempdir(scenario)
-
-    def test_rejects_unexpected_selected_skill(self) -> None:
-        def scenario(directory: Path) -> None:
-            with ExitStack() as stack:
-                for patcher in self.common_patches(SPEC_DIFF):
-                    stack.enter_context(patcher)
-                stack.enter_context(
-                    mock.patch(
-                        "sys.argv",
-                        [
-                            "prepare_local_review_inputs.py",
-                            "--github-output",
-                            "",
-                            "--expected-skill",
-                            ".agents/skills/review-pr/SKILL.md",
-                        ],
-                    )
-                )
-                with self.assertRaisesRegex(SystemExit, "expected .agents/skills/review-pr/SKILL.md"):
-                    prepare_local.main()
 
         self.run_in_tempdir(scenario)
 

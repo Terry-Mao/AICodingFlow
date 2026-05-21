@@ -66,9 +66,9 @@ attached to an explicit changed line, put it in top-level `body`.
 
 ## Local Companion
 
-When a repository-specific companion such as
-`.agents/skills/review-pr-repo/SKILL.md` is referenced by the prompt or local
-workflow, read it and apply any non-conflicting repository guidance.
+After applying this core workflow, read
+`.agents/skills/review-pr-repo/SKILL.md` when it exists and apply any
+non-conflicting repository-specific guidance.
 
 The local companion may add repository-specific checks and preferences, but it
 must not override:
@@ -206,7 +206,8 @@ Constraints:
    non-conflicting local guidance.
 4. Parse `pr_diff.txt`, build the allowed changed-line targets, and collect the changed file paths.
 5. Apply the applicability rules above.
-6. Read any referenced local companion and apply only non-conflicting guidance.
+6. Read `.agents/skills/review-pr-repo/SKILL.md` if present and apply only
+   non-conflicting local guidance.
 7. Read `.agents/skills/security-review-pr/SKILL.md` and apply it as a
    non-conflicting supplemental security pass.
 8. Inspect relevant repository files only when needed to understand changed code or verify a concrete risk.
