@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -32,6 +33,25 @@ class InstallScriptTest(unittest.TestCase):
             ["bash", str(INSTALL), *args],
             cwd=ROOT,
             check=check,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+    def run_piped_install(
+        self,
+        cwd: Path,
+        *args: str,
+        check: bool = True,
+    ) -> subprocess.CompletedProcess[str]:
+        env = os.environ.copy()
+        env["AICODINGFLOW_INSTALL_REPOSITORY"] = str(ROOT)
+        return subprocess.run(
+            ["bash", "-s", "--", *args],
+            cwd=cwd,
+            input=INSTALL.read_text(encoding="utf-8"),
+            check=check,
+            env=env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -107,6 +127,27 @@ class InstallScriptTest(unittest.TestCase):
 
         self.assertIn("curl -fsSL", result.stdout)
         self.assertIn("bash -s -- --target", result.stdout)
+
+    def test_piped_install_clones_source_even_when_cwd_has_agents_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cwd = root / "cwd"
+            target = root / "target"
+            stale_skill = cwd / ".agents/skills/git-branch/SKILL.md"
+            target.mkdir()
+            stale_skill.parent.mkdir(parents=True)
+            stale_skill.write_text("stale cwd skill\n", encoding="utf-8")
+
+            self.run_piped_install(cwd, "--target", str(target))
+
+            self.assertIn(
+                "name: git-branch",
+                (target / ".agents/skills/git-branch/SKILL.md").read_text(encoding="utf-8"),
+            )
+            self.assertNotEqual(
+                (target / ".agents/skills/git-branch/SKILL.md").read_text(encoding="utf-8"),
+                "stale cwd skill\n",
+            )
 
 
 if __name__ == "__main__":

@@ -31,12 +31,20 @@ info() {
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 target_dir="$(pwd)"
 dry_run=false
+install_repository="${AICODINGFLOW_INSTALL_REPOSITORY:-https://github.com/Terry-Mao/AICodingFlow.git}"
 
-if [ ! -d "$script_dir/.agents/skills" ]; then
+is_source_tree() {
+  [ -f "$script_dir/install.sh" ] &&
+    [ -f "$script_dir/.agents/AGENTS.md" ] &&
+    [ -d "$script_dir/.agents/skills" ] &&
+    [ -d "$script_dir/.github/workflows" ]
+}
+
+if ! is_source_tree; then
   command -v git >/dev/null 2>&1 || fail "git is required for remote installation"
   tmpdir="$(mktemp -d)"
   trap 'rm -rf "$tmpdir"' EXIT
-  git clone --depth 1 https://github.com/Terry-Mao/AICodingFlow.git "$tmpdir/AICodingFlow" >/dev/null
+  git clone --depth 1 "$install_repository" "$tmpdir/AICodingFlow" >/dev/null
   bash "$tmpdir/AICodingFlow/install.sh" "$@"
   exit $?
 fi
