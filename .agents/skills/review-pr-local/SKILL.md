@@ -19,9 +19,7 @@ delegates review logic to `review-pr`.
    ```bash
    python3 .github/scripts/prepare_local_review_inputs.py
    ```
-2. Read the skill path printed by the command. For code or mixed changes this
-   is normally `.agents/skills/review-pr-repo/SKILL.md` when the repo-local
-   companion exists, otherwise `.agents/skills/review-pr/SKILL.md`.
+2. Read the skill path printed by the command.
 3. Follow the selected skill exactly. It will apply any referenced local
    companion guidance when present.
 4. Use only these root-level snapshots as review inputs:
