@@ -54,27 +54,36 @@ issue -> plan -> spec -> develop -> pr -> review -> comments -> merge
 
 ## 快速开始
 
-克隆仓库并安装本地 SKILL：
+一行安装到目标项目：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Terry-Mao/AICodingFlow/main/install.sh | bash -s -- --target /path/to/target-repo
+```
+
+也可以先克隆仓库再安装：
 
 ```bash
 git clone git@github.com:Terry-Mao/AICodingFlow.git
 cd AICodingFlow
 
-mkdir -p ~/.agents/skills
-for skill in .agents/skills/*; do
-  [ -d "$skill" ] || continue
-  rsync -a "$skill/" "$HOME/.agents/skills/$(basename "$skill")/"
-done
+./install.sh --target /path/to/target-repo
 ```
 
 如果想先预览将会写入哪些文件：
 
 ```bash
-for skill in .agents/skills/*; do
-  [ -d "$skill" ] || continue
-  rsync -ani "$skill/" "$HOME/.agents/skills/$(basename "$skill")/"
-done
+./install.sh --target /path/to/target-repo --dry-run
 ```
+
+安装脚本依赖 `bash`、`git` 和 `rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/` 以及 `.github/scripts/`、`.github/tests/`、`.github/workflows/`。目标项目已有的 `.agents/skills/*-repo/SKILL.md` 不会被覆盖，`.github` 下目标项目自己的其他文件也不会被删除。
+
+如果目标项目是首次接入 issue triage 自动化，安装后可以在目标项目中让 Codex 运行：
+
+```text
+$bootstrap-issue-config
+```
+
+这个步骤会使用 `gh` 分析 labels、issues 和 contributors，并可能创建 GitHub labels 或更新 `.github/CODEOWNERS`。它用于首次初始化或仓库 label/ownership 明显变化后的手动刷新，不需要定期执行，也不会由安装脚本默认运行。
 
 安装后，可以在 Codex 对话中直接点名 SKILL：
 
