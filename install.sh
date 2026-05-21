@@ -88,7 +88,6 @@ copy_dir() {
 
   if [ "$dry_run" = true ]; then
     info "Would sync $src -> $dest"
-    rsync -ani "$@" "$src/" "$dest/"
   else
     mkdir -p "$dest"
     rsync -a "$@" "$src/" "$dest/"

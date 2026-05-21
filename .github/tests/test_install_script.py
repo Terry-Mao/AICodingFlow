@@ -64,6 +64,7 @@ class InstallScriptTest(unittest.TestCase):
             result = self.run_install(target, "--dry-run")
 
             self.assertIn("Dry run complete", result.stdout)
+            self.assertIn("Would sync", result.stdout)
             self.assertFalse((target / ".agents").exists())
             self.assertFalse((target / ".github").exists())
 
