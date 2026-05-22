@@ -228,7 +228,8 @@ jobs:
             pr_comment_context.json includes the triggering comment body as
             trigger_body. pr_event.json includes the pull request title, body,
             and metadata. review_comment_ids.json includes current inline review
-            comment bodies, paths, lines, diff hunks, and URLs.
+            comment bodies, resolved and outdated thread state, paths, lines,
+            diff hunks, and URLs.
 
             Read and use these skills in this exact order:
             1. .codex-runtime/skills/implement-specs/SKILL.md
@@ -245,6 +246,18 @@ jobs:
             trigger_comment_id from pr_comment_context.json. Make the smallest
             reasonable code, test, documentation, workflow, or spec change that
             addresses the request and stays aligned with spec_context.md.
+            When the triggering request asks to address all inline comments,
+            unresolved comments, or a category of inline review comments, inspect
+            review_comment_ids.json and handle every listed inline review
+            comment that falls within the requested scope. For unresolved
+            comment requests, only treat comments with is_resolved set to false
+            as unresolved; do not guess unresolved state from comment text or
+            missing state. is_outdated only means the original diff position is
+            stale; do not skip an unresolved outdated comment solely because it
+            is outdated. Inspect the current code and PR diff to decide whether
+            the underlying issue still exists. Do not limit the response to
+            only the triggering comment when the request clearly asks for
+            multiple comments.
 
             Required outputs when you leave implementation changes:
             - implementation_summary.md
@@ -266,6 +279,8 @@ jobs:
             resolved_review_comments.json, when present, must contain only
             numeric inline review comment ids from review_comment_ids.json and
             1-3 sentence summaries of how this run addressed each comment.
+            If this run resolves multiple inline review comments, include one
+            resolved_review_comments entry for each comment actually resolved.
 
             Do not stage files, commit, push, create branches, create or edit
             pull requests, post comments, resolve review threads, or call

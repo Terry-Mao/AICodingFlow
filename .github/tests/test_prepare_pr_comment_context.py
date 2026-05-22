@@ -192,10 +192,21 @@ class PreparePrCommentContextTest(unittest.TestCase):
                     "author_association": "MEMBER",
                     "user": {"login": "alice"},
                 }
+            ],
+            [
+                {
+                    "id": "thread-node-1",
+                    "isResolved": False,
+                    "isOutdated": True,
+                    "comments": {"nodes": [{"databaseId": 11}]},
+                }
             ]
         )
 
         self.assertEqual(index["review_comments"][0]["comment_id"], 11)
+        self.assertEqual(index["review_comments"][0]["review_thread_node_id"], "thread-node-1")
+        self.assertFalse(index["review_comments"][0]["is_resolved"])
+        self.assertTrue(index["review_comments"][0]["is_outdated"])
         self.assertEqual(index["review_comments"][0]["path"], "app.py")
         self.assertEqual(index["review_comments"][0]["body"], "Please fix this branch.")
         self.assertEqual(index["review_comments"][0]["diff_hunk"], "@@ -1,3 +1,3 @@")

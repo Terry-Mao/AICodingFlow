@@ -21,6 +21,8 @@ from resolve_pr_event import comment_has_fix_command  # noqa: E402
 AUTHORIZED_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 AUTHORIZED_PRIVATE_CONTRIBUTOR_PERMISSIONS = {"admin", "maintain", "write"}
 FALLBACK_BRANCH_PREFIX = "spec/respond-pr"
+PAGE_SIZE = 100
+PAGE_INFO = "pageInfo { hasNextPage endCursor }"
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -83,6 +85,88 @@ def fetch_review_comments(repo: str, number: int) -> list[dict[str, Any]]:
         ]
     )
     return flatten_pages(pages)
+
+
+def fetch_review_threads_page(owner: str, name: str, number: int, after: str | None = None) -> dict[str, Any]:
+    after_variable = ", $after: String!" if after else ""
+    after_argument = ", after: $after" if after else ""
+    query = f"""
+      query($owner: String!, $name: String!, $number: Int!{after_variable}) {{
+        repository(owner: $owner, name: $name) {{
+          pullRequest(number: $number) {{
+            reviewThreads(first: {PAGE_SIZE}{after_argument}) {{
+              {PAGE_INFO}
+              nodes {{
+                id
+                isResolved
+                isOutdated
+                comments(first: {PAGE_SIZE}) {{
+                  {PAGE_INFO}
+                  nodes {{ databaseId }}
+                }}
+              }}
+            }}
+          }}
+        }}
+      }}
+    """
+    args = [
+        "api",
+        "graphql",
+        "-f",
+        f"query={query}",
+        "-F",
+        f"owner={owner}",
+        "-F",
+        f"name={name}",
+        "-F",
+        f"number={number}",
+    ]
+    if after:
+        args.extend(["-F", f"after={after}"])
+    data = run_gh_json(args)
+    return data["data"]["repository"]["pullRequest"]["reviewThreads"]
+
+
+def fetch_thread_comments_page(thread_id: str, after: str) -> dict[str, Any]:
+    query = f"""
+      query($id: ID!, $after: String!) {{
+        node(id: $id) {{
+          ... on PullRequestReviewThread {{
+            comments(first: {PAGE_SIZE}, after: $after) {{
+              {PAGE_INFO}
+              nodes {{ databaseId }}
+            }}
+          }}
+        }}
+      }}
+    """
+    data = run_gh_json(["api", "graphql", "-f", f"query={query}", "-F", f"id={thread_id}", "-F", f"after={after}"])
+    return data["data"]["node"]["comments"]
+
+
+def paginate_thread_comments(thread: dict[str, Any]) -> None:
+    connection = thread.get("comments") or {}
+    page_info = connection.get("pageInfo") or {}
+    while page_info.get("hasNextPage"):
+        page = fetch_thread_comments_page(str(thread["id"]), str(page_info["endCursor"]))
+        connection.setdefault("nodes", []).extend(page.get("nodes") or [])
+        connection["pageInfo"] = page.get("pageInfo") or {}
+        page_info = connection["pageInfo"]
+
+
+def fetch_review_threads(repo: str, number: int) -> list[dict[str, Any]]:
+    owner, name = repo.split("/", 1)
+    connection = fetch_review_threads_page(owner, name, number)
+    threads = connection.get("nodes") or []
+    page_info = connection.get("pageInfo") or {}
+    while page_info.get("hasNextPage"):
+        page = fetch_review_threads_page(owner, name, number, str(page_info["endCursor"]))
+        threads.extend(page.get("nodes") or [])
+        page_info = page.get("pageInfo") or {}
+    for thread in threads:
+        paginate_thread_comments(thread)
+    return threads
 
 
 def issue_is_pr(event: dict[str, Any]) -> bool:
@@ -229,16 +313,36 @@ def trigger_authorization(repo: str, pr: dict[str, Any], trigger: dict[str, Any]
     }
 
 
-def review_comment_index(comments: list[dict[str, Any]]) -> dict[str, Any]:
+def review_thread_state_by_comment(threads: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
+    states: dict[int, dict[str, Any]] = {}
+    for thread in threads:
+        comments = (thread.get("comments") or {}).get("nodes") or []
+        for comment in comments:
+            database_id = comment.get("databaseId")
+            if isinstance(database_id, int):
+                states[database_id] = {
+                    "review_thread_node_id": thread.get("id") or "",
+                    "is_resolved": bool(thread.get("isResolved")),
+                    "is_outdated": bool(thread.get("isOutdated")),
+                }
+    return states
+
+
+def review_comment_index(comments: list[dict[str, Any]], threads: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    thread_states = review_thread_state_by_comment(threads or [])
     items: list[dict[str, Any]] = []
     for comment in comments:
         comment_id = comment.get("id")
         if comment_id is None:
             continue
+        thread_state = thread_states.get(comment_id, {})
         items.append(
             {
                 "comment_id": comment_id,
                 "thread_id": comment.get("pull_request_review_id"),
+                "review_thread_node_id": thread_state.get("review_thread_node_id") or "",
+                "is_resolved": thread_state.get("is_resolved"),
+                "is_outdated": thread_state.get("is_outdated"),
                 "path": comment.get("path") or "",
                 "line": comment.get("line") or comment.get("original_line"),
                 "author": author_login(comment),
@@ -340,7 +444,8 @@ def main() -> None:
     event = load_event(args.event_path)
     context, pr = build_context(args.repo, args.event_name, event, args.agent_login.strip())
     comments = fetch_review_comments(args.repo, int(context["pr_number"]))
-    ids = review_comment_index(comments)
+    threads = fetch_review_threads(args.repo, int(context["pr_number"]))
+    ids = review_comment_index(comments, threads)
 
     Path(args.output).write_text(json.dumps(context, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     Path(args.pr_event_output).write_text(json.dumps({"pull_request": pr}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
