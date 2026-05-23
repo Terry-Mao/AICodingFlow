@@ -25,6 +25,11 @@ class CodeownersRule(NamedTuple):
     owners: list[str]
 
 
+class GitHubResponse(NamedTuple):
+    data: Any
+    headers: Any
+
+
 def load_event() -> dict[str, Any]:
     event_path = os.environ.get("PR_EVENT_PATH") or os.environ.get("GITHUB_EVENT_PATH")
     if not event_path:
@@ -39,6 +44,16 @@ def github_api_json(
     method: str = "GET",
     payload: dict[str, Any] | None = None,
 ) -> Any:
+    return github_api_response(url, token, method=method, payload=payload).data
+
+
+def github_api_response(
+    url: str,
+    token: str,
+    *,
+    method: str = "GET",
+    payload: dict[str, Any] | None = None,
+) -> GitHubResponse:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         url,
@@ -54,7 +69,7 @@ def github_api_json(
     try:
         with urllib.request.urlopen(request) as response:
             body = response.read().decode("utf-8")
-            return json.loads(body) if body else {}
+            return GitHubResponse(json.loads(body) if body else {}, response.headers)
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise SystemExit(f"GitHub API request failed: {exc.code} {detail}") from exc
@@ -318,6 +333,32 @@ def dismiss_review(repo: str, token: str, pr_number: int, review_id: int, messag
     github_api_json(url, token, method="PUT", payload={"message": message, "event": "DISMISS"})
 
 
+def next_link(headers: Any) -> str:
+    link_header = headers.get("Link", "") if hasattr(headers, "get") else ""
+    for part in link_header.split(","):
+        sections = [section.strip() for section in part.split(";")]
+        if len(sections) < 2:
+            continue
+        if 'rel="next"' not in sections[1:]:
+            continue
+        url = sections[0]
+        if url.startswith("<") and url.endswith(">"):
+            return url[1:-1]
+    return ""
+
+
+def list_pull_request_reviews(repo: str, token: str, pr_number: int) -> list[dict[str, Any]]:
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews?per_page=100"
+    reviews: list[dict[str, Any]] = []
+    while url:
+        response = github_api_response(url, token)
+        if not isinstance(response.data, list):
+            raise SystemExit("GitHub reviews response was not a list")
+        reviews.extend(review for review in response.data if isinstance(review, dict))
+        url = next_link(response.headers)
+    return reviews
+
+
 def dismiss_stale_bot_request_changes(
     repo: str,
     token: str,
@@ -325,20 +366,14 @@ def dismiss_stale_bot_request_changes(
     bot_login: str,
 ) -> None:
     pr_number = pr["number"]
-    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews"
     try:
-        response = github_api_json(url, token)
+        reviews = list_pull_request_reviews(repo, token, pr_number)
     except SystemExit as exc:
         print(f"Could not read PR reviews; skipping stale request-changes dismissal: {exc}")
         return
-    if not isinstance(response, list):
-        print("Could not read PR reviews; skipping stale request-changes dismissal")
-        return
 
     dismissed = 0
-    for review in response:
-        if not isinstance(review, dict):
-            continue
+    for review in reviews:
         if review.get("state") != "CHANGES_REQUESTED":
             continue
         review_id = review.get("id")
