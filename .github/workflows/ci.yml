@@ -8,6 +8,7 @@ permissions:
   actions: write
   contents: read
   pull-requests: read
+  statuses: write
 
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
@@ -47,8 +48,33 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
+      - name: Mark AI PR Review queued
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+            -f state="pending" \
+            -f context="AI PR Review" \
+            -f description="AI PR review is queued" \
+            -f target_url="$RUN_URL"
+
       - name: Dispatch AI PR Review
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: gh workflow run review-pr.yml --repo "${{ github.repository }}" -f pr_number="$PR_NUMBER"
+
+      - name: Mark AI PR Review dispatch failed
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+            -f state="failure" \
+            -f context="AI PR Review" \
+            -f description="AI PR review dispatch failed" \
+            -f target_url="$RUN_URL"
