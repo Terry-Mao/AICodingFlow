@@ -75,7 +75,7 @@ cd AICodingFlow
 ./install.sh --target /path/to/target-repo --dry-run
 ```
 
-安装脚本依赖 `bash`、`git` 和 `rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/` 以及 `.github/scripts/`、`.github/tests/`、`.github/workflows/`。仓库本地 companion skills（`.agents/skills/*-repo/SKILL.md`）不会安装到目标项目；目标项目已有的 companion skills 会保留不动，并由 `update-*` 系列 SKILL 在有证据时创建或更新。`.github` 下目标项目自己的其他文件也不会被删除。
+安装脚本依赖 `bash`、`git` 和 `rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/` 以及 `.github/scripts/`、`.github/aicodingflow-tests/`、`.github/workflows/`。仓库本地 companion skills（`.agents/skills/*-repo/SKILL.md`）不会安装到目标项目；目标项目已有的 companion skills 会保留不动，并由 `update-*` 系列 SKILL 在有证据时创建或更新。`.github` 下目标项目自己的其他文件也不会被删除。目标项目自己的测试应放在项目原有测试结构中；如果这些测试属于 `.github` 相关逻辑，建议使用 `.github/tests/`，不要直接修改 `.github/aicodingflow-tests/`。
 
 如果目标项目是首次接入 issue triage 自动化，安装后可以在目标项目中让 Codex 运行：
 
@@ -489,7 +489,7 @@ Workflow 文件更新：
 .agents/skills/                  # Codex SKILL
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper
-.github/tests/                   # AICoding Flow workflow/script unittest
+.github/aicodingflow-tests/      # AICodingFlow upstream-managed workflow/script unittest
 specs/                           # issue 对应的 product/tech spec
 ```
 
@@ -535,7 +535,7 @@ rsync -a .github/ /path/to/target-repo/.github/
 运行全部测试：
 
 ```bash
-python3 -m unittest discover -s .github/tests
+python3 -m unittest discover -s .github/aicodingflow-tests
 ```
 
 建议在修改 workflow 或 review 相关脚本后额外检查：

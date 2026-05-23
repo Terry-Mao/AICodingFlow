@@ -15,7 +15,8 @@ Important paths:
 - `.agents/skills/` contains Codex skills used locally and by workflows.
 - `.github/workflows/` contains GitHub Actions entrypoints.
 - `.github/scripts/` contains Python helper scripts for workflows.
-- `.github/tests/` contains Python `unittest` coverage for workflows, scripts, and skill helpers.
+- `.github/aicodingflow-tests/` contains upstream-managed Python `unittest`
+  coverage for workflows, scripts, and skill helpers.
 - `specs/issue-<N>/` contains product and technical specs for issues.
 
 ## Commands
@@ -24,11 +25,11 @@ Use the narrowest relevant validation first, then broaden when risk warrants it.
 
 - Full test suite:
   ```bash
-  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/tests
+  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/aicodingflow-tests
   ```
 - Targeted tests:
   ```bash
-  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/tests -p 'test_<module>.py'
+  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/aicodingflow-tests -p 'test_<module>.py'
   ```
 - Syntax-check changed Python scripts:
   ```bash
