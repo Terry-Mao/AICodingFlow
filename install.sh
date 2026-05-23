@@ -126,6 +126,8 @@ sync_github_dirs() {
     dest="$target_dir/.github/$dirname"
     if [ "$dirname" = "tests" ]; then
       copy_dir "$src" "$dest" --exclude test_install_script.py
+    elif [ "$dirname" = "workflows" ]; then
+      copy_dir "$src" "$dest" --exclude ci.yml
     else
       copy_dir "$src" "$dest"
     fi

@@ -284,7 +284,12 @@ issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI
 
 AI PR Review 会：
 
-- 在非 draft PR `opened` / `reopened` / `synchronize` / `ready_for_review` 时自动运行。
+- 默认由 CI 成功完成后触发。AICodingFlow 自带一个最小 `CI` workflow，
+  会在非 draft same-repo PR 上运行单元测试和 Python 编译检查，成功后通过
+  `workflow_dispatch` 触发现有 `review-pr.yml`。
+- 如果目标仓库已有自己的 CI，推荐在该 CI 的成功路径中 dispatch
+  `review-pr.yml`，而不是修改 `review-pr.yml` 本身。这样升级 AICodingFlow
+  时可以继续覆盖 managed review workflow，不会丢失目标仓库自己的 CI 编排。
 - 其他场景默认不自动重跑；需要重新 review 时，在非 draft PR conversation comment 中发送单行 `@AGENT_LOGIN /review`，或使用手动 workflow dispatch。
 - 生成稳定的 `pr_description.txt`。
 - 生成带行号的 `pr_diff.txt`。
@@ -367,6 +372,44 @@ permissions:
   contents: read
   pull-requests: write
 ```
+
+本仓库提供一个参考最小 CI：
+
+```text
+.github/workflows/ci.yml
+```
+
+`install.sh` 不会把这个参考 CI 同步到目标仓库，避免覆盖或干扰目标仓库自己的
+CI 编排。目标仓库应在自己的 CI 成功路径中加入类似步骤：
+
+```yaml
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  ci:
+    # existing CI steps...
+
+  ai-review:
+    needs: ci
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch AI PR Review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh workflow run review-pr.yml -f pr_number="$PR_NUMBER"
+```
+
+review 本身仍由 `review-pr.yml` 执行。
+默认示例使用 GitHub Actions 自带的 `GITHUB_TOKEN` dispatch，因此
+`review-pr.yml` 允许 `github-actions[bot]` 运行 Codex action。如果目标仓库用
+GitHub App token、PAT 或第三方 CI dispatch，actor 可能不是
+`github-actions[bot]`；这时需要把 `review-pr.yml` 中的
+`allow-bot-users` 改成对应 bot login，或改用有人类账号权限的 token 触发。
 
 ### Create Spec From Issue
 

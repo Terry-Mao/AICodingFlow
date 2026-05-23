@@ -103,6 +103,60 @@ class PreparePrCommentContextTest(unittest.TestCase):
         self.assertEqual(context["trigger_comment_id"], 3003)
         self.assertEqual(context["trigger_body"], "@codex /fix address requested changes")
 
+    def test_issue_comment_falls_back_to_api_for_none_author_association(self) -> None:
+        event = issue_comment_event(association="NONE")
+
+        with (
+            mock.patch.object(prepare, "fetch_pr", return_value=pr_payload()),
+            mock.patch.object(prepare, "fetch_default_branch", return_value="main"),
+            mock.patch.object(
+                prepare,
+                "fetch_trigger_item",
+                return_value={"author_association": "MEMBER", "user": {"login": "alice"}},
+            ) as fetch_trigger_item,
+        ):
+            context, _ = prepare.build_context("owner/repo", "issue_comment", event, "codex")
+
+        fetch_trigger_item.assert_called_once()
+        self.assertTrue(context["should_run"])
+        self.assertEqual(context["trigger_actor_association"], "MEMBER")
+
+    def test_review_comment_falls_back_to_api_for_none_author_association(self) -> None:
+        event = review_comment_event(association="NONE")
+
+        with (
+            mock.patch.object(prepare, "fetch_pr", return_value=pr_payload()),
+            mock.patch.object(prepare, "fetch_default_branch", return_value="main"),
+            mock.patch.object(
+                prepare,
+                "fetch_trigger_item",
+                return_value={"author_association": "OWNER", "user": {"login": "bob"}},
+            ) as fetch_trigger_item,
+        ):
+            context, _ = prepare.build_context("owner/repo", "pull_request_review_comment", event, "codex")
+
+        fetch_trigger_item.assert_called_once()
+        self.assertTrue(context["should_run"])
+        self.assertEqual(context["trigger_actor_association"], "OWNER")
+
+    def test_review_body_falls_back_to_api_for_none_author_association(self) -> None:
+        event = review_body_event(association="NONE")
+
+        with (
+            mock.patch.object(prepare, "fetch_pr", return_value=pr_payload()),
+            mock.patch.object(prepare, "fetch_default_branch", return_value="main"),
+            mock.patch.object(
+                prepare,
+                "fetch_trigger_item",
+                return_value={"author_association": "COLLABORATOR", "user": {"login": "carol"}},
+            ) as fetch_trigger_item,
+        ):
+            context, _ = prepare.build_context("owner/repo", "pull_request_review", event, "codex")
+
+        fetch_trigger_item.assert_called_once()
+        self.assertTrue(context["should_run"])
+        self.assertEqual(context["trigger_actor_association"], "COLLABORATOR")
+
     def test_public_contributor_is_hard_skipped_without_permission_lookup(self) -> None:
         with (
             mock.patch.object(prepare, "fetch_pr", return_value=pr_payload()),

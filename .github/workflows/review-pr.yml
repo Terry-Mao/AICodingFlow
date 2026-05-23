@@ -6,8 +6,6 @@ on:
       pr_number:
         description: "Pull request number to review"
         required: true
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
   issue_comment:
     types: [created]
 
@@ -24,11 +22,6 @@ jobs:
   preflight:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (
-        github.event_name == 'pull_request' &&
-        github.event.pull_request.draft == false &&
-        github.event.pull_request.head.repo.full_name == github.repository
-      ) ||
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request != null &&
