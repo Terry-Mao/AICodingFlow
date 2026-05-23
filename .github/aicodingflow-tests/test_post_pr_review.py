@@ -119,6 +119,55 @@ class PostPrReviewTest(unittest.TestCase):
 
         self.assertIsNone(post_pr_review.select_reviewer({}, rules, ["app.py"], "external"))
 
+    def test_dismiss_stale_bot_request_changes_dismisses_only_current_bot_reviews(self) -> None:
+        calls = []
+
+        def fake_api(url: str, token: str, *, method: str = "GET", payload: dict | None = None):
+            calls.append((url, token, method, payload))
+            if method == "GET":
+                return [
+                    {"id": 10, "state": "CHANGES_REQUESTED", "user": {"login": "github-actions[bot]", "type": "Bot"}},
+                    {"id": 11, "state": "CHANGES_REQUESTED", "user": {"login": "maintainer", "type": "User"}},
+                    {"id": 12, "state": "COMMENTED", "user": {"login": "github-actions[bot]", "type": "Bot"}},
+                    {"id": 13, "state": "CHANGES_REQUESTED", "user": {"login": "other-bot", "type": "Bot"}},
+                ]
+            return {}
+
+        with mock.patch.object(post_pr_review, "github_api_json", side_effect=fake_api):
+            post_pr_review.dismiss_stale_bot_request_changes(
+                "owner/repo",
+                "token",
+                {"number": 5},
+                post_pr_review.DEFAULT_REVIEW_BOT_LOGIN,
+            )
+
+        self.assertEqual(
+            calls,
+            [
+                ("https://api.github.com/repos/owner/repo/pulls/5/reviews", "token", "GET", None),
+                (
+                    "https://api.github.com/repos/owner/repo/pulls/5/reviews/10/dismissals",
+                    "token",
+                    "PUT",
+                    {"message": "Superseded by a later bot approval.", "event": "DISMISS"},
+                ),
+            ],
+        )
+
+    def test_review_author_matches_configured_bot_login_only(self) -> None:
+        self.assertTrue(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "custom-review-bot", "type": "Bot"}},
+                "custom-review-bot",
+            )
+        )
+        self.assertFalse(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "other-bot", "type": "Bot"}},
+                "custom-review-bot",
+            )
+        )
+
     def test_parse_diff_positions_maps_review_targets_to_github_positions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             diff_path = Path(directory) / "pr_diff.txt"
@@ -396,6 +445,7 @@ class PostPrReviewTest(unittest.TestCase):
                 ),
                 mock.patch.object(post_pr_review, "parse_codeowners", return_value=[post_pr_review.CodeownersRule("*", ["@owner"])]),
                 mock.patch.object(post_pr_review, "request_json", return_value={"id": 99}),
+                mock.patch.object(post_pr_review, "github_api_json", return_value=[]),
                 mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
                 mock.patch(
                     "sys.argv",
@@ -439,6 +489,7 @@ class PostPrReviewTest(unittest.TestCase):
                     },
                 ),
                 mock.patch.object(post_pr_review, "parse_codeowners", return_value=[post_pr_review.CodeownersRule("*", ["@owner"])]),
+                mock.patch.object(post_pr_review, "github_api_json", return_value=[]),
                 mock.patch.object(post_pr_review, "request_json") as request_json,
                 mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
                 mock.patch(
@@ -539,6 +590,7 @@ class PostPrReviewTest(unittest.TestCase):
                 ),
                 mock.patch.object(post_pr_review, "parse_codeowners", return_value=[]),
                 mock.patch.object(post_pr_review, "request_json", return_value={"id": 99}),
+                mock.patch.object(post_pr_review, "github_api_json", return_value=[]),
                 mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
                 mock.patch(
                     "sys.argv",

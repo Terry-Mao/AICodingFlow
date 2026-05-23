@@ -17,6 +17,7 @@ FILE_RE = re.compile(r"^FILE\s+(.+?)\s*$")
 LINE_RE = re.compile(r"^(LEFT|RIGHT|BOTH)\s+(\d+)\s+\|")
 ORG_MEMBER_ASSOCIATIONS = {"COLLABORATOR", "MEMBER", "OWNER"}
 NON_MEMBER_ASSOCIATIONS = {"CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "NONE"}
+DEFAULT_REVIEW_BOT_LOGIN = "github-actions[bot]"
 
 
 class CodeownersRule(NamedTuple):
@@ -31,24 +32,37 @@ def load_event() -> dict[str, Any]:
     return json.loads(Path(event_path).read_text(encoding="utf-8"))
 
 
-def request_json(url: str, token: str, payload: dict[str, Any]) -> dict[str, Any]:
+def github_api_json(
+    url: str,
+    token: str,
+    *,
+    method: str = "GET",
+    payload: dict[str, Any] | None = None,
+) -> Any:
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         url,
-        data=json.dumps(payload).encode("utf-8"),
+        data=data,
         headers={
             "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
             "Content-Type": "application/json",
         },
-        method="POST",
+        method=method,
     )
     try:
         with urllib.request.urlopen(request) as response:
-            return json.loads(response.read().decode("utf-8"))
+            body = response.read().decode("utf-8")
+            return json.loads(body) if body else {}
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise SystemExit(f"GitHub API request failed: {exc.code} {detail}") from exc
+
+
+def request_json(url: str, token: str, payload: dict[str, Any]) -> dict[str, Any]:
+    response = github_api_json(url, token, method="POST", payload=payload)
+    return response if isinstance(response, dict) else {}
 
 
 def changed_files_from_diff(path: Path) -> list[str]:
@@ -289,6 +303,56 @@ def request_reviewer(repo: str, token: str, pr_number: int, reviewer: str) -> No
     request_json(url, token, {"reviewers": [reviewer]})
 
 
+def review_author_matches_bot(review: dict[str, Any], bot_login: str) -> bool:
+    user = review.get("user")
+    if not isinstance(user, dict):
+        return False
+    login = user.get("login")
+    if not isinstance(login, str) or not login:
+        return False
+    return login.lower() == bot_login.lower()
+
+
+def dismiss_review(repo: str, token: str, pr_number: int, review_id: int, message: str) -> None:
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews/{review_id}/dismissals"
+    github_api_json(url, token, method="PUT", payload={"message": message, "event": "DISMISS"})
+
+
+def dismiss_stale_bot_request_changes(
+    repo: str,
+    token: str,
+    pr: dict[str, Any],
+    bot_login: str,
+) -> None:
+    pr_number = pr["number"]
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews"
+    response = github_api_json(url, token)
+    if not isinstance(response, list):
+        print("Could not read PR reviews; skipping stale request-changes dismissal")
+        return
+
+    dismissed = 0
+    for review in response:
+        if not isinstance(review, dict):
+            continue
+        if review.get("state") != "CHANGES_REQUESTED":
+            continue
+        review_id = review.get("id")
+        if not isinstance(review_id, int):
+            continue
+        if not review_author_matches_bot(review, bot_login):
+            continue
+        try:
+            dismiss_review(repo, token, pr_number, review_id, "Superseded by a later bot approval.")
+        except SystemExit as exc:
+            print(f"Dismiss stale request changes failed; continuing: {exc}")
+            continue
+        dismissed += 1
+
+    if dismissed:
+        print(f"Dismissed {dismissed} stale bot request-changes review(s)")
+
+
 def request_human_reviewer_if_needed(
     repo: str,
     token: str,
@@ -322,6 +386,7 @@ def main() -> None:
 
     token = os.environ.get("GITHUB_TOKEN")
     repo = os.environ.get("GITHUB_REPOSITORY")
+    bot_login = os.environ.get("REVIEW_BOT_LOGIN") or DEFAULT_REVIEW_BOT_LOGIN
     if not token:
         raise SystemExit("GITHUB_TOKEN is not set")
     if not repo:
@@ -342,6 +407,8 @@ def main() -> None:
         comments = normalize_comments(raw_comments, positions)
     if not body and not comments:
         print("review.json has no body or comments; skipping PR review")
+        if verdict == "APPROVE" and is_non_member_code_review_subject(pr, changed_files):
+            dismiss_stale_bot_request_changes(repo, token, pr, bot_login)
         request_human_reviewer_if_needed(repo, token, pr, review, changed_files, verdict)
         return
 
@@ -354,6 +421,9 @@ def main() -> None:
     url = f"https://api.github.com/repos/{repo}/pulls/{pr['number']}/reviews"
     response = request_json(url, token, payload)
     print(f"Posted PR review {response.get('id')}")
+
+    if verdict == "APPROVE" and is_non_member_code_review_subject(pr, changed_files):
+        dismiss_stale_bot_request_changes(repo, token, pr, bot_login)
 
     request_human_reviewer_if_needed(repo, token, pr, review, changed_files, verdict)
 

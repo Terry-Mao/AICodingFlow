@@ -223,6 +223,7 @@ jobs:
         env:
           PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GITHUB_TOKEN: ${{ github.token }}
+          REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
         run: python3 .github/scripts/post_pr_review.py --review pr-worktree/review.json --diff pr-worktree/pr_diff.txt
 
       - uses: actions/upload-artifact@v7
