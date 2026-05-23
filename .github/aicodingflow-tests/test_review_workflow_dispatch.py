@@ -18,7 +18,6 @@ def steps(workflow_data: dict, job: str) -> list[dict]:
 class ReviewWorkflowDispatchTest(unittest.TestCase):
     def test_workflows_use_node24_action_runtime(self) -> None:
         workflow_jobs = {
-            ".github/workflows/ci.yml": "test",
             ".github/workflows/create-implementation-from-issue.yml": "create-implementation",
             ".github/workflows/create-spec-from-issue.yml": "create-spec",
             ".github/workflows/review-pr.yml": "review",
@@ -62,29 +61,6 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("contains(github.event.comment.body, '/review')", job_gate)
         self.assertEqual(data["jobs"]["review"]["needs"], "preflight")
         self.assertEqual(data["jobs"]["review"]["if"], "needs.preflight.outputs.reviewable == 'true'")
-
-    def test_ci_dispatches_existing_review_workflow_after_success(self) -> None:
-        data = workflow(".github/workflows/ci.yml")
-        triggers = data[True]
-
-        self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review"])
-        self.assertEqual(data["permissions"]["actions"], "write")
-        self.assertEqual(data["permissions"]["contents"], "read")
-        self.assertEqual(data["permissions"]["pull-requests"], "read")
-
-        self.assertEqual(data["jobs"]["ai-review"]["needs"], "test")
-        self.assertIn("github.event.pull_request.draft == false", data["jobs"]["test"]["if"])
-        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", data["jobs"]["ai-review"]["if"])
-        test_steps = steps(data, "test")
-        self.assertIn(
-            "python3 -m unittest discover -s .github/aicodingflow-tests",
-            next(step for step in test_steps if step.get("name") == "Run unit tests")["run"],
-        )
-
-        dispatch_step = next(step for step in steps(data, "ai-review") if step.get("name") == "Dispatch AI PR Review")
-        self.assertEqual(dispatch_step["env"]["GH_TOKEN"], "${{ github.token }}")
-        self.assertEqual(dispatch_step["env"]["PR_NUMBER"], "${{ github.event.pull_request.number }}")
-        self.assertIn("gh workflow run review-pr.yml --repo \"${{ github.repository }}\" -f pr_number=\"$PR_NUMBER\"", dispatch_step["run"])
 
     def test_review_workflow_resolves_pr_before_checkout_and_uses_normalized_event(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")

@@ -27,7 +27,10 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Run unit tests
+      - name: Run repository unit tests
+        run: python3 -m unittest discover -s .github/tests
+
+      - name: Run delivered unit tests
         run: python3 -m unittest discover -s .github/aicodingflow-tests
 
       - name: Compile Python scripts
