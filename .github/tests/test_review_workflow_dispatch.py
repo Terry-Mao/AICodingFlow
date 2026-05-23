@@ -81,7 +81,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         dispatch_step = next(step for step in steps(data, "ai-review") if step.get("name") == "Dispatch AI PR Review")
         self.assertEqual(dispatch_step["env"]["GH_TOKEN"], "${{ github.token }}")
         self.assertEqual(dispatch_step["env"]["PR_NUMBER"], "${{ github.event.pull_request.number }}")
-        self.assertIn("gh workflow run review-pr.yml -f pr_number=\"$PR_NUMBER\"", dispatch_step["run"])
+        self.assertIn("gh workflow run review-pr.yml --repo \"${{ github.repository }}\" -f pr_number=\"$PR_NUMBER\"", dispatch_step["run"])
 
     def test_review_workflow_resolves_pr_before_checkout_and_uses_normalized_event(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")

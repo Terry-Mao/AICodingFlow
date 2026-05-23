@@ -51,4 +51,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: gh workflow run review-pr.yml -f pr_number="$PR_NUMBER"
+        run: gh workflow run review-pr.yml --repo "${{ github.repository }}" -f pr_number="$PR_NUMBER"
