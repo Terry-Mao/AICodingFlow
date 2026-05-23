@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Run unit tests
+        run: python3 -m unittest discover -s .github/tests
+
+      - name: Compile Python scripts
+        run: |
+          PYTHONPYCACHEPREFIX=/tmp/aicodingflow-pycache python3 -m py_compile \
+            .github/scripts/*.py \
+            .agents/skills/implement-specs/scripts/*.py \
+            .agents/skills/review-pr/scripts/validate_review_json.py \
+            .agents/skills/update-pr-review/scripts/*.py
+
+  ai-review:
+    needs: test
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: Dispatch AI PR Review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh workflow run review-pr.yml -f pr_number="$PR_NUMBER"
