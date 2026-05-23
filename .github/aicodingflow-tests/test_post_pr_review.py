@@ -154,7 +154,7 @@ class PostPrReviewTest(unittest.TestCase):
             ],
         )
 
-    def test_review_author_matches_configured_bot_login_only(self) -> None:
+    def test_review_author_matches_configured_bot_login_and_bot_identity(self) -> None:
         self.assertTrue(
             post_pr_review.review_author_matches_bot(
                 {"user": {"login": "custom-review-bot", "type": "Bot"}},
@@ -165,6 +165,18 @@ class PostPrReviewTest(unittest.TestCase):
             post_pr_review.review_author_matches_bot(
                 {"user": {"login": "other-bot", "type": "Bot"}},
                 "custom-review-bot",
+            )
+        )
+        self.assertFalse(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "custom-review-bot", "type": "User"}},
+                "custom-review-bot",
+            )
+        )
+        self.assertTrue(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "custom-review-bot[bot]"}},
+                "custom-review-bot[bot]",
             )
         )
 

@@ -310,7 +310,7 @@ def review_author_matches_bot(review: dict[str, Any], bot_login: str) -> bool:
     login = user.get("login")
     if not isinstance(login, str) or not login:
         return False
-    return login.lower() == bot_login.lower()
+    return login.lower() == bot_login.lower() and is_bot_author(review)
 
 
 def dismiss_review(repo: str, token: str, pr_number: int, review_id: int, message: str) -> None:
