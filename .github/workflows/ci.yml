@@ -7,43 +7,14 @@ on:
 permissions:
   actions: write
   contents: read
-  pull-requests: read
-  statuses: write
 
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  queue-ai-review:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
-    steps:
-      - name: Mark AI PR Review waiting for CI
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
-            -f state="pending" \
-            -f context="AI PR Review" \
-            -f description="AI PR review is waiting for CI" \
-            -f target_url="$RUN_URL"
-
-      - name: Skip AI PR Review status for fork PR
-        if: github.event.pull_request.head.repo.full_name != github.repository
-        run: echo "AI PR Review status is not queued for fork pull requests."
-
   test:
-    needs: queue-ai-review
-    if: >-
-      github.event.pull_request.draft == false &&
-      needs.queue-ai-review.result == 'success'
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -69,9 +40,8 @@ jobs:
             .agents/skills/update-pr-review/scripts/*.py
 
   ai-review:
-    needs: [queue-ai-review, test]
+    needs: test
     if: >-
-      needs.queue-ai-review.result == 'success' &&
       needs.test.result == 'success' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -79,57 +49,8 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
-      - name: Mark AI PR Review queued
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
-            -f state="pending" \
-            -f context="AI PR Review" \
-            -f description="AI PR review is queued" \
-            -f target_url="$RUN_URL"
-
       - name: Dispatch AI PR Review
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: gh workflow run review-pr.yml --repo "${{ github.repository }}" -f pr_number="$PR_NUMBER"
-
-      - name: Mark AI PR Review dispatch failed
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
-            -f state="failure" \
-            -f context="AI PR Review" \
-            -f description="AI PR review dispatch failed" \
-            -f target_url="$RUN_URL"
-
-  finalize-skipped-ai-review:
-    needs: [queue-ai-review, test]
-    if: >-
-      always() &&
-      needs.queue-ai-review.result == 'success' &&
-      needs.test.result != 'success' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
-    steps:
-      - name: Mark AI PR Review blocked by CI
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
-            -f state="failure" \
-            -f context="AI PR Review" \
-            -f description="CI did not pass before AI PR review" \
-            -f target_url="$RUN_URL"
