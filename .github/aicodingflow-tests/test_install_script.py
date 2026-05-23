@@ -89,8 +89,8 @@ class InstallScriptTest(unittest.TestCase):
             self.assertFalse((target / ".agents/skills/triage-issue-repo/SKILL.md").exists())
             self.assertFalse((target / ".agents/skills/dedupe-issue-repo/SKILL.md").exists())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
-            self.assertTrue((target / ".github/tests/test_validate_spec_output.py").is_file())
-            self.assertFalse((target / ".github/tests/test_install_script.py").exists())
+            self.assertTrue((target / ".github/aicodingflow-tests/test_validate_spec_output.py").is_file())
+            self.assertFalse((target / ".github/aicodingflow-tests/test_install_script.py").exists())
             self.assertTrue((target / ".github/workflows/create-spec-from-issue.yml").is_file())
             self.assertFalse((target / ".github/workflows/ci.yml").exists())
 

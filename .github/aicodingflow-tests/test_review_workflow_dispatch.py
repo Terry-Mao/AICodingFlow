@@ -76,7 +76,10 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("github.event.pull_request.draft == false", data["jobs"]["test"]["if"])
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", data["jobs"]["ai-review"]["if"])
         test_steps = steps(data, "test")
-        self.assertIn("python3 -m unittest discover -s .github/tests", next(step for step in test_steps if step.get("name") == "Run unit tests")["run"])
+        self.assertIn(
+            "python3 -m unittest discover -s .github/aicodingflow-tests",
+            next(step for step in test_steps if step.get("name") == "Run unit tests")["run"],
+        )
 
         dispatch_step = next(step for step in steps(data, "ai-review") if step.get("name") == "Dispatch AI PR Review")
         self.assertEqual(dispatch_step["env"]["GH_TOKEN"], "${{ github.token }}")

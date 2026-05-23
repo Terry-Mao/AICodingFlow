@@ -120,11 +120,11 @@ sync_skills() {
 sync_github_dirs() {
   local dirname src dest
 
-  for dirname in scripts tests workflows; do
+  for dirname in scripts aicodingflow-tests workflows; do
     src="$script_dir/.github/$dirname"
     [ -d "$src" ] || continue
     dest="$target_dir/.github/$dirname"
-    if [ "$dirname" = "tests" ]; then
+    if [ "$dirname" = "aicodingflow-tests" ]; then
       copy_dir "$src" "$dest" --exclude test_install_script.py
     elif [ "$dirname" = "workflows" ]; then
       copy_dir "$src" "$dest" --exclude ci.yml
