@@ -16,35 +16,19 @@ def steps(workflow_data: dict, job: str) -> list[dict]:
 
 
 class CiWorkflowTest(unittest.TestCase):
-    def test_ci_queues_review_before_tests_and_dispatches_after_success(self) -> None:
+    def test_ci_dispatches_review_only_after_tests_pass(self) -> None:
         data = workflow(".github/workflows/ci.yml")
         triggers = data[True]
 
         self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review"])
         self.assertEqual(data["permissions"]["actions"], "write")
         self.assertEqual(data["permissions"]["contents"], "read")
-        self.assertEqual(data["permissions"]["pull-requests"], "read")
-        self.assertEqual(data["permissions"]["statuses"], "write")
+        self.assertNotIn("pull-requests", data["permissions"])
+        self.assertNotIn("statuses", data["permissions"])
+        self.assertEqual(set(data["jobs"]), {"test", "ai-review"})
 
-        queue_job = data["jobs"]["queue-ai-review"]
-        self.assertIn("github.event.pull_request.draft == false", queue_job["if"])
-        queue_step = next(step for step in steps(data, "queue-ai-review") if step.get("name") == "Mark AI PR Review waiting for CI")
-        self.assertEqual(queue_step["if"], "github.event.pull_request.head.repo.full_name == github.repository")
-        self.assertEqual(queue_step["env"]["GH_TOKEN"], "${{ github.token }}")
-        self.assertEqual(queue_step["env"]["HEAD_SHA"], "${{ github.event.pull_request.head.sha }}")
-        self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", queue_step["run"])
-        self.assertIn('state="pending"', queue_step["run"])
-        self.assertIn('context="AI PR Review"', queue_step["run"])
-        self.assertIn('description="AI PR review is waiting for CI"', queue_step["run"])
-
-        fork_step = next(step for step in steps(data, "queue-ai-review") if step.get("name") == "Skip AI PR Review status for fork PR")
-        self.assertEqual(fork_step["if"], "github.event.pull_request.head.repo.full_name != github.repository")
-
-        self.assertEqual(data["jobs"]["test"]["needs"], "queue-ai-review")
-        self.assertEqual(data["jobs"]["ai-review"]["needs"], ["queue-ai-review", "test"])
-        self.assertIn("github.event.pull_request.draft == false", data["jobs"]["test"]["if"])
-        self.assertIn("needs.queue-ai-review.result == 'success'", data["jobs"]["test"]["if"])
-        self.assertIn("needs.queue-ai-review.result == 'success'", data["jobs"]["ai-review"]["if"])
+        self.assertEqual(data["jobs"]["test"]["if"], "github.event.pull_request.draft == false")
+        self.assertEqual(data["jobs"]["ai-review"]["needs"], "test")
         self.assertIn("needs.test.result == 'success'", data["jobs"]["ai-review"]["if"])
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", data["jobs"]["ai-review"]["if"])
 
@@ -59,20 +43,9 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertEqual(dispatch_step["env"]["PR_NUMBER"], "${{ github.event.pull_request.number }}")
         self.assertIn("gh workflow run review-pr.yml --repo \"${{ github.repository }}\" -f pr_number=\"$PR_NUMBER\"", dispatch_step["run"])
 
-        finalize_job = data["jobs"]["finalize-skipped-ai-review"]
-        self.assertEqual(finalize_job["needs"], ["queue-ai-review", "test"])
-        self.assertIn("always()", finalize_job["if"])
-        self.assertIn("needs.queue-ai-review.result == 'success'", finalize_job["if"])
-        self.assertIn("needs.test.result != 'success'", finalize_job["if"])
-        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", finalize_job["if"])
-        finalize_step = next(step for step in steps(data, "finalize-skipped-ai-review") if step.get("name") == "Mark AI PR Review blocked by CI")
-        self.assertIn('state="failure"', finalize_step["run"])
-        self.assertIn('context="AI PR Review"', finalize_step["run"])
-        self.assertIn('description="CI did not pass before AI PR review"', finalize_step["run"])
-
     def test_ci_uses_node24_action_runtime(self) -> None:
         data = workflow(".github/workflows/ci.yml")
-        for job_name in ("queue-ai-review", "test", "ai-review", "finalize-skipped-ai-review"):
+        for job_name in ("test", "ai-review"):
             self.assertEqual(data["jobs"][job_name]["env"]["FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"], "true")
 
         used_actions = [step.get("uses", "") for step in steps(data, "test") if "uses" in step]
