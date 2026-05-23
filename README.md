@@ -94,12 +94,11 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 .agents/rules/                   # Cursor rules
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper
-.github/aicodingflow-tests/      # 随安装脚本交付的 workflow/script unittest
+.github/aicodingflow-tests/      # 随安装脚本交付的 workflow/script unittest 和 fixtures
 .github/tests/                   # AICodingFlow 本仓库自用 unittest
 .github/issue-triage/            # issue triage 配置
 docs/                            # 详细文档
 specs/                           # issue 对应的 product / tech spec
-testdata/                        # review 测试数据
 ```
 
 工具入口目录 `.claude`、`.codex`、`.cursor` 是指向 `.agents` 的 symlink。更多说明见 [Agent Directories](docs/agent-directories.md)。
