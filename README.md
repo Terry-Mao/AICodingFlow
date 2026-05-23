@@ -405,6 +405,11 @@ jobs:
 ```
 
 review 本身仍由 `review-pr.yml` 执行。
+默认示例使用 GitHub Actions 自带的 `GITHUB_TOKEN` dispatch，因此
+`review-pr.yml` 允许 `github-actions[bot]` 运行 Codex action。如果目标仓库用
+GitHub App token、PAT 或第三方 CI dispatch，actor 可能不是
+`github-actions[bot]`；这时需要把 `review-pr.yml` 中的
+`allow-bot-users` 改成对应 bot login，或改用有人类账号权限的 token 触发。
 
 ### Create Spec From Issue
 
