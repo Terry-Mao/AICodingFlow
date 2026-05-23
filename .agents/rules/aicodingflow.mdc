@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+# AICodingFlow Agent Guidance
+
+Follow the shared repository instructions in `.agents/AGENTS.md`.
+
+Task-specific workflows live in `.agents/skills/*/SKILL.md`. Use the matching
+skill when a request names it or clearly matches its purpose.
