@@ -91,7 +91,9 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 ```text
 .agents/                         # 多工具共享的 agent 配置入口
 .agents/skills/                  # Codex SKILL
-.agents/rules/                   # Cursor rules
+.codex/                          # Codex 入口目录
+.claude/                         # Claude 入口目录
+.cursor/rules/                   # Cursor rules
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper
 .github/aicodingflow-tests/      # 随安装脚本交付的 workflow/script unittest 和 fixtures
@@ -101,7 +103,7 @@ docs/                            # 详细文档
 specs/                           # issue 对应的 product / tech spec
 ```
 
-工具入口目录 `.claude`、`.codex`、`.cursor` 是指向 `.agents` 的 symlink。更多说明见 [Agent Directories](docs/agent-directories.md)。
+工具入口目录 `.claude`、`.codex`、`.cursor` 是普通目录，内部按工具需要引用 `.agents` 的共享内容。更多说明见 [Agent Directories](docs/agent-directories.md)。
 
 ## 贡献和反馈
 
