@@ -15,6 +15,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL。 |
 | `AGENT_LOGIN` | Actions variable | issue / PR comment 中被分配或 mention 的 agent 登录名。 |
+| `REVIEW_BOT_LOGIN` | Actions variable | 可选。发布 PR review 的 bot 登录名；默认 `github-actions[bot]`。如果 `review-pr.yml` 改用其他 token / bot 账号发 review，需要设置为实际 review 作者。 |
 | `APP_CLIENT_ID` | Actions variable | GitHub App client ID；需要提交 workflow 文件更新时使用。 |
 | `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
 
@@ -156,6 +157,13 @@ AI PR Review 会：
 6. `review-pr` 在存在 `spec_context.md` 时加载 `check-impl-against-spec`。
 7. 输出并验证 `review.json`。
 8. 通过 GitHub API 发布 PR review。
+
+发布规则：
+
+- 内部成员、协作者或 owner PR 的 `REJECT` 发布为普通 `COMMENT` review，不产生 GitHub blocking review。
+- 外部 contributor 的 code PR 在 `REJECT` 时发布 `REQUEST_CHANGES`；是否阻塞 merge 取决于目标仓库 branch protection。
+- 外部 contributor 的 code PR 后续变为 `APPROVE` 时，workflow 会尝试 dismiss 旧的 bot-authored `REQUEST_CHANGES` review。默认只清理 `github-actions[bot]` 发出的 review；如果仓库改用其他 bot 账号发布 review，请设置 `REVIEW_BOT_LOGIN` 为该账号 login。
+- spec-only PR 的 `REJECT` 始终发布为普通 `COMMENT` review。
 
 `spec_context.md` 的查找顺序：
 

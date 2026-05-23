@@ -39,6 +39,7 @@ cd AICodingFlow
 | `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
 | `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL。 |
 | `AGENT_LOGIN` | Actions variable | GitHub issue / PR comment 中被分配或 mention 的 agent 登录名。 |
+| `REVIEW_BOT_LOGIN` | Actions variable | 可选。发布 PR review 的 bot 登录名；默认 `github-actions[bot]`。如果 review workflow 改用其他 token / bot 账号发 review，需要设置为实际 review 作者，用于后续 `APPROVE` 清理旧的 bot `REQUEST_CHANGES`。 |
 | `APP_CLIENT_ID` | Actions variable | GitHub App client ID；implementation/comment fix 需要更新 workflow 文件时使用。 |
 | `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
 

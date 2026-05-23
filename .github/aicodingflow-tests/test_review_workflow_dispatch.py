@@ -106,6 +106,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--changed-files-from-diff pr-worktree/pr_diff.txt", spec_context_step["run"])
         self.assertIn("--output pr-worktree/spec_context.md", spec_context_step["run"])
         self.assertEqual(post_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
+        self.assertEqual(post_step["env"]["REVIEW_BOT_LOGIN"], "${{ vars.REVIEW_BOT_LOGIN }}")
         self.assertIn("--review pr-worktree/review.json", post_step["run"])
         self.assertIn("--diff pr-worktree/pr_diff.txt", post_step["run"])
 

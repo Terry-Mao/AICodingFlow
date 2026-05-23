@@ -119,6 +119,124 @@ class PostPrReviewTest(unittest.TestCase):
 
         self.assertIsNone(post_pr_review.select_reviewer({}, rules, ["app.py"], "external"))
 
+    def test_dismiss_stale_bot_request_changes_dismisses_only_current_bot_reviews(self) -> None:
+        calls = []
+
+        def fake_api(url: str, token: str, *, method: str = "GET", payload: dict | None = None):
+            calls.append((url, token, method, payload))
+            return {}
+
+        with (
+            mock.patch.object(
+                post_pr_review,
+                "list_pull_request_reviews",
+                return_value=[
+                    {"id": 10, "state": "CHANGES_REQUESTED", "user": {"login": "github-actions[bot]", "type": "Bot"}},
+                    {"id": 11, "state": "CHANGES_REQUESTED", "user": {"login": "maintainer", "type": "User"}},
+                    {"id": 12, "state": "COMMENTED", "user": {"login": "github-actions[bot]", "type": "Bot"}},
+                    {"id": 13, "state": "CHANGES_REQUESTED", "user": {"login": "other-bot", "type": "Bot"}},
+                ],
+            ),
+            mock.patch.object(post_pr_review, "github_api_json", side_effect=fake_api),
+        ):
+            post_pr_review.dismiss_stale_bot_request_changes(
+                "owner/repo",
+                "token",
+                {"number": 5},
+                post_pr_review.DEFAULT_REVIEW_BOT_LOGIN,
+            )
+
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "https://api.github.com/repos/owner/repo/pulls/5/reviews/10/dismissals",
+                    "token",
+                    "PUT",
+                    {"message": "Superseded by a later bot approval.", "event": "DISMISS"},
+                ),
+            ],
+        )
+
+    def test_list_pull_request_reviews_follows_pagination(self) -> None:
+        calls = []
+
+        def fake_response(url: str, token: str, *, method: str = "GET", payload: dict | None = None):
+            calls.append((url, token, method, payload))
+            if "page=2" in url:
+                return post_pr_review.GitHubResponse(
+                    [{"id": 2, "state": "CHANGES_REQUESTED", "user": {"login": "github-actions[bot]", "type": "Bot"}}],
+                    {},
+                )
+            return post_pr_review.GitHubResponse(
+                [{"id": 1, "state": "COMMENTED", "user": {"login": "github-actions[bot]", "type": "Bot"}}],
+                {"Link": '<https://api.github.com/repos/owner/repo/pulls/5/reviews?per_page=100&page=2>; rel="next"'},
+            )
+
+        with mock.patch.object(post_pr_review, "github_api_response", side_effect=fake_response):
+            self.assertEqual(
+                post_pr_review.list_pull_request_reviews("owner/repo", "token", 5),
+                [
+                    {"id": 1, "state": "COMMENTED", "user": {"login": "github-actions[bot]", "type": "Bot"}},
+                    {"id": 2, "state": "CHANGES_REQUESTED", "user": {"login": "github-actions[bot]", "type": "Bot"}},
+                ],
+            )
+
+        self.assertEqual(
+            calls,
+            [
+                ("https://api.github.com/repos/owner/repo/pulls/5/reviews?per_page=100", "token", "GET", None),
+                ("https://api.github.com/repos/owner/repo/pulls/5/reviews?per_page=100&page=2", "token", "GET", None),
+            ],
+        )
+
+    def test_dismiss_stale_bot_request_changes_skips_when_listing_reviews_fails(self) -> None:
+        with (
+            mock.patch.object(
+                post_pr_review,
+                "list_pull_request_reviews",
+                side_effect=SystemExit("transient failure"),
+            ) as list_reviews,
+            mock.patch("builtins.print") as print_mock,
+        ):
+            post_pr_review.dismiss_stale_bot_request_changes(
+                "owner/repo",
+                "token",
+                {"number": 5},
+                post_pr_review.DEFAULT_REVIEW_BOT_LOGIN,
+            )
+
+        list_reviews.assert_called_once_with("owner/repo", "token", 5)
+        print_mock.assert_called_once_with(
+            "Could not read PR reviews; skipping stale request-changes dismissal: transient failure"
+        )
+
+    def test_review_author_matches_configured_bot_login_and_bot_identity(self) -> None:
+        self.assertTrue(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "custom-review-bot", "type": "Bot"}},
+                "custom-review-bot",
+            )
+        )
+        self.assertFalse(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "other-bot", "type": "Bot"}},
+                "custom-review-bot",
+            )
+        )
+        self.assertFalse(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "custom-review-bot", "type": "User"}},
+                "custom-review-bot",
+            )
+        )
+        self.assertTrue(
+            post_pr_review.review_author_matches_bot(
+                {"user": {"login": "custom-review-bot[bot]"}},
+                "custom-review-bot[bot]",
+            )
+        )
+
     def test_parse_diff_positions_maps_review_targets_to_github_positions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             diff_path = Path(directory) / "pr_diff.txt"
@@ -396,6 +514,7 @@ class PostPrReviewTest(unittest.TestCase):
                 ),
                 mock.patch.object(post_pr_review, "parse_codeowners", return_value=[post_pr_review.CodeownersRule("*", ["@owner"])]),
                 mock.patch.object(post_pr_review, "request_json", return_value={"id": 99}),
+                mock.patch.object(post_pr_review, "list_pull_request_reviews", return_value=[]),
                 mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
                 mock.patch(
                     "sys.argv",
@@ -439,6 +558,7 @@ class PostPrReviewTest(unittest.TestCase):
                     },
                 ),
                 mock.patch.object(post_pr_review, "parse_codeowners", return_value=[post_pr_review.CodeownersRule("*", ["@owner"])]),
+                mock.patch.object(post_pr_review, "list_pull_request_reviews", return_value=[]),
                 mock.patch.object(post_pr_review, "request_json") as request_json,
                 mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
                 mock.patch(
@@ -539,6 +659,7 @@ class PostPrReviewTest(unittest.TestCase):
                 ),
                 mock.patch.object(post_pr_review, "parse_codeowners", return_value=[]),
                 mock.patch.object(post_pr_review, "request_json", return_value={"id": 99}),
+                mock.patch.object(post_pr_review, "list_pull_request_reviews", return_value=[]),
                 mock.patch.object(post_pr_review, "request_reviewer") as request_reviewer,
                 mock.patch(
                     "sys.argv",
