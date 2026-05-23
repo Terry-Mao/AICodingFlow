@@ -137,6 +137,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("cp -R .agents/skills pr-worktree/.agents/skills", prepare_step["run"])
 
         ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
+        self.assertEqual(ai_step["with"]["allow-bot-users"], "github-actions[bot]")
         self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Write review.json in pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("target pr-worktree/review.json explicitly", ai_step["with"]["prompt"])
