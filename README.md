@@ -1,58 +1,13 @@
 # AICodingFlow
 
-AICodingFlow 是一套面向 AI Coding 的工作流模板。它把本地 Codex SKILL、GitHub Actions、PR Review 自动化和 Spec 驱动开发串在一起，让一个 issue 从规划、实现、审查到合并都能有稳定、可复现的操作路径。
+AICodingFlow 是一套面向 AI Coding 的工作流模板。它把本地 Codex SKILL、GitHub Actions、PR Review 自动化、Issue Triage 和 Spec 驱动开发串在一起，让一个 issue 从规划、实现、审查到合并都有稳定、可复现的操作路径。
 
-这个仓库主要提供两类能力：
+这个仓库提供两类能力：
 
-- 本地操作 Git 的 SKILL：帮助开发者创建分支、整理提交、推送分支和创建 PR。
-- GitHub Actions + Codex：在 CI 中装载 SKILL，自动创建 spec、审查 PR，并根据 review 反馈持续优化审查规则。
+- 本地开发流：用 `git-*` 和 `create-pr` SKILL 规范分支、提交、推送和 PR 创建。
+- GitHub 协作流：用 GitHub Actions + Codex 从 issue 创建 spec、实现 issue、审查 PR、响应 review comments，并从人工反馈中更新仓库本地规则。
 
-## 项目背景
-
-AI Coding 最容易出问题的地方通常不是“能不能写代码”，而是流程不稳定：
-
-- 分支命名不一致，issue 和实现脱节。
-- commit 混杂，review 和回滚成本高。
-- PR 描述缺少上下文，reviewer 需要重新追 issue。
-- AI Review 使用实时 PR 状态，line number 和评论位置不稳定。
-- spec、实现和 review 之间缺少明确交接。
-
-AICodingFlow 的目标是把这些步骤标准化。它不追求替代开发者判断，而是把重复、容易出错的流程固化成可检查的 SKILL 和 workflow。
-
-## 工作流概览
-
-AICodingFlow 支持两条主线。
-
-### 本地开发流
-
-```text
-issue -> branch -> commit -> push -> pr -> review -> CI -> merge
-```
-
-适合开发者在本地和 Codex 协作完成常规改动。
-
-核心 SKILL：
-
-- `git-branch`：根据 issue 创建规范分支。
-- `git-worktree`：为并行任务创建独立 worktree。
-- `git-commit`：从真实 diff 中整理原子提交。
-- `git-push`：安全推送当前分支。
-- `create-pr`：创建或更新 GitHub PR。
-
-### Bot 协作流
-
-```text
-issue -> plan -> spec -> develop -> pr -> review -> comments -> merge
-```
-
-适合更复杂的任务，先把需求和技术方案写成 spec，再驱动实现和 review。
-
-当前仓库覆盖两类 Bot 协作：
-
-1. 从 issue 创建 spec 文档，提交 spec PR，PR Review 产生 inline/body 级别反馈，修复后合并。
-2. 基于 issue 和已批准 spec 驱动实现，提交实现 PR，PR Review 对照 spec、diff 和仓库规则进行检查，修复后合并。
-
-## 快速开始
+## Quick Start
 
 一行安装到目标项目：
 
@@ -60,7 +15,7 @@ issue -> plan -> spec -> develop -> pr -> review -> comments -> merge
 curl -fsSL https://raw.githubusercontent.com/Terry-Mao/AICodingFlow/main/install.sh | bash -s -- --target /path/to/target-repo
 ```
 
-也可以先克隆仓库再安装：
+也可以先克隆本仓库再安装：
 
 ```bash
 git clone git@github.com:Terry-Mao/AICodingFlow.git
@@ -69,521 +24,100 @@ cd AICodingFlow
 ./install.sh --target /path/to/target-repo
 ```
 
-如果想先预览将会写入哪些文件：
+预览将写入的文件：
 
 ```bash
 ./install.sh --target /path/to/target-repo --dry-run
 ```
 
-安装脚本依赖 `bash`、`git` 和 `rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/` 以及 `.github/scripts/`、`.github/aicodingflow-tests/`、`.github/workflows/`，但不会同步 AICodingFlow 仓库自用的 `.github/tests/` 和 `.github/workflows/ci.yml`。仓库本地 companion skills（`.agents/skills/*-repo/SKILL.md`）不会安装到目标项目；目标项目已有的 companion skills 会保留不动，并由 `update-*` 系列 SKILL 在有证据时创建或更新。`.github` 下目标项目自己的其他文件也不会被删除。目标项目自己的测试应放在项目原有测试结构中；如果这些测试属于 `.github` 相关逻辑，建议使用 `.github/tests/`，不要直接修改 `.github/aicodingflow-tests/`。
+安装脚本依赖 `bash`、`git`、`rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和受管 workflow，不会同步 AICodingFlow 仓库自用的 `.github/tests/` 与 `.github/workflows/ci.yml`。
 
-如果目标项目是首次接入 issue triage 自动化，安装后可以在目标项目中让 Codex 运行：
+安装后，在目标仓库配置：
+
+| 名称 | 类型 | 用途 |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
+| `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL。 |
+| `AGENT_LOGIN` | Actions variable | GitHub issue / PR comment 中被分配或 mention 的 agent 登录名。 |
+| `APP_CLIENT_ID` | Actions variable | GitHub App client ID；implementation/comment fix 需要更新 workflow 文件时使用。 |
+| `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
+
+如果目标项目首次接入 issue triage 自动化，可以让 Codex 运行：
 
 ```text
 $bootstrap-issue-config
 ```
 
-这个步骤会使用 `gh` 分析 labels、issues 和 contributors，并可能创建 GitHub labels 或更新 `.github/CODEOWNERS`。它用于首次初始化或仓库 label/ownership 明显变化后的手动刷新，不需要定期执行，也不会由安装脚本默认运行。
+它会分析已有 labels、issues 和 contributors，生成或更新 `.github/issue-triage/config.json` 与 `.github/CODEOWNERS`。
 
-安装后，可以在 Codex 对话中直接点名 SKILL：
+## 工作流概览
 
-```text
-$git-branch #47
-$git-worktree #48
-$git-commit
-$git-push
-$create-pr
-```
-
-## 本地开发流
-
-本地开发流围绕 `git-*` SKILL 展开，目标是让每一步都可审查、可回滚、可复现。
-
-### 1. 创建分支
-
-使用 `git-branch` 从 issue 创建分支：
+### 本地开发流
 
 ```text
-$git-branch #47
+issue -> branch/worktree -> commit -> push -> pr -> review -> merge
 ```
 
-它会：
+开发者在本地与 Codex 协作完成常规改动。常用 SKILL：
 
-- 读取 issue 标题和正文。
-- 推断 Conventional Commit 类型，例如 `feat`、`fix`、`docs`。
-- 生成 `<type>/<short-desc>-<issueID>` 格式的分支名。
-- 用组合命令一次性检查工作树、当前分支和目标分支；只有必要时才检查远端或 fetch。
-- 从 `origin/<base>` 直接创建时使用 `--no-track`，避免新分支错误跟踪 base 分支；发布时再由 `git-push` 设置 upstream。
+- `git-branch`：根据 issue 或任务创建规范分支。
+- `git-worktree`：为并行任务创建独立 worktree。
+- `git-commit`：从真实 diff 中整理原子提交。
+- `git-push`：安全推送当前分支。
+- `create-pr`：创建或更新 GitHub PR。
 
-示例：
+详细说明见 [本地开发流](docs/local-development-flow.md)。
+
+### GitHub 协作流
 
 ```text
-docs/optimize-readme-47
+issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 ```
 
-### 2. 创建并行 worktree
-
-使用 `git-worktree` 为另一个 issue 创建独立工作目录：
-
-```text
-$git-worktree #48
-```
-
-它会：
-
-- 复用 `git-branch` 的命名和 base 分支安全规则。
-- 在 `.worktrees/<branch-name>` 下创建新 worktree，保留分支名中的目录层级，例如 `.worktrees/feat/example-48`。
-- 优先把本地状态检查合并到一次 tool call；远端冲突或 freshness 只有影响结果时才检查。
-- 使用 `git worktree add --no-track -b <branch-name> ... <base-ref>`，避免新分支跟踪 base 分支。
-- 不复制当前工作树里的未提交改动。
-- 让 Codex 后续 tool calls 默认从新 worktree 运行。
-- 输出你自己的 shell 需要执行的 `cd .worktrees/<branch-name>`；Codex 不能改变已有终端进程的当前目录。
-
-### 3. 创建提交
-
-使用 `git-commit` 整理提交：
-
-```text
-$git-commit
-```
-
-它会：
-
-- 用一次组合检查读取 `git status`、diff stat、完整 diff 和 staged diff。
-- 判断变更是否应该拆分。
-- 精确 stage 目标文件，避免误提交无关改动。
-- 使用规范提交信息，例如 `feat(review): add spec context snapshots`。
-- 在存在 native git hook 时走正常 `git commit` 流程，让 hook 自动运行。
-
-### 4. 推送分支
-
-使用 `git-push` 推送当前分支：
-
-```text
-$git-push
-```
-
-它会：
-
-- 用一次组合检查读取当前分支、upstream 和待推送提交。
-- 避免直接推送 `main`、`master`、`develop` 等共享 base 分支。
-- 没有 upstream 时执行 `git push -u origin <branch>`。
-- 已有 upstream 时执行普通 `git push`。
-- 遇到 rejected push 时不会默认 force push。
-
-### 5. 创建或更新 PR
-
-使用 `create-pr` 创建或更新 PR：
-
-```text
-$create-pr
-```
-
-它会：
-
-- 检查 PR base diff。
-- 确认 base 分支已经合入当前分支。
-- 生成包含 summary、validation 和 issue link 的 PR 描述。
-- 如果当前分支已有 PR，会更新而不是重复创建。
-- 保留人工写入的 PR 内容，避免覆盖 reviewer 上下文。
-
-## Bot 协作流
-
-Bot 协作流用于更复杂或更需要规划的任务。它把“写 spec”和“实现代码”拆成可审查的阶段。
-
-### 流程一：Issue 到 Spec PR
-
-```text
-issue -> plan -> product.md / tech.md -> spec PR -> review -> merge
-```
-
-对应 workflow：
-
-```text
-.github/workflows/create-spec-from-issue.yml
-```
-
-它会：
-
-1. 读取 issue、labels、assignees、comments 和触发评论。
-2. 准备稳定的 `issue_context.json` 和 `issue_comments.txt`。
-3. 运行 spec 相关 SKILL：
-   - `spec-driven-implementation`
-   - `write-product-spec`
-   - `create-product-spec`
-   - `write-tech-spec`
-   - `create-tech-spec`
-4. 生成：
-
-```text
-specs/issue-<N>/product.md
-specs/issue-<N>/tech.md
-pr-metadata.json
-```
-
-5. 验证输出后推送 `spec/issue-<N>` 分支并创建或更新 spec PR。
-
-Spec PR 只负责规划，不应该实现功能或修改生产代码。
-
-### 流程二：Issue + Spec 到实现 PR
-
-```text
-issue + ready-to-implement -> spec context -> develop -> implementation PR -> AI review -> comments -> merge
-```
-
-实现阶段可以在本地完成，也可以由 `create-implementation-from-issue` workflow 驱动。关键点是：实现必须从稳定的 issue/spec context 出发，agent 负责写代码、同步必要 spec、运行验证并写出 summary/metadata；外层 workflow 负责校验输出、提交并推送分支、创建或更新 PR、更新 issue progress comment。
-
-对应 workflow：
-
-```text
-.github/workflows/create-implementation-from-issue.yml
-```
-
-它会：
-
-1. 读取 issue、labels、assignees、comments、默认分支和 spec PR 状态。
-2. 准备稳定的 `issue_context.json`、`issue_comments.txt`，有 spec context 时生成 `spec_context.md`。
-3. 只在 issue 满足 `ready-to-implement` 且已 assign 给配置的 bot 时启动实现。手动触发也不会绕过这两个守卫。
-4. 按优先级解析 spec context：
-   - 带 `plan-approved` label 的 `spec/issue-<N>` PR。
-   - 默认分支上的 `specs/issue-<N>/product.md` 和 `tech.md`。
-   - 没有 spec context 时仍可保守实现。
-5. 如果发现未批准 spec PR 且默认分支没有 specs，则 noop，并在 progress comment 中提示先批准计划。
-6. 运行实现相关 SKILL：
-   - `implement-specs`
-   - `spec-driven-implementation`
-   - `implement-issue`
-7. agent 产出实现 diff 时，写 `implementation_summary.md` 和 `pr-metadata.json`，并把代码变更留在工作区。
-8. workflow 校验 metadata，提交并推送 `pr-metadata.json.branch_name`，确认 branch 更新后创建或更新 PR。
-9. implementation PR 默认保持 draft，不自动触发 AI PR Review。需要 review 时，先把 PR 标记为 ready for review，再在 PR conversation comment 中发送 body-level `@AGENT_LOGIN /review` 或使用手动 workflow dispatch。
-
-目标分支规则：
-
-- 有 approved spec PR：实现直接追加到该 spec PR 的 head branch，让 spec 和实现留在同一个 PR。
-- 没有 approved spec PR：默认使用 `spec/implement-issue-<N>`，也允许 metadata 中使用 `spec/implement-issue-<N>-<slug>`。
-
-外层 workflow 会记录 run 开始时 `spec/implement-issue-<N>` 及其 slugged branches 的 SHA。这样即使 agent 输出了一个已存在的 slugged branch，也不会把旧内容误判为本次新实现。
-
-`pr-metadata.json` 必须包含：
-
-```json
-{
-  "branch_name": "spec/implement-issue-42-add-retry-logic",
-  "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n...",
-  "intended_files": [
-    "src/api/client.py",
-    "tests/test_client.py"
-  ]
-}
-```
-
-`pr_summary` 第一行必须是 `Closes #<issue-number>`。`intended_files` 必须精确列出外层 workflow 应提交的实现文件，不包含 workflow 临时文件、validation logs、生成缓存或未变化文件。metadata 缺失或无效时，workflow 会先更新 issue progress comment，再让 job 失败，避免用户只看到静默失败。
-
-### 实现 PR Review
-
-AI PR Review 会：
-
-- 默认由 CI 成功完成后触发。AICodingFlow 自带一个最小 `CI` workflow，
-  会在非 draft same-repo PR 上运行单元测试和 Python 编译检查，成功后通过
-  `workflow_dispatch` 触发现有 `review-pr.yml`。
-- 如果目标仓库已有自己的 CI，推荐在该 CI 的成功路径中 dispatch
-  `review-pr.yml`，而不是修改 `review-pr.yml` 本身。这样升级 AICodingFlow
-  时可以继续覆盖 managed review workflow，不会丢失目标仓库自己的 CI 编排。
-- 其他场景默认不自动重跑；需要重新 review 时，在非 draft PR conversation comment 中发送单行 `@AGENT_LOGIN /review`，或使用手动 workflow dispatch。
-- 生成稳定的 `pr_description.txt`。
-- 生成带行号的 `pr_diff.txt`。
-- 如果能找到相关 spec，生成 `spec_context.md`。
-- 纯 `specs/` PR 选择核心 `review-spec`，并由该核心 skill 加载现有的 `review-spec-repo` companion。
-- 其他 PR 选择核心 `review-pr`，并由该核心 skill 加载现有的 `review-pr-repo` companion。
-- 如果 `spec_context.md` 存在，`review-pr` 会加载 `check-impl-against-spec`，把重要 spec drift 当成 review concern。
-- 输出并验证 `review.json`。
-- 通过 GitHub API 发布 PR review。
-
-`spec_context.md` 的查找顺序：
-
-1. 找到当前 PR 关联 issue。
-2. 优先查找 `spec/issue-<N>` 分支上的 open PR，并要求带 `plan-approved` label。
-3. 如果没有 approved spec PR，则从 PR base commit/ref 上读取 `specs/issue-<N>/product.md` 和 `tech.md`。
-4. 如果都没有，就不生成 `spec_context.md`。
-
-这保证 review 使用的 spec context 和 `pr_diff.txt` 的 base 语境一致，不会错误读取 implementation PR 自己的 head 内容。
-
-## SKILL 一览
-
-| SKILL | 用途 |
-| --- | --- |
-| `git-branch` | 根据 issue 或任务描述创建规范分支。 |
-| `git-worktree` | 为并行 issue 或任务创建独立 worktree，并让 Codex 后续操作默认进入该目录。 |
-| `git-commit` | 从真实 diff 中整理原子提交。 |
-| `git-push` | 安全推送分支，避免误推 base 分支或强推。 |
-| `create-pr` | 创建或更新 GitHub PR。 |
-| `write-product-spec` | 编写面向行为和验收标准的 product spec。 |
-| `write-tech-spec` | 编写贴合当前代码结构的 technical spec。 |
-| `create-product-spec` | GitHub issue 场景下的 product spec 包装器。 |
-| `create-tech-spec` | GitHub issue 场景下的 tech spec 包装器。 |
-| `spec-driven-implementation` | 组织 spec-first 的开发流程。 |
-| `implement-specs` | 从已批准 spec 推进实现，并保持 spec 与实现一致。 |
-| `implement-issue` | GitHub issue 实现场景包装器，约束 target branch、summary、metadata 和 push 边界。 |
-| `review-pr` | 从稳定快照审查普通 PR，输出 `review.json`，并加载 `review-pr-repo` companion。 |
-| `review-pr-repo` | 仓库本地的普通 PR review companion，可按目标仓库调整 guidance。 |
-| `review-spec` | 审查纯 spec PR 的文档质量，并加载 `review-spec-repo` companion。 |
-| `review-spec-repo` | 仓库本地的 spec review companion，可按目标仓库调整 guidance。 |
-| `check-impl-against-spec` | 对照 `spec_context.md` 检查实现是否偏离 spec。 |
-| `update-pr-review` | 从人工反馈中更新本仓库的 review companion SKILL。 |
-
-## GitHub Actions
-
-### AI PR Review
-
-文件：
-
-```text
-.github/workflows/review-pr.yml
-```
-
-主要步骤：
-
-1. 先运行轻量 preflight，解析 PR 并确认它是 open、same-repo、非 draft。
-2. draft PR 或 fork PR 只记录 skip，不启动 AI review job。
-3. checkout PR head。
-4. 生成 `pr_description.txt`。
-5. 生成 `pr_diff.txt`。
-6. 根据 changed files 选择 review skill。
-7. 按需生成 `spec_context.md`。
-8. 运行 `openai/codex-action@v1`。
-9. 验证 `review.json`。
-10. 发布 GitHub PR review。
-11. 上传 artifact。
-
-需要配置：
-
-| 名称 | 类型 | 说明 |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
-| `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可填写 base URL 或 `/responses` URL。 |
-| `AGENT_LOGIN` | Actions variable | PR conversation comment 中通过 `@AGENT_LOGIN /review` 指令手动触发 AI review。 |
-| `GITHUB_TOKEN` | GitHub 内置 token | workflow 自动提供，用于发布 PR review。 |
-
-Workflow 权限：
-
-```yaml
-permissions:
-  contents: read
-  pull-requests: write
-```
-
-本仓库提供一个参考最小 CI：
-
-```text
-.github/workflows/ci.yml
-```
-
-`install.sh` 不会把这个参考 CI 同步到目标仓库，避免覆盖或干扰目标仓库自己的
-CI 编排。目标仓库应在自己的 CI 成功路径中加入类似步骤：
-
-```yaml
-permissions:
-  actions: write
-  contents: read
-  pull-requests: read
-
-jobs:
-  ci:
-    # existing CI steps...
-
-  ai-review:
-    needs: ci
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dispatch AI PR Review
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: gh workflow run review-pr.yml -f pr_number="$PR_NUMBER"
-```
-
-review 本身仍由 `review-pr.yml` 执行。
-默认示例使用 GitHub Actions 自带的 `GITHUB_TOKEN` dispatch，因此
-`review-pr.yml` 允许 `github-actions[bot]` 运行 Codex action。如果目标仓库用
-GitHub App token、PAT 或第三方 CI dispatch，actor 可能不是
-`github-actions[bot]`；这时需要把 `review-pr.yml` 中的
-`allow-bot-users` 改成对应 bot login，或改用有人类账号权限的 token 触发。
-
-### Create Spec From Issue
-
-文件：
-
-```text
-.github/workflows/create-spec-from-issue.yml
-```
-
-这个 workflow 用于把 ready issue 转成 spec PR。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 `ready-to-spec` 和目标 agent assignment / mention 守卫。若 issue 已经带有 `ready-to-implement`，spec workflow 不再启动，避免同一个 issue 同时进入 spec 和 implementation 阶段。
-
-需要配置：
-
-| 名称 | 类型 | 说明 |
-| --- | --- | --- |
-| `AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发 AI workflow 的 agent 登录名。 |
-| `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
-| `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint。 |
-
-### Create Implementation From Issue
-
-文件：
-
-```text
-.github/workflows/create-implementation-from-issue.yml
-```
-
-这个 workflow 用于把 `ready-to-implement` issue 交给 Codex 实现。它可以手动触发，也可以由 issue label、assignee 或 comment mention 触发，但所有入口都必须经过 readiness 和 bot assignment 守卫。Spec PR 的 `plan-approved` label 只作为 spec context 的批准信号，不作为 workflow 触发源。创建或更新 implementation PR 后不会自动触发 AI PR Review，因为该 PR 仍是 draft；需要 review 时，先把 PR 标记为 ready for review，再在 PR conversation comment 中发送 body-level `@AGENT_LOGIN /review`。
-
-需要配置：
-
-| 名称 | 类型 | 说明 |
-| --- | --- | --- |
-| `AGENT_LOGIN` | Actions variable | 被分配或 mention 时触发 AI workflow 的 agent 登录名。 |
-| `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
-| `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint。 |
-| `APP_CLIENT_ID` | Actions variable | GitHub App client ID，用于在 job 内生成可写 workflow 文件的短期 installation token。 |
-| `APP_PRIVATE_KEY` | Actions secret | GitHub App private key。App 需要安装到目标 repo，并授予 Contents: Read and write、Workflows: Read and write。 |
-
-主要输出 artifact：
-
-```text
-issue_context.json
-issue_comments.txt
-spec_context.md
-branch-start-shas.json
-implementation_summary.md
-pr-metadata.json
-validation-output.txt
-validation-error.txt
-```
-
-Workflow 文件更新：
-
-当 Codex 输出包含 `.github/workflows/*` 时，workflow 会先通过 `actions/create-github-app-token` 生成短期 GitHub App installation token，再把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。不要把生成出来的一次性 installation token 存成 secret；它会过期。
-
-### Update PR Review
-
-文件：
-
-```text
-.github/workflows/update-pr-review.yml
-```
-
-这个 workflow 聚合人工对 bot review 的反馈，并更新：
-
-```text
-.agents/skills/review-pr-repo/SKILL.md
-.agents/skills/review-spec-repo/SKILL.md
-```
-
-它只允许写 repo-local companion skill，不允许修改核心 review contract。
+更复杂的任务可以通过 GitHub labels、assignees、mentions 和 PR comments 驱动：
+
+- `triage-issue.yml`：分析新 issue，应用分类 labels，发布 triage summary。
+- `create-spec-from-issue.yml`：把 `ready-to-spec` issue 转成 `specs/issue-<N>/product.md` 和 `tech.md`。
+- `plan-approved.yml`：批准 spec PR 后同步 issue 状态，并在满足实现 gate 时调度 implementation。
+- `create-implementation-from-issue.yml`：把 `ready-to-implement` issue 交给 Codex 实现。
+- `review-pr.yml`：基于稳定快照审查 PR。
+- `respond-to-pr-comment.yml`：通过 `@AGENT_LOGIN /fix` 响应 PR conversation、review 或 inline comments。
+- `update-pr-review.yml` / `update-dedupe.yml`：从人工反馈中更新仓库本地 companion SKILL。
+
+详细说明见 [GitHub 协作流](docs/github-collaboration-flow.md) 和 [自进化 repo SKILL](docs/evolving-repo-skills.md)。
 
 ## 目录结构
 
 ```text
+.agents/                         # 多工具共享的 agent 配置入口
 .agents/skills/                  # Codex SKILL
+.codex/                          # Codex 入口目录
+.claude/                         # Claude 入口目录
+.cursor/rules/                   # Cursor rules
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper
-.github/aicodingflow-tests/      # 随安装脚本交付的 workflow/script unittest
+.github/aicodingflow-tests/      # 随安装脚本交付的 workflow/script unittest 和 fixtures
 .github/tests/                   # AICodingFlow 本仓库自用 unittest
-specs/                           # issue 对应的 product/tech spec
+.github/issue-triage/            # issue triage 配置
+docs/                            # 详细文档
+specs/                           # issue 对应的 product / tech spec
 ```
 
-常用脚本：
+工具入口目录 `.claude`、`.codex`、`.cursor` 是普通目录，内部按工具需要引用 `.agents` 的共享内容。更多说明见 [Agent Directories](docs/agent-directories.md)。
 
-| 脚本 | 用途 |
-| --- | --- |
-| `build_pr_diff.py` | 把 git diff 转成稳定的 `PR_DIFF_V1`。 |
-| `write_pr_description.py` | 从 GitHub event 写出 PR 描述快照。 |
-| `select_review_skill.py` | 根据 changed files 选择核心 review skill。 |
-| `write_spec_context.py` | 为实现 PR 解析并格式化 spec context。 |
-| `post_pr_review.py` | 把 `review.json` 发布成 GitHub PR review。 |
-| `prepare_issue_spec_context.py` | 为 spec 生成准备稳定 issue context。 |
-| `prepare_issue_implementation_context.py` | 为 issue 实现准备稳定 context、spec context 和 target branch。 |
-| `validate_spec_output.py` | 校验 spec workflow 输出。 |
-| `validate_implementation_output.py` | 校验 implementation workflow 的 `pr-metadata.json`。 |
-| `commit_implementation_branch.py` | 把 Codex 留在工作区的实现 diff 提交并推送到 metadata 指定分支。 |
-| `read_branch_sha.py` | 读取 implementation branch SHA，并记录 run-start snapshot。 |
-| `finalize_implementation_pr.py` | 创建或更新 implementation PR 或 approved spec PR。 |
-| `update_implementation_progress.py` | 创建或更新 issue implementation progress comment。 |
-| `validate_review_json.py` | 校验 AI review 输出结构和 inline 目标。 |
+## 贡献和反馈
 
-## 在其他仓库中使用
+欢迎通过 issue 或 PR 反馈问题。提交 bug 时，请尽量包含：
 
-复制 `.agents/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和受管 workflow：
+- 正在运行的 SKILL 或 workflow。
+- 分支名、issue number、PR 链接。
+- 相关命令输出或 GitHub Actions 日志。
+- PR review 问题的 artifact：`pr_description.txt`、`pr_diff.txt`、`spec_context.md`、`review.json`。
+- implementation / comment fix 问题的 artifact：`issue_context.json`、`pr_comment_context.json`、`spec_context.md`、`implementation_summary.md`、`pr-metadata.json`、`validation-error.txt`。
 
-```bash
-./install.sh --target /path/to/target-repo
-```
-
-然后在目标仓库中：
-
-1. 提交复制后的文件。
-2. 配置 `OPENAI_API_KEY` 和 `OPENAI_API_ENDPOINT`。
-3. 配置 `AGENT_LOGIN`，用于 spec 和 implementation workflow 的 assignment / mention gate。
-4. 创建并安装 GitHub App，授予目标 repo `Contents: Read and write` 和 `Workflows: Read and write`。
-5. 配置 `APP_CLIENT_ID` 和 `APP_PRIVATE_KEY`，用于实现类 workflow 在需要更新 `.github/workflows/*` 时生成短期 installation token。
-6. 根据目标仓库调整 `review-pr-repo` 和 `review-spec-repo` 的 repo-specific guidance。
-
-## 本地开发与测试
-
-运行全部测试：
+本仓库测试命令：
 
 ```bash
 python3 -m unittest discover -s .github/tests
 python3 -m unittest discover -s .github/aicodingflow-tests
 ```
-
-建议在修改 workflow 或 review 相关脚本后额外检查：
-
-```bash
-PYTHONPYCACHEPREFIX=/tmp/aicodingflow-pycache python3 -m py_compile \
-  .github/scripts/*.py \
-  .agents/skills/implement-specs/scripts/*.py \
-  .agents/skills/review-pr/scripts/validate_review_json.py \
-  .agents/skills/update-pr-review/scripts/*.py
-```
-
-如果修改 GitHub Actions，也应确认 YAML 能被解析。
-
-## 设计原则
-
-- 先稳定上下文，再让 AI 工作：PR review 使用 `pr_description.txt`、`pr_diff.txt` 和可选 `spec_context.md`。
-- 控制逻辑使用结构化数据，给 agent 阅读时再格式化成 markdown。
-- 本地 SKILL 不应该做危险操作，例如默认 force push、广泛 staging 或删除用户文件。
-- CI 中的 review skill 不直接调用 GitHub API，不发布评论，只写 `review.json`。
-- repo-local companion 可以补充审查偏好，但不能覆盖核心 schema、severity、diff-line targeting 和 validator 规则。
-
-## 反馈与问题排查
-
-如果遇到问题，请在 issue 或 PR 中提供：
-
-- 你正在运行的 SKILL 或 workflow。
-- 分支名、issue number、PR 链接。
-- 相关命令输出或 GitHub Actions 日志。
-- 对 PR review 问题，尽量附上 artifact：
-
-```text
-pr_description.txt
-pr_diff.txt
-spec_context.md
-review.json
-```
-
-对 implementation workflow 问题，优先附上：
-
-```text
-issue_context.json
-spec_context.md
-branch-start-shas.json
-implementation_summary.md
-pr-metadata.json
-validation-error.txt
-```
-
-这些快照能帮助复现 line number、inline comment 和 spec context 相关问题。
