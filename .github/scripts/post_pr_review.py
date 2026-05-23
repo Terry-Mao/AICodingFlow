@@ -326,7 +326,11 @@ def dismiss_stale_bot_request_changes(
 ) -> None:
     pr_number = pr["number"]
     url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews"
-    response = github_api_json(url, token)
+    try:
+        response = github_api_json(url, token)
+    except SystemExit as exc:
+        print(f"Could not read PR reviews; skipping stale request-changes dismissal: {exc}")
+        return
     if not isinstance(response, list):
         print("Could not read PR reviews; skipping stale request-changes dismissal")
         return

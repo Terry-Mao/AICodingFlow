@@ -154,6 +154,23 @@ class PostPrReviewTest(unittest.TestCase):
             ],
         )
 
+    def test_dismiss_stale_bot_request_changes_skips_when_listing_reviews_fails(self) -> None:
+        with (
+            mock.patch.object(post_pr_review, "github_api_json", side_effect=SystemExit("transient failure")) as github_api_json,
+            mock.patch("builtins.print") as print_mock,
+        ):
+            post_pr_review.dismiss_stale_bot_request_changes(
+                "owner/repo",
+                "token",
+                {"number": 5},
+                post_pr_review.DEFAULT_REVIEW_BOT_LOGIN,
+            )
+
+        github_api_json.assert_called_once_with("https://api.github.com/repos/owner/repo/pulls/5/reviews", "token")
+        print_mock.assert_called_once_with(
+            "Could not read PR reviews; skipping stale request-changes dismissal: transient failure"
+        )
+
     def test_review_author_matches_configured_bot_login_and_bot_identity(self) -> None:
         self.assertTrue(
             post_pr_review.review_author_matches_bot(
