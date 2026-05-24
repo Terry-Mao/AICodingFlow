@@ -37,15 +37,20 @@ git remote get-url origin
 Then inspect issue templates from the repository root:
 
 ```bash
+if [ -f .github/ISSUE_TEMPLATE.md ]; then
+  printf '%s\n' .github/ISSUE_TEMPLATE.md
+fi
+
 if [ -d .github/ISSUE_TEMPLATE ]; then
   find .github/ISSUE_TEMPLATE -maxdepth 2 -type f \( -name '*.md' -o -name '*.yml' -o -name '*.yaml' \) | sort
 fi
 ```
 
-Read the relevant template files. If `.github/ISSUE_TEMPLATE/config.yml` or
-`config.yaml` exists, use it only to understand whether blank issues are
-disabled or external contact links exist; do not treat contact links as issue
-templates.
+Read the relevant template files. Treat `.github/ISSUE_TEMPLATE.md` as the
+repository's general markdown issue template when it exists. If
+`.github/ISSUE_TEMPLATE/config.yml` or `config.yaml` exists, use it only to
+understand whether blank issues are disabled or external contact links exist; do
+not treat contact links as issue templates.
 
 If there are no issue templates, create a concise plain issue with a title and
 markdown body.
