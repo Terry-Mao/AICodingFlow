@@ -3,10 +3,10 @@
 本地开发流适合开发者在自己的机器上与 Codex 协作完成常规改动：
 
 ```text
-issue -> branch/worktree -> commit -> push -> pr -> review -> merge
+request -> issue -> branch/worktree -> commit -> push -> pr -> review -> merge
 ```
 
-它的目标是让分支、提交和 PR 都可审查、可回滚、可复现。
+它的目标是让 issue、分支、提交和 PR 都可审查、可回滚、可复现。
 
 ## 使用前准备
 
@@ -26,6 +26,7 @@ issue -> branch/worktree -> commit -> push -> pr -> review -> merge
 
 | SKILL | 用途 |
 | --- | --- |
+| `create-issue` | 根据当前对话或用户输入选择 `.github` issue 模板并创建 GitHub issue。 |
 | `git-branch` | 根据 issue 或任务描述创建规范分支。 |
 | `git-worktree` | 为并行 issue 或任务创建独立 worktree。 |
 | `git-commit` | 从真实 diff 中整理原子提交。 |
@@ -36,7 +37,15 @@ issue -> branch/worktree -> commit -> push -> pr -> review -> merge
 
 ## 典型用法
 
-### 1. 创建分支
+### 1. 创建 issue
+
+```text
+$create-issue
+```
+
+`create-issue` 会读取目标仓库的 `.github/ISSUE_TEMPLATE`，根据请求选择最合适的模板，保守填充 issue 标题和正文，并用 `gh issue create` 创建 issue。它默认不添加分类 labels；新 issue 打开后由 `triage-issue.yml` 自动应用 triage labels。
+
+### 2. 创建分支
 
 ```text
 $git-branch #47
@@ -50,7 +59,7 @@ $git-branch #47
 docs/optimize-readme-47
 ```
 
-### 2. 创建并行 worktree
+### 3. 创建并行 worktree
 
 ```text
 $git-worktree #48
@@ -58,7 +67,7 @@ $git-worktree #48
 
 `git-worktree` 会在 `.worktrees/<branch-name>` 下创建独立工作目录，适合同时处理多个 issue。它不会复制当前工作树里的未提交改动；Codex 后续 tool calls 会默认从新 worktree 运行，并输出你自己的 shell 需要执行的 `cd .worktrees/<branch-name>`。
 
-### 3. 整理提交
+### 4. 整理提交
 
 ```text
 $git-commit
@@ -66,7 +75,7 @@ $git-commit
 
 `git-commit` 会读取工作区状态、diff stat、完整 diff 和 staged diff，判断是否需要拆分提交，精确 stage 目标文件，并使用规范提交信息。
 
-### 4. 推送分支
+### 5. 推送分支
 
 ```text
 $git-push
@@ -74,7 +83,7 @@ $git-push
 
 `git-push` 会检查当前分支、upstream 和待推送提交。没有 upstream 时执行 `git push -u origin <branch>`；已有 upstream 时执行普通 `git push`。它不会默认 force push，也会避免直接推送 `main`、`master`、`develop` 等共享 base 分支。
 
-### 5. 创建或更新 PR
+### 6. 创建或更新 PR
 
 ```text
 $create-pr

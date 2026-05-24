@@ -4,7 +4,7 @@ AICodingFlow 是一套面向 AI Coding 的工作流模板。它把本地 Codex S
 
 这个仓库提供两类能力：
 
-- 本地开发流：用 `git-*` 和 `create-pr` SKILL 规范分支、提交、推送和 PR 创建。
+- 本地开发流：用 `create-issue`、`git-*` 和 `create-pr` SKILL 规范 issue 创建、分支、提交、推送和 PR 创建。
 - GitHub 协作流：用 GitHub Actions + Codex 从 issue 创建 spec、实现 issue、审查 PR、响应 review comments，并从人工反馈中更新仓库本地规则。
 
 ## Quick Start
@@ -61,6 +61,7 @@ issue -> branch/worktree -> commit -> push -> pr -> review -> merge
 
 开发者在本地与 Codex 协作完成常规改动。常用 SKILL：
 
+- `create-issue`：根据对话上下文或用户输入，选择 `.github` issue 模板并创建 GitHub issue。
 - `git-branch`：根据 issue 或任务创建规范分支。
 - `git-worktree`：为并行任务创建独立 worktree。
 - `git-commit`：从真实 diff 中整理原子提交。

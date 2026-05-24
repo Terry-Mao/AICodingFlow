@@ -35,6 +35,8 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 
 ## Issue Triage
 
+本地创建 issue 时可以使用 `create-issue` SKILL。它根据当前对话或用户输入选择 `.github/ISSUE_TEMPLATE` 模板并创建 issue，但默认不添加分类 labels；issue 打开后由下面的 triage workflow 接管分类、复现度、重复检测和 triage comment。
+
 Workflow：
 
 ```text
