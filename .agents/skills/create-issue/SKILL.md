@@ -136,12 +136,16 @@ Always ask before creating when:
 Use GitHub CLI:
 
 ```bash
-gh issue create --repo <owner/repo> --title "<title>" --body-file <tmp-body-file>
+gh issue create --repo "$repo" --title "$title" --body-file "$body_file"
 ```
 
-Prefer `--body-file` for non-trivial bodies to avoid quoting problems. Add
-`--label`, `--assignee`, `--milestone`, or project flags only for metadata
-explicitly selected in step 4.
+Pass the repository, title, body file, and any metadata as separate argv-style
+arguments. Do not paste user- or conversation-derived title/body text directly
+into a shell command line; if using shell variables, populate them without
+`eval` or command substitution and always quote expansions. Prefer
+`--body-file` for non-trivial bodies to avoid quoting problems. Add `--label`,
+`--assignee`, `--milestone`, or project flags only for metadata explicitly
+selected in step 4.
 
 If the selected template is a markdown template and `gh issue create --template`
 works cleanly with the prepared body in the installed GitHub CLI, include the
