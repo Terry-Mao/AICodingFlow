@@ -68,15 +68,39 @@ available template metadata:
     enhancement template
   - docs, README, examples, wording -> documentation template
   - questions, support, setup help -> question/support template when present
-  - security, vulnerability, secret exposure -> security policy or security
-    template if present
+  - security, vulnerability, secret exposure -> private disclosure flow, not a
+    public issue by default
 - If multiple templates fit equally well and the choice changes required
   fields or labels, ask the user one concise question before creating.
 - If templates exist but none fit cleanly, do not force the request into a
   mismatched template. Create a concise plain issue unless the repository
   configuration explicitly disables blank issues.
 
-### 3. Build Title And Body
+### 3. Handle Security Reports Privately
+
+If the request describes a vulnerability, exploit, secret exposure, credential
+leak, private customer data exposure, or other sensitive security issue, do not
+create a public GitHub issue by default.
+
+First inspect the repository's private disclosure guidance:
+
+```bash
+find . .github -maxdepth 2 -type f \( -iname 'SECURITY.md' -o -iname 'security.md' \) | sort
+gh repo view --json isSecurityPolicyEnabled,securityPolicyUrl,url
+```
+
+Prefer GitHub private vulnerability reporting when the repository's security
+policy or GitHub security page advertises it. Otherwise follow the repository's
+`SECURITY.md` instructions, such as a security email or private reporting form.
+If neither is available, show a redacted draft and ask the user where to
+disclose it privately.
+
+Only create a public issue for a security-related request when the user
+explicitly confirms that the content is safe for public disclosure and all
+sensitive details are redacted. Never include raw secrets, tokens, credentials,
+private keys, exploit payloads, or private customer data in the issue body.
+
+### 4. Build Title And Body
 
 Use the repository's template structure. Preserve useful headings and required
 fields, but remove instructional placeholder text that was meant only for the
@@ -102,7 +126,7 @@ Keep the issue focused on one actionable problem or request. If the user's
 conversation contains several unrelated requests, ask whether to create one
 issue per request.
 
-### 4. Prepare Metadata
+### 5. Prepare Metadata
 
 Do not add classification labels by default. If the repository has automated
 issue triage, let that workflow apply labels after the issue is opened.
@@ -112,7 +136,7 @@ or the selected template requires a non-classification label for routing.
 Apply assignees, milestones, or projects only when the user explicitly asks for
 them or the repository template requires a clearly named value.
 
-### 5. Confirm When Needed
+### 6. Confirm When Needed
 
 Creating a GitHub issue is an external side effect. If the user explicitly asked
 to create the issue and the template choice, title, and body are unambiguous,
@@ -136,7 +160,7 @@ Always ask before creating when:
 - the issue may disclose private or sensitive information
 - the user only asked to draft, prepare, or write an issue
 
-### 6. Create The Issue
+### 7. Create The Issue
 
 Use GitHub CLI:
 
@@ -161,7 +185,7 @@ If `gh` is unavailable, unauthenticated, or lacks permission, do not attempt
 fallback API calls. Report the exact repository, title, body, and any explicit
 metadata the user can submit manually.
 
-### 7. Report Result
+### 8. Report Result
 
 After creation, report:
 
@@ -180,6 +204,9 @@ an issue.
   skill guidance.
 - Do not include secrets, tokens, credentials, private keys, personal contact
   details, or private customer data in the issue body.
+- Do not create public issues for vulnerabilities, exploit details, credential
+  leaks, or private data exposure unless the user explicitly confirms the report
+  is safe for public disclosure and fully redacted.
 - Do not create duplicate issues when a quick local or GitHub search shows an
   obvious existing open issue. If duplication is likely, show the existing issue
   and ask the user whether to continue.
