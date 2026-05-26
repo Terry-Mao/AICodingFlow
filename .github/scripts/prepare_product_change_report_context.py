@@ -58,6 +58,8 @@ def search_merged_pr_numbers(repo: str, start: dt.datetime, end: dt.datetime) ->
     pages = run_gh_json(
         [
             "api",
+            "--method",
+            "GET",
             "search/issues",
             "-f",
             f"q={query}",
