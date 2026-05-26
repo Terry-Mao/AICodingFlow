@@ -1,0 +1,935 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "pr": 3,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/3",
+      "title": "docs(skill): add git-branch skill",
+      "merged_at": "2026-05-09T13:32:08Z",
+      "merge_commit": "1c0e1229a28202a6cedcd9f4275a140cac742d79",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 5,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/5",
+      "title": "docs(skill): recognize formal branch issue IDs",
+      "merged_at": "2026-05-09T14:02:29Z",
+      "merge_commit": "fb53ec7de93d34d56054bbf8bada36a34ac3a61e",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 7,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/7",
+      "title": "Feat/branch protection",
+      "merged_at": "2026-05-09T17:42:56Z",
+      "merge_commit": "1f2145b90827a1e6400a960afb7b03ecc6e8fed5",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 8,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/8",
+      "title": "docs(skill): align branch and commit guidance",
+      "merged_at": "2026-05-10T06:05:46Z",
+      "merge_commit": "58ee2c4a176656ccd367ddecf000e48b16c3a45b",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 10,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/10",
+      "title": "Need a git-push after git-commit",
+      "merged_at": "2026-05-10T06:38:10Z",
+      "merge_commit": "90a102682070f1518f77f91bddcd8e51e9a264c6",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 13,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/13",
+      "title": "feat(review-pr): add PR review workflow",
+      "merged_at": "2026-05-10T16:03:36Z",
+      "merge_commit": "adb41019750f7c67f014151ec633cbee0543ca85",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 15,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/15",
+      "title": "Preserve ranged review comments and refine skill docs",
+      "merged_at": "2026-05-10T16:58:06Z",
+      "merge_commit": "b2690322887ff3547a3f4fdf61d732f3b985a725",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 17,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/17",
+      "title": "docs(readme): document workflow setup",
+      "merged_at": "2026-05-10T17:18:05Z",
+      "merge_commit": "4a6813fba3028a2c202285c754d9e12a3aef3ff2",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 21,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/21",
+      "title": "调整 skills 目录结构",
+      "merged_at": "2026-05-11T06:32:16Z",
+      "merge_commit": "ebcf9eb48515f64af0c2f217c38bdbfa36f0ad9b",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 23,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/23",
+      "title": "新增 review-pr-local skill",
+      "merged_at": "2026-05-11T07:34:01Z",
+      "merge_commit": "32663bd6979568464d71c4f0328269c993e8fb73",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 25,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/25",
+      "title": "优化 git-commit issue 关联语义",
+      "merged_at": "2026-05-11T08:38:42Z",
+      "merge_commit": "035ddf427e3bdbc27931977430a1cd980423b4e2",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 27,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/27",
+      "title": "feat(review): add PR review guidance updater",
+      "merged_at": "2026-05-12T03:38:58Z",
+      "merge_commit": "e9daa78448b21198e08c1ee0c33be28811b18e48",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 29,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/29",
+      "title": "fix(review): preserve default agent logins",
+      "merged_at": "2026-05-12T06:33:27Z",
+      "merge_commit": "dbf70d8893ab7689e4663fa9f0b063e89f929f7a",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 31,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/31",
+      "title": "feat(ci): support multiple agent logins",
+      "merged_at": "2026-05-12T07:17:41Z",
+      "merge_commit": "dcdfa997b35d1ffc730e32781f758d3cabb89006",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 33,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/33",
+      "title": "fix(ci): apply review guidance outside Codex sandbox",
+      "merged_at": "2026-05-12T08:42:24Z",
+      "merge_commit": "41c2a12473596add8177c434362b73eb78f523be",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 35,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/35",
+      "title": "feat(spec): add issue spec generation workflow",
+      "merged_at": "2026-05-13T09:51:36Z",
+      "merge_commit": "f2f7cf9ab6231d4a42f1b932e7bff8c35e3978f3",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 38,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/38",
+      "title": "fix(ci): require exact spec agent mentions",
+      "merged_at": "2026-05-13T10:03:41Z",
+      "merge_commit": "61e9aaf6759a8b1bb80a28293c63058606dcdb4a",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 40,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/40",
+      "title": "Fix/create spec from issue",
+      "merged_at": "2026-05-13T10:36:32Z",
+      "merge_commit": "1d6ba6a23a6c2f4f574afb311f60207284db8c76",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 41,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/41",
+      "title": "fix(spec): follow issue language for generated specs",
+      "merged_at": "2026-05-13T11:05:38Z",
+      "merge_commit": "5538888276652e801f10c2fd17f354b37c3591e2",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 43,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/43",
+      "title": "fix(ci): ignore python cache in spec validation",
+      "merged_at": "2026-05-13T11:21:26Z",
+      "merge_commit": "993284b16791e92f3668bff5f1e927be4a62094b",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 42,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/42",
+      "title": "docs(spec): create issue 39 specs",
+      "merged_at": "2026-05-13T12:58:00Z",
+      "merge_commit": "31462468d63dd97ad63e491ded39d0accd402afb",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 44,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/44",
+      "title": "feat(review): add spec review skill",
+      "merged_at": "2026-05-13T14:28:53Z",
+      "merge_commit": "61380ae3265a38ea1fbfb58b2fedf7b71865d766",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 45,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/45",
+      "title": "Update PR review guidance",
+      "merged_at": "2026-05-13T14:55:27Z",
+      "merge_commit": "0c6673f67be366a338ba6ec14e04ce45dcb1cea8",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 46,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/46",
+      "title": "feat(review): add spec context snapshots",
+      "merged_at": "2026-05-13T16:03:32Z",
+      "merge_commit": "e0863bdadcd451b1b5169a595c759fc7b56d7886",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 48,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/48",
+      "title": "docs(readme): rewrite project guide",
+      "merged_at": "2026-05-13T16:32:52Z",
+      "merge_commit": "556891bb3765083c3257cd92e018fa52c838b2be",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 49,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/49",
+      "title": "docs(spec): create issue 18 specs",
+      "merged_at": "2026-05-14T02:32:39Z",
+      "merge_commit": "25048cd9289e1ce1957a978bd1cc86d9729f5fd8",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 52,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/52",
+      "title": "Update product.md",
+      "merged_at": "2026-05-14T13:18:10Z",
+      "merge_commit": "9b0915e1298f855ceef424a09e3034adefb7f675",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 53,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/53",
+      "title": "Update tech.md",
+      "merged_at": "2026-05-14T13:20:22Z",
+      "merge_commit": "fa2bcc5c57340cb171e893a2f66e0a3ead3fc26d",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 50,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/50",
+      "title": "feat: add issue implementation workflow",
+      "merged_at": "2026-05-14T13:40:03Z",
+      "merge_commit": "6c5a4c2923c9ead81174f4df33b03a7b7b64c93e",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 55,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/55",
+      "title": "docs(spec): create issue 51 specs",
+      "merged_at": "2026-05-14T13:41:34Z",
+      "merge_commit": "5380167e96fb8ead9207cbc87b889800a192a695",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 56,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/56",
+      "title": "fix(ci): tighten workflow trigger gates",
+      "merged_at": "2026-05-14T14:36:17Z",
+      "merge_commit": "ca4b81f14715afb37b9b1ff5aaa9166099deef5b",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 58,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/58",
+      "title": "fix(ci): commit implementation workflow diffs",
+      "merged_at": "2026-05-14T15:34:55Z",
+      "merge_commit": "0a49aaadfd24398a87c1eb9f88932cb652f1d2f4",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 59,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/59",
+      "title": "fix(ci): harden implementation branch handoff",
+      "merged_at": "2026-05-14T16:10:44Z",
+      "merge_commit": "6f81570fa17c469e49e63ebcca2e34ec984acd38",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 60,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/60",
+      "title": "fix(ci): preserve implementation status paths",
+      "merged_at": "2026-05-14T16:35:03Z",
+      "merge_commit": "d305880e5285b0ec030b1afbe5ce97b4aeeea182",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 65,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/65",
+      "title": "fix(ci): dispatch reviews for generated spec PRs",
+      "merged_at": "2026-05-14T17:06:50Z",
+      "merge_commit": "c5918f030c09dab27b66ea0274a509c7696f5a02",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 67,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/67",
+      "title": "fix(ci): harden workflow handoff file selection",
+      "merged_at": "2026-05-14T19:38:40Z",
+      "merge_commit": "3af11304ffa27216168ffa422a581f59cd62b18c",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 68,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/68",
+      "title": "fix(ci): support workflow-file push token",
+      "merged_at": "2026-05-14T20:15:43Z",
+      "merge_commit": "41454f2db45fb3037f8e3b4e9cc52d83e812e84a",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 69,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/69",
+      "title": "fix(ci): use workflow token for git push auth",
+      "merged_at": "2026-05-15T06:38:44Z",
+      "merge_commit": "59aeeeca8867dc91e28b9485cf0a5f26c1c3e5bf",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 73,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/73",
+      "title": "fix(ci): update actions for Node 24 runtime",
+      "merged_at": "2026-05-15T07:11:02Z",
+      "merge_commit": "118d4a50d316c4b9329a9d6a0ba565faa1b93529",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 74,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/74",
+      "title": "fix(ci): avoid auto review for implementation PRs",
+      "merged_at": "2026-05-15T08:34:03Z",
+      "merge_commit": "6065320fd4bc11a0df3671f214f48d8d9ae1cc6a",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 76,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/76",
+      "title": "fix(review): skip AI review for draft PRs",
+      "merged_at": "2026-05-15T09:59:43Z",
+      "merge_commit": "6464834646ea70df266888e8bc372728f33edbd6",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 71,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/71",
+      "title": "feat: add PR review verdict gate",
+      "merged_at": "2026-05-15T11:02:38Z",
+      "merge_commit": "2dd675bbf73dbed96fc7db27120605b83cb93c24",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 79,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/79",
+      "title": "Rename repo review companion skills",
+      "merged_at": "2026-05-15T13:10:39Z",
+      "merge_commit": "a34940973e4b8577488ed4a50a7907e73f490780",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 81,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/81",
+      "title": "新增一个 review-pr-local / review-spec-local",
+      "merged_at": "2026-05-16T03:37:59Z",
+      "merge_commit": "d2b40d3c480dc2675836a42926d33ab4cdc48019",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 84,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/84",
+      "title": "fix(ci): stop auto-reviewing spec PRs",
+      "merged_at": "2026-05-16T04:21:45Z",
+      "merge_commit": "ef268084d4ea79f66f06f954a95da670bc7d7f68",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 66,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/66",
+      "title": "feat: sync issue state on plan approval",
+      "merged_at": "2026-05-16T04:53:11Z",
+      "merge_commit": "e5a0777525dc517b98860dd8888c8756ec6df2ae",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 82,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/82",
+      "title": "feat: add PR bot review command trigger",
+      "merged_at": "2026-05-16T05:42:32Z",
+      "merge_commit": "d164c31c58eb86fb00612f8a57dcae0abf1d0907",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 89,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/89",
+      "title": "fix(review): link comment-triggered runs to PRs",
+      "merged_at": "2026-05-16T07:30:36Z",
+      "merge_commit": "4d7ba9b5ac9218be57d54df4d4c993e7eee17b5e",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 86,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/86",
+      "title": "docs(spec): create issue 85 specs",
+      "merged_at": "2026-05-16T08:56:57Z",
+      "merge_commit": "3163aa46d9c7bd0d3cfc3291c491835a6bfd067f",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 90,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/90",
+      "title": "feat: allow local review with dirty worktrees",
+      "merged_at": "2026-05-16T10:14:39Z",
+      "merge_commit": "d1246f4ed400d1aefeb7dd29f5fa4a23ab3b8429",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 93,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/93",
+      "title": "feat(skill): add security review supplements",
+      "merged_at": "2026-05-16T10:36:08Z",
+      "merge_commit": "6123f8a516ada1696294f7b43acb87925037f382",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 94,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/94",
+      "title": "feat(skill): add git worktree helper",
+      "merged_at": "2026-05-16T11:04:26Z",
+      "merge_commit": "6179c8d6c3fcc39e2e06c2e110d879b05086f81d",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 97,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/97",
+      "title": "docs(agents): add repository agent guidance",
+      "merged_at": "2026-05-16T16:29:55Z",
+      "merge_commit": "edded39d97fce2d258552a01381df7eb18864c8b",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 103,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/103",
+      "title": "fix(review): prefer GitHub PR description locally",
+      "merged_at": "2026-05-17T07:22:15Z",
+      "merge_commit": "01b7ae27e192c723fe31569869c4016e5279af5e",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 105,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/105",
+      "title": "docs(skill): enter new worktree by default",
+      "merged_at": "2026-05-17T07:47:33Z",
+      "merge_commit": "b413a4db65e25aac253086e9337ccd599f7594d3",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 107,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/107",
+      "title": "docs(skill): prefer origin for branch bases",
+      "merged_at": "2026-05-17T09:00:55Z",
+      "merge_commit": "9648314b6a9d663b22b64dc504bd8e4f38831292",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 109,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/109",
+      "title": "docs(skill): optimize git skill workflows",
+      "merged_at": "2026-05-17T09:31:28Z",
+      "merge_commit": "5ade92d2751064c89597d53eaccac0fd1fdb5580",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 110,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/110",
+      "title": "docs(skill): remove cloud workflow guidance",
+      "merged_at": "2026-05-17T10:08:05Z",
+      "merge_commit": "f63a88fc91af346361a5bda64a897e11c89f109c",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 99,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/99",
+      "title": "fix: delay PR comment push credentials",
+      "merged_at": "2026-05-17T11:11:48Z",
+      "merge_commit": "b2f54e43495ec3ffd4c912724983b746636b0ecd",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 112,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/112",
+      "title": "docs(skill): add CI failure diagnosis skill",
+      "merged_at": "2026-05-18T03:52:01Z",
+      "merge_commit": "b8dd9d9c594efdf67d7cff8e6b48868d5e406cf3",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 114,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/114",
+      "title": "新增 resolve-merge-conflicts",
+      "merged_at": "2026-05-18T06:14:47Z",
+      "merge_commit": "c53fc3881a0b82e3c4e755f5aceb9d773f0dcba0",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 116,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/116",
+      "title": "fix: align local review base selection with PR metadata",
+      "merged_at": "2026-05-18T06:42:54Z",
+      "merge_commit": "4b0c5fc8aa065bc588786163133fc08953ab8f84",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 118,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/118",
+      "title": "fix: correct CODEOWNERS enforcement note",
+      "merged_at": "2026-05-18T10:05:00Z",
+      "merge_commit": "8ce80494e239c56dab7b4d1ce7b3a5259a048dc9",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 120,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/120",
+      "title": "fix: preserve PR title for comment responses",
+      "merged_at": "2026-05-18T10:48:57Z",
+      "merge_commit": "bb40d451e868d4a78e608014207ddba765352454",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 121,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/121",
+      "title": "feat(triage): add issue triage workflow",
+      "merged_at": "2026-05-18T17:58:38Z",
+      "merge_commit": "aab6e853b691bcf8172cb4603e31dc22010c2b06",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 123,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/123",
+      "title": "fix(triage): prefetch dedupe candidates",
+      "merged_at": "2026-05-19T02:59:49Z",
+      "merge_commit": "a9197155d4738d37e8bd11cc120f63f5e2a5bf9c",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 126,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/126",
+      "title": "docs(skills): remove repo name from descriptions",
+      "merged_at": "2026-05-19T06:17:06Z",
+      "merge_commit": "8f99ed14428a18264d4f48d91f312762ed951ec5",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 127,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/127",
+      "title": "ci(review): clarify review output path",
+      "merged_at": "2026-05-19T06:31:24Z",
+      "merge_commit": "409ffa11217874c374d0d3eb8d5db14de0c3eeba",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 128,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/128",
+      "title": "新增 SKILL: update-dedupe，用于自进化 dedupe-issue",
+      "merged_at": "2026-05-19T06:42:23Z",
+      "merge_commit": "f27532590e8fbc05f06d41ae12ae29acb5d299d1",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 130,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/130",
+      "title": "fix: apply agents implementation output",
+      "merged_at": "2026-05-19T11:37:12Z",
+      "merge_commit": "572dbd1e51efa2c46afae9c2d10a373aab03fdda",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 129,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/129",
+      "title": "feat: add update-dedupe guidance workflow",
+      "merged_at": "2026-05-19T13:34:07Z",
+      "merge_commit": "4c9fcdc947f01ebe46914a74a5615cc4ee959c5f",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 131,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/131",
+      "title": "fix(update-dedupe): repair feedback aggregation query",
+      "merged_at": "2026-05-19T14:08:32Z",
+      "merge_commit": "052577fec0266ec5ad706136aa818f5acfe50ea8",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 132,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/132",
+      "title": "test(update-dedupe): cover feedback aggregation safety",
+      "merged_at": "2026-05-19T14:38:04Z",
+      "merge_commit": "20898bdfcf3aa8b3336a77f508c71ed32f783fc8",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 133,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/133",
+      "title": "docs(triage): add repo triage guidance",
+      "merged_at": "2026-05-19T18:17:07Z",
+      "merge_commit": "06ea7c776acfb30cc124a875ee033c489960cd8f",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 138,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/138",
+      "title": "fix(triage): allow external issue triage",
+      "merged_at": "2026-05-20T11:02:45Z",
+      "merge_commit": "77eb7a8c6d8111a4867bd62db188588b8213f04d",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 139,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/139",
+      "title": "ci(workflows): use GitHub App token for workflow updates",
+      "merged_at": "2026-05-20T11:40:49Z",
+      "merge_commit": "d70d3328b8f81d9583c72ea4e894203b28c6dd8c",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 140,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/140",
+      "title": "fix(workflows): authenticate PR diff fetch",
+      "merged_at": "2026-05-20T14:13:09Z",
+      "merge_commit": "22c11fc18243f80d4b89b5b783e117f140a254bc",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 142,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/142",
+      "title": "private repo 会出现 author_association 判定失败",
+      "merged_at": "2026-05-20T17:04:37Z",
+      "merge_commit": "1d89f1c50de2dbe3bb2c578530681db9b7e5aad8",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 143,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/143",
+      "title": "fix(workflows): avoid token in fetch arguments",
+      "merged_at": "2026-05-20T17:17:03Z",
+      "merge_commit": "0383d7bfbb9e627ba5e2db5b9bf5e94e7c1e71d4",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 145,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/145",
+      "title": "Rename GitHub App workflow config vars",
+      "merged_at": "2026-05-20T17:52:20Z",
+      "merge_commit": "fd759d58a9846b6e3258091588ed8edbf3875565",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 148,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/148",
+      "title": "feat: add project installer",
+      "merged_at": "2026-05-21T12:54:51Z",
+      "merge_commit": "bfe4dada1cbced8722d2094c5663afe580f13c44",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 150,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/150",
+      "title": "fix(pr-comments): handle multi-comment fix requests",
+      "merged_at": "2026-05-22T10:27:47Z",
+      "merge_commit": "6f01b1b554e7c305b6f5b9bcb432ec4ff2e66448",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 155,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/155",
+      "title": "fix(review): allow CI bot dispatch",
+      "merged_at": "2026-05-23T03:22:06Z",
+      "merge_commit": "c5c73444146d17b6be271bf0134835ac32fba433",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 154,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/154",
+      "title": "ci(review): dispatch AI review after CI",
+      "merged_at": "2026-05-23T03:56:47Z",
+      "merge_commit": "22b80da171bd8df46188b6451698f74a2fa80515",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 158,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/158",
+      "title": "fix(install): isolate synced workflow tests",
+      "merged_at": "2026-05-23T05:41:22Z",
+      "merge_commit": "f0c0fc80e5a0d36699cde27f5693bd6d2f6537f1",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 159,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/159",
+      "title": "增加 AGENTS.md、docs 目录",
+      "merged_at": "2026-05-23T06:25:24Z",
+      "merge_commit": "5e5d70e10e6fdf01a751d22b7a70928263f50064",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 160,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/160",
+      "title": "test(install): split delivered test suite",
+      "merged_at": "2026-05-23T07:17:37Z",
+      "merge_commit": "318ff1886ad1f4a21c2d040d9ce386c2c2687cba",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 161,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/161",
+      "title": "docs(readme): simplify project documentation",
+      "merged_at": "2026-05-23T10:52:52Z",
+      "merge_commit": "1f74251589adca2390621068ce44b68114bed1df",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 162,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/162",
+      "title": "fix(review): dismiss stale bot request changes",
+      "merged_at": "2026-05-23T15:05:21Z",
+      "merge_commit": "8ec1e5f69dde4cb7650cb0101085532eedc13d69",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 163,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/163",
+      "title": "ci(review): dispatch review after tests pass",
+      "merged_at": "2026-05-23T18:00:26Z",
+      "merge_commit": "069dcf7a4a301cbae0a693741a77c00f4dfc9b43",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 164,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/164",
+      "title": "feat(skills): add create-issue skill",
+      "merged_at": "2026-05-24T05:38:54Z",
+      "merge_commit": "09f9e5bc8ceb3d603a0acadd03504e6e040ea6ef",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 165,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/165",
+      "title": "docs(skill): add product change report workflow",
+      "merged_at": "2026-05-26T16:57:33Z",
+      "merge_commit": "a32bc785fa9145d8e78e65a014a4628c71f53ec7",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    },
+    {
+      "pr": 166,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/166",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-26T17:31:53Z",
+      "merge_commit": "fde8890334541a447f113fca4ce1bea822cefd31",
+      "report_date": "2026-05-25",
+      "report_path": "docs/updates/auto-update-2026-05-25.md",
+      "recorded_at": "2026-05-26T17:36:55Z"
+    }
+  ]
+}
