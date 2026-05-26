@@ -128,7 +128,7 @@ class ProductChangeReportScriptTest(unittest.TestCase):
 
         def fake_run_gh_json(args):
             calls.append(args)
-            if args[:2] == ["api", "search/issues"]:
+            if args[:4] == ["api", "--method", "GET", "search/issues"]:
                 return pages
             if args[:3] == ["repo", "view", "owner/repo"]:
                 return {"defaultBranchRef": {"name": "main"}}
@@ -146,7 +146,7 @@ class ProductChangeReportScriptTest(unittest.TestCase):
             prepare.run_gh_json = original  # type: ignore[assignment]
 
         self.assertEqual(numbers, [1, 2, 3])
-        self.assertTrue(any(call[:2] == ["api", "search/issues"] for call in calls))
+        self.assertTrue(any(call[:4] == ["api", "--method", "GET", "search/issues"] for call in calls))
 
     def test_main_reuses_fetch_merged_pr_details(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
