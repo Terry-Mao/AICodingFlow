@@ -7,6 +7,14 @@ on:
         description: "UTC report date to generate, YYYY-MM-DD. Defaults to yesterday UTC."
         required: false
         default: ""
+      start_date:
+        description: "UTC start date for historical backfill, inclusive YYYY-MM-DD. Use with end_date."
+        required: false
+        default: ""
+      end_date:
+        description: "UTC end date for historical backfill, exclusive YYYY-MM-DD. Use with start_date."
+        required: false
+        default: ""
   schedule:
     - cron: "20 2 * * *"
 
@@ -15,7 +23,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: product-change-report-${{ inputs.report_date || 'scheduled' }}
+  group: product-change-report-${{ inputs.report_date || inputs.start_date || 'scheduled' }}-${{ inputs.end_date || 'single' }}
   cancel-in-progress: false
 
 jobs:
@@ -38,6 +46,8 @@ jobs:
           python3 .github/scripts/prepare_product_change_report_context.py \
             --repo "${{ github.repository }}" \
             --report-date "${{ inputs.report_date }}" \
+            --start-date "${{ inputs.start_date }}" \
+            --end-date "${{ inputs.end_date }}" \
             --context-output product-change-report-context.json \
             --markdown-output product-change-report-context.md \
             --diff-output product-change-report-diffs.md \
@@ -102,6 +112,7 @@ jobs:
             Do not modify .agents, .github, specs, product code, docs/product, or docs/product/wiki.
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
             If the report already exists, preserve accurate existing entries and add any missing entries from the current context.
+            If none of the input changes are product-reportable, do not create an empty or "no changes" report file.
             Include source references to PRs, issues, specs, or commits where useful.
 
       - name: Validate product change report context integrity
@@ -132,12 +143,17 @@ jobs:
             exit 1
           fi
 
-      - name: Update product change report ledger
+      - name: Check generated product report
         if: steps.context.outputs.reportable_pr_count != '0'
-        run: python3 .github/scripts/update_product_change_report_ledger.py --context product-change-report-context.json
+        id: report_status
+        run: python3 .github/scripts/check_product_change_report_status.py --context product-change-report-context.json --github-output "$GITHUB_OUTPUT"
+
+      - name: Update product change report ledger
+        if: steps.context.outputs.reportable_pr_count != '0' && steps.report_status.outputs.ledger_should_update == 'true'
+        run: python3 .github/scripts/update_product_change_report_ledger.py --context product-change-report-context.json --status "${{ steps.report_status.outputs.ledger_status }}"
 
       - name: Check for report changes
-        if: steps.context.outputs.reportable_pr_count != '0'
+        if: steps.context.outputs.reportable_pr_count != '0' && steps.report_status.outputs.ledger_should_update == 'true'
         id: changes
         run: |
           if [ -n "$(git status --porcelain -- docs/updates)" ]; then
@@ -147,7 +163,7 @@ jobs:
           fi
 
       - name: Create or update pull request
-        if: steps.context.outputs.reportable_pr_count != '0' && steps.changes.outputs.changed == 'true'
+        if: steps.context.outputs.reportable_pr_count != '0' && steps.report_status.outputs.has_report == 'true' && steps.report_status.outputs.ledger_should_update == 'true' && steps.changes.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REPORT_DATE: ${{ steps.context.outputs.report_date }}
@@ -163,7 +179,10 @@ jobs:
 
           git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
           git switch -C "$branch"
-          git add "$REPORT_PATH" "$LEDGER_PATH"
+          git add "$LEDGER_PATH"
+          if [ -f "$REPORT_PATH" ]; then
+            git add "$REPORT_PATH"
+          fi
           git commit -m "docs(updates): add product change report for ${REPORT_DATE}"
           git push --force-with-lease origin "$branch"
 

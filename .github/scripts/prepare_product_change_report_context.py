@@ -25,9 +25,13 @@ def run_gh_text(args: list[str]) -> str:
     return result.stdout
 
 
+def parse_date(value: str) -> dt.date:
+    return dt.date.fromisoformat(value)
+
+
 def parse_report_date(value: str) -> dt.date:
     if value:
-        return dt.date.fromisoformat(value)
+        return parse_date(value)
     return dt.datetime.now(UTC).date() - dt.timedelta(days=1)
 
 
@@ -35,6 +39,45 @@ def scan_window(report_date: dt.date) -> tuple[dt.datetime, dt.datetime]:
     start = dt.datetime.combine(report_date, dt.time.min, tzinfo=UTC)
     end = start + dt.timedelta(days=1)
     return start, end
+
+
+def range_window(start_date: dt.date, end_date: dt.date) -> tuple[dt.datetime, dt.datetime]:
+    if end_date <= start_date:
+        raise SystemExit("--end-date must be after --start-date")
+    start = dt.datetime.combine(start_date, dt.time.min, tzinfo=UTC)
+    end = dt.datetime.combine(end_date, dt.time.min, tzinfo=UTC)
+    return start, end
+
+
+def resolve_scan_window(
+    report_date_value: str,
+    start_date_value: str,
+    end_date_value: str,
+) -> tuple[str, dt.datetime, dt.datetime]:
+    has_range = bool(start_date_value or end_date_value)
+    if has_range:
+        if report_date_value:
+            raise SystemExit("--report-date cannot be combined with --start-date or --end-date")
+        if not start_date_value or not end_date_value:
+            raise SystemExit("--start-date and --end-date must be provided together")
+        start, end = range_window(parse_date(start_date_value), parse_date(end_date_value))
+        return report_id_for_window(start, end), start, end
+
+    report_date = parse_report_date(report_date_value)
+    start, end = scan_window(report_date)
+    return report_date.isoformat(), start, end
+
+
+def report_id_for_window(start: dt.datetime, end: dt.datetime) -> str:
+    start_date = start.date()
+    last_included_date = (end - dt.timedelta(days=1)).date()
+    if start_date == last_included_date:
+        return start_date.isoformat()
+    return f"{start_date.isoformat()}-to-{last_included_date.isoformat()}"
+
+
+def report_path_for_id(report_id: str) -> str:
+    return f"docs/updates/auto-update-{report_id}.md"
 
 
 def iso_z(value: dt.datetime) -> str:
@@ -50,45 +93,75 @@ def fetch_default_branch(repo: str) -> str:
 
 
 def search_merged_pr_numbers(repo: str, start: dt.datetime, end: dt.datetime) -> list[int]:
-    query = (
-        f"repo:{repo} is:pr is:merged "
-        f"merged:>={start.date().isoformat()} merged:<{end.date().isoformat()} "
-        f"base:{fetch_default_branch(repo)}"
-    )
-    pages = run_gh_json(
-        [
-            "api",
-            "--method",
-            "GET",
-            "search/issues",
-            "-f",
-            f"q={query}",
-            "-f",
-            "per_page=100",
-            "--paginate",
-            "--slurp",
-        ]
-    )
+    branch = fetch_default_branch(repo)
     numbers: list[int] = []
-    for page in pages or []:
-        if not isinstance(page, dict):
-            continue
-        for item in page.get("items") or []:
-            if not isinstance(item, dict):
+    seen: set[int] = set()
+    current_date = start.date()
+    while current_date < end.date():
+        query = (
+            f"repo:{repo} is:pr is:merged "
+            f"merged:{current_date.isoformat()} "
+            f"base:{branch}"
+        )
+        pages = run_gh_json(
+            [
+                "api",
+                "--method",
+                "GET",
+                "search/issues",
+                "-f",
+                f"q={query}",
+                "-f",
+                "per_page=100",
+                "--paginate",
+                "--slurp",
+            ]
+        )
+        for page in pages or []:
+            if not isinstance(page, dict):
                 continue
-            if "pull_request" not in item:
-                continue
-            try:
-                number = int(item["number"])
-            except (KeyError, TypeError, ValueError):
-                continue
-            numbers.append(number)
+            for item in page.get("items") or []:
+                if not isinstance(item, dict):
+                    continue
+                if "pull_request" not in item:
+                    continue
+                try:
+                    number = int(item["number"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if number in seen:
+                    continue
+                seen.add(number)
+                numbers.append(number)
+        current_date += dt.timedelta(days=1)
     return numbers
+
+
+def parse_github_datetime(value: str) -> dt.datetime | None:
+    if not value:
+        return None
+    normalized = value.replace("Z", "+00:00")
+    try:
+        parsed = dt.datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def pr_merged_in_window(pr: dict[str, Any], start: dt.datetime, end: dt.datetime) -> bool:
+    merged_at = parse_github_datetime(str(pr.get("mergedAt") or ""))
+    return bool(merged_at and start <= merged_at < end)
 
 
 def fetch_merged_prs(repo: str, start: dt.datetime, end: dt.datetime) -> list[dict[str, Any]]:
     numbers = search_merged_pr_numbers(repo, start, end)
-    prs = [fetch_pr_details(repo, number) for number in numbers]
+    prs: list[dict[str, Any]] = []
+    for number in numbers:
+        pr = fetch_pr_details(repo, number)
+        if pr_merged_in_window(pr, start, end):
+            prs.append(pr)
     return sorted(prs, key=lambda pr: (pr.get("mergedAt") or "", int(pr.get("number") or 0)))
 
 
@@ -195,7 +268,7 @@ def write_context_json(
     path: Path,
     repo: str,
     default_branch: str,
-    report_date: dt.date,
+    report_id: str,
     start: dt.datetime,
     end: dt.datetime,
     reportable_prs: list[dict[str, Any]],
@@ -203,11 +276,11 @@ def write_context_json(
     already_reported_prs: list[dict[str, Any]],
     ledger_path: str,
 ) -> None:
-    report_path = f"docs/updates/auto-update-{report_date.isoformat()}.md"
+    report_path = report_path_for_id(report_id)
     payload = {
         "repo": repo,
         "default_branch": default_branch,
-        "report_date": report_date.isoformat(),
+        "report_date": report_id,
         "report_path": report_path,
         "ledger_path": ledger_path,
         "scan_window": {
@@ -227,14 +300,14 @@ def write_context_json(
 
 def write_markdown(
     path: Path,
-    report_date: dt.date,
+    report_id: str,
     start: dt.datetime,
     end: dt.datetime,
     reportable_prs: list[dict[str, Any]],
     already_reported_prs: list[dict[str, Any]],
 ) -> None:
     lines = [
-        f"# Product change report context for {report_date.isoformat()}",
+        f"# Product change report context for {report_id}",
         "",
         f"Scan window: `{iso_z(start)}` inclusive to `{iso_z(end)}` exclusive.",
         "",
@@ -300,6 +373,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--report-date", default="")
+    parser.add_argument("--start-date", default="")
+    parser.add_argument("--end-date", default="")
     parser.add_argument("--context-output", default="product-change-report-context.json")
     parser.add_argument("--markdown-output", default="product-change-report-context.md")
     parser.add_argument("--diff-output", default="product-change-report-diffs.md")
@@ -308,10 +383,9 @@ def main() -> int:
     parser.add_argument("--max-diff-chars-per-pr", type=int, default=60000)
     args = parser.parse_args()
 
-    report_date = parse_report_date(args.report_date)
-    start, end = scan_window(report_date)
+    report_id, start, end = resolve_scan_window(args.report_date, args.start_date, args.end_date)
     default_branch = fetch_default_branch(args.repo)
-    report_path = f"docs/updates/auto-update-{report_date.isoformat()}.md"
+    report_path = report_path_for_id(report_id)
     scanned_prs = fetch_merged_prs(args.repo, start, end)
     ledger = load_ledger(Path(args.ledger_path))
     reportable_prs, already_reported_prs = split_prs_by_ledger(scanned_prs, ledger, report_path)
@@ -320,7 +394,7 @@ def main() -> int:
         Path(args.context_output),
         args.repo,
         default_branch,
-        report_date,
+        report_id,
         start,
         end,
         reportable_prs,
@@ -328,12 +402,12 @@ def main() -> int:
         already_reported_prs,
         args.ledger_path,
     )
-    write_markdown(Path(args.markdown_output), report_date, start, end, reportable_prs, already_reported_prs)
+    write_markdown(Path(args.markdown_output), report_id, start, end, reportable_prs, already_reported_prs)
     write_diffs(Path(args.diff_output), args.repo, reportable_prs, args.max_diff_chars_per_pr)
     write_github_output(
         args.github_output,
         {
-            "report_date": report_date.isoformat(),
+            "report_date": report_id,
             "report_path": report_path,
             "ledger_path": args.ledger_path,
             "scanned_pr_count": str(len(scanned_prs)),

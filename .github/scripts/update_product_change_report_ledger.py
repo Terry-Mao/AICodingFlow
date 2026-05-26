@@ -39,20 +39,21 @@ def merge_commit_oid(pr: dict[str, Any]) -> str:
     return merge_commit.get("oid") or ""
 
 
-def build_entry(pr: dict[str, Any], context: dict[str, Any], recorded_at: str) -> dict[str, Any]:
+def build_entry(pr: dict[str, Any], context: dict[str, Any], recorded_at: str, status: str) -> dict[str, Any]:
     return {
         "pr": int(pr["number"]),
         "url": pr.get("url") or "",
         "title": pr.get("title") or "",
         "merged_at": pr.get("mergedAt") or "",
         "merge_commit": merge_commit_oid(pr),
+        "status": status,
         "report_date": context["report_date"],
         "report_path": context["report_path"],
         "recorded_at": recorded_at,
     }
 
 
-def update_ledger(ledger: dict[str, Any], context: dict[str, Any], recorded_at: str) -> dict[str, Any]:
+def update_ledger(ledger: dict[str, Any], context: dict[str, Any], recorded_at: str, status: str = "reported") -> dict[str, Any]:
     by_pr: dict[int, dict[str, Any]] = {}
     for entry in ledger.get("entries") or []:
         try:
@@ -66,7 +67,7 @@ def update_ledger(ledger: dict[str, Any], context: dict[str, Any], recorded_at: 
         entry_recorded_at = recorded_at
         if existing.get("report_path") == context["report_path"] and existing.get("recorded_at"):
             entry_recorded_at = str(existing["recorded_at"])
-        by_pr[pr_number] = build_entry(pr, context, entry_recorded_at)
+        by_pr[pr_number] = build_entry(pr, context, entry_recorded_at, status)
 
     ledger["version"] = 1
     ledger["entries"] = sorted(by_pr.values(), key=lambda item: (item.get("merged_at") or "", int(item.get("pr") or 0)))
@@ -77,16 +78,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--context", default="product-change-report-context.json")
     parser.add_argument("--ledger", default="")
+    parser.add_argument("--status", choices=["reported", "scanned_no_update"], default="reported")
     args = parser.parse_args()
 
     context = load_json(Path(args.context))
     report_path = Path(context["report_path"])
-    if not report_path.exists():
+    if args.status == "reported" and not report_path.exists():
         raise SystemExit(f"report file does not exist; refusing to update ledger: {report_path}")
 
     ledger_path = Path(args.ledger or context.get("ledger_path") or "docs/updates/.product-change-report-ledger.json")
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
-    ledger = update_ledger(load_ledger(ledger_path), context, now_iso())
+    ledger = update_ledger(load_ledger(ledger_path), context, now_iso(), args.status)
     ledger_path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return 0
 
