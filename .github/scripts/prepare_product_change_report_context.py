@@ -310,7 +310,7 @@ def main() -> int:
     start, end = scan_window(report_date)
     default_branch = fetch_default_branch(args.repo)
     report_path = f"docs/updates/auto-update-{report_date.isoformat()}.md"
-    scanned_prs = [fetch_pr_details(args.repo, int(pr["number"])) for pr in fetch_merged_prs(args.repo, start, end)]
+    scanned_prs = fetch_merged_prs(args.repo, start, end)
     ledger = load_ledger(Path(args.ledger_path))
     reportable_prs, already_reported_prs = split_prs_by_ledger(scanned_prs, ledger, report_path)
 

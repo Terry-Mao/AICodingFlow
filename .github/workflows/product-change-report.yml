@@ -48,6 +48,15 @@ jobs:
         run: |
           echo "No unreported merged PRs found for ${{ steps.context.outputs.report_date }}."
 
+      - name: Capture product change report context checksums
+        if: steps.context.outputs.reportable_pr_count != '0'
+        run: |
+          sha256sum \
+            product-change-report-context.json \
+            product-change-report-context.md \
+            product-change-report-diffs.md \
+            > product-change-report-context.sha256
+
       - name: Install Codex sandbox prerequisites
         if: steps.context.outputs.reportable_pr_count != '0'
         run: |
@@ -95,6 +104,10 @@ jobs:
             If the report already exists, preserve accurate existing entries and add any missing entries from the current context.
             Include source references to PRs, issues, specs, or commits where useful.
 
+      - name: Validate product change report context integrity
+        if: steps.context.outputs.reportable_pr_count != '0'
+        run: sha256sum -c product-change-report-context.sha256
+
       - name: Validate product change report write surface
         if: steps.context.outputs.reportable_pr_count != '0'
         env:
@@ -104,7 +117,7 @@ jobs:
           while IFS= read -r line; do
             path="${line:3}"
             case "$path" in
-              product-change-report-context.json|product-change-report-context.md|product-change-report-diffs.md)
+              product-change-report-context.json|product-change-report-context.md|product-change-report-diffs.md|product-change-report-context.sha256)
                 continue
                 ;;
             esac

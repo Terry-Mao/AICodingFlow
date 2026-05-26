@@ -4,6 +4,7 @@ import datetime as dt
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -147,6 +148,84 @@ class ProductChangeReportScriptTest(unittest.TestCase):
         self.assertEqual(numbers, [1, 2, 3])
         self.assertTrue(any(call[:2] == ["api", "search/issues"] for call in calls))
 
+    def test_main_reuses_fetch_merged_pr_details(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            context_output = Path(temp_dir) / "context.json"
+            markdown_output = Path(temp_dir) / "context.md"
+            diff_output = Path(temp_dir) / "diffs.md"
+            github_output = Path(temp_dir) / "github-output.txt"
+            calls = {"fetch_pr_details": 0}
+
+            def fake_fetch_default_branch(repo):
+                return "main"
+
+            def fake_fetch_merged_prs(repo, start, end):
+                return [
+                    {
+                        "number": 1,
+                        "title": "merged",
+                        "url": "https://example.test/1",
+                        "mergedAt": "2026-05-25T01:00:00Z",
+                        "author": {"login": "octo"},
+                        "headRefName": "feature",
+                        "baseRefName": "main",
+                        "mergeCommit": {"oid": "abc123"},
+                        "files": [],
+                        "commits": [],
+                    }
+                ]
+
+            def fake_fetch_pr_details(repo, number):
+                calls["fetch_pr_details"] += 1
+                raise AssertionError("main should reuse fetch_merged_prs results")
+
+            def fake_fetch_pr_diff(repo, number, max_chars):
+                return "diff"
+
+            originals = (
+                prepare.fetch_default_branch,
+                prepare.fetch_merged_prs,
+                prepare.fetch_pr_details,
+                prepare.fetch_pr_diff,
+            )
+            try:
+                prepare.fetch_default_branch = fake_fetch_default_branch  # type: ignore[assignment]
+                prepare.fetch_merged_prs = fake_fetch_merged_prs  # type: ignore[assignment]
+                prepare.fetch_pr_details = fake_fetch_pr_details  # type: ignore[assignment]
+                prepare.fetch_pr_diff = fake_fetch_pr_diff  # type: ignore[assignment]
+
+                with patch(
+                    "sys.argv",
+                    [
+                        "prepare_product_change_report_context.py",
+                        "--repo",
+                        "owner/repo",
+                        "--report-date",
+                        "2026-05-25",
+                        "--context-output",
+                        str(context_output),
+                        "--markdown-output",
+                        str(markdown_output),
+                        "--diff-output",
+                        str(diff_output),
+                        "--github-output",
+                        str(github_output),
+                        "--ledger-path",
+                        str(Path(temp_dir) / "ledger.json"),
+                    ],
+                ):
+                    self.assertEqual(prepare.main(), 0)
+            finally:
+                (
+                    prepare.fetch_default_branch,
+                    prepare.fetch_merged_prs,
+                    prepare.fetch_pr_details,
+                    prepare.fetch_pr_diff,
+                ) = originals
+
+            self.assertEqual(calls["fetch_pr_details"], 0)
+            self.assertEqual(yaml.safe_load(context_output.read_text(encoding="utf-8"))["scanned_pr_count"], 1)
+
     def test_update_ledger_records_reportable_prs(self) -> None:
         context = {
             "report_date": "2026-05-25",
@@ -237,14 +316,19 @@ class ProductChangeReportWorkflowTest(unittest.TestCase):
     def test_workflow_validates_codex_write_surface_before_ledger_update(self) -> None:
         data = workflow()
         steps = data["jobs"]["report"]["steps"]
+        checksum_index = next(
+            index for index, step in enumerate(steps) if step.get("name") == "Validate product change report context integrity"
+        )
         validate_index = next(
             index for index, step in enumerate(steps) if step.get("name") == "Validate product change report write surface"
         )
         ledger_index = next(index for index, step in enumerate(steps) if step.get("name") == "Update product change report ledger")
         validate_step = steps[validate_index]
 
+        self.assertLess(checksum_index, ledger_index)
+        self.assertIn("sha256sum -c product-change-report-context.sha256", steps[checksum_index]["run"])
         self.assertLess(validate_index, ledger_index)
-        self.assertIn("product-change-report-context.json|product-change-report-context.md|product-change-report-diffs.md", validate_step["run"])
+        self.assertIn("product-change-report-context.json|product-change-report-context.md|product-change-report-diffs.md|product-change-report-context.sha256", validate_step["run"])
         self.assertIn('if [ "$path" != "$REPORT_PATH" ]; then', validate_step["run"])
         self.assertIn("Codex modified files outside the product change report", validate_step["run"])
 
