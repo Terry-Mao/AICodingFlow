@@ -22,6 +22,83 @@
       "report_date": "2026-05-26",
       "report_path": "docs/updates/auto-update-2026-05-26.md",
       "recorded_at": "2026-05-27T13:22:47Z"
+    },
+    {
+      "pr": 168,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/168",
+      "title": "fix(ci): prevent empty product report PRs",
+      "merged_at": "2026-05-27T01:41:32Z",
+      "merge_commit": "dd29382fe38c3e7ab1a48593bd7e9764c92894ac",
+      "status": "reported",
+      "report_date": "2026-05-26-to-2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
+      "recorded_at": "2026-05-27T17:36:15Z"
+    },
+    {
+      "pr": 171,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/171",
+      "title": "fix(updates): auto-select report language",
+      "merged_at": "2026-05-27T07:13:13Z",
+      "merge_commit": "9cbec29c39cf7ac627c2df2ddd7d03fc78ab62cb",
+      "status": "reported",
+      "report_date": "2026-05-26-to-2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
+      "recorded_at": "2026-05-27T17:36:15Z"
+    },
+    {
+      "pr": 172,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/172",
+      "title": "docs: 集中管理 agent 语言偏好",
+      "merged_at": "2026-05-27T10:40:21Z",
+      "merge_commit": "8358ecdda794e4fd23e0d06744385a6daf445a5a",
+      "status": "reported",
+      "report_date": "2026-05-26-to-2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
+      "recorded_at": "2026-05-27T17:36:15Z"
+    },
+    {
+      "pr": 173,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/173",
+      "title": "fix(ci): ignore closed PRs when updating workflow PRs",
+      "merged_at": "2026-05-27T12:41:16Z",
+      "merge_commit": "152a8cd9bf0758f3687708decd4e13b3d8940a97",
+      "status": "reported",
+      "report_date": "2026-05-26-to-2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
+      "recorded_at": "2026-05-27T17:36:15Z"
+    },
+    {
+      "pr": 175,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/175",
+      "title": "chore: 移动 agent 指令到仓库根目录",
+      "merged_at": "2026-05-27T13:13:31Z",
+      "merge_commit": "bd0600c9aa54b80c01894df6fb2e25b00d2c852b",
+      "status": "reported",
+      "report_date": "2026-05-26-to-2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
+      "recorded_at": "2026-05-27T17:36:15Z"
+    },
+    {
+      "pr": 174,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/174",
+      "title": "Add product change report for 2026-05-26",
+      "merged_at": "2026-05-27T13:27:14Z",
+      "merge_commit": "ed00834f0f5ef22ef846bbbd295066469b4e9fef",
+      "status": "reported",
+      "report_date": "2026-05-26-to-2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
+      "recorded_at": "2026-05-27T17:36:15Z"
+    },
+    {
+      "pr": 176,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/176",
+      "title": "docs: 精简仓库代理说明",
+      "merged_at": "2026-05-27T17:25:03Z",
+      "merge_commit": "92bca0af7ea893783f8bb1befc37b83e8d8623d6",
+      "status": "reported",
+      "report_date": "2026-05-26-to-2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
+      "recorded_at": "2026-05-27T17:36:15Z"
     }
   ]
 }
