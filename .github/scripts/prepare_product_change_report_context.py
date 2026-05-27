@@ -325,7 +325,6 @@ def write_markdown(
         lines.extend(["No unreported merged PRs found in the scan window.", ""])
     for pr in reportable_prs:
         labels = [label.get("name", "") for label in pr.get("labels") or [] if label.get("name")]
-        commits = pr.get("commits") or []
         lines.extend(
             [
                 f"## PR #{pr.get('number')}: {pr.get('title') or ''}",
@@ -336,8 +335,6 @@ def write_markdown(
                 f"- Branch: `{pr.get('headRefName') or ''}` -> `{pr.get('baseRefName') or ''}`",
                 f"- Labels: {', '.join(labels) if labels else 'none'}",
                 f"- Closing issues: {', '.join(issue_refs(pr)) if issue_refs(pr) else 'none'}",
-                f"- Merge commit: {(pr.get('mergeCommit') or {}).get('oid') or ''}",
-                f"- Commits: {len(commits)}",
                 "",
                 "Changed files:",
             ]

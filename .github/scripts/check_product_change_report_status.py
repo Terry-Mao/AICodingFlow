@@ -18,6 +18,11 @@ NO_CHANGE_PLACEHOLDER_PATTERN = re.compile(
     r"|empty[\s-]+report)[\s.。!！]*",
     re.IGNORECASE,
 )
+COMMIT_ID_PATTERN = re.compile(
+    r"\bcommit\s+`?[0-9a-f]{7,40}`?\b"
+    r"|(?<![0-9A-Za-z])(?=[0-9a-f]{7,40}(?![0-9A-Za-z]))[0-9a-f]*[a-f][0-9a-f]*(?![0-9A-Za-z])",
+    re.IGNORECASE,
+)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -50,6 +55,36 @@ def report_references_pr(report_text: str, pr: dict[str, Any]) -> bool:
 def current_prs_are_referenced(report_text: str, context: dict[str, Any]) -> bool:
     prs = context.get("reportable_prs") or []
     return bool(prs) and all(report_references_pr(report_text, pr) for pr in prs)
+
+
+def linked_issues(context: dict[str, Any]) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for pr in context.get("reportable_prs") or []:
+        for issue in pr.get("closingIssuesReferences") or []:
+            try:
+                number = int(issue.get("number"))
+            except (TypeError, ValueError):
+                continue
+            if number in seen:
+                continue
+            seen.add(number)
+            issues.append({"number": number, "url": str(issue.get("url") or "")})
+    return issues
+
+
+def validate_report_references(report_text: str, context: dict[str, Any]) -> None:
+    if COMMIT_ID_PATTERN.search(report_text):
+        raise SystemExit("product change report must not include commit IDs")
+
+    for issue in linked_issues(context):
+        number = issue["number"]
+        url = issue["url"]
+        mentions_issue = bool(
+            re.search(rf"(?<!\d)#\s*{number}(?!\d)|\bissue\s*#?\s*{number}\b", report_text, re.IGNORECASE)
+        )
+        if mentions_issue and url and url not in report_text:
+            raise SystemExit(f"related issue #{number} must reference the issue URL: {url}")
 
 
 def placeholder_body(report_text: str) -> str:
@@ -97,6 +132,8 @@ def classify_report(context: dict[str, Any], report_path: Path) -> dict[str, str
             raise SystemExit(f"existing report was replaced with an empty or no-change placeholder: {report_path}")
         report_path.unlink(missing_ok=True)
         return {"has_report": "false", "ledger_status": "scanned_no_update", "ledger_should_update": "true"}
+
+    validate_report_references(report_text, context)
 
     if has_worktree_change(report_path):
         return {"has_report": "true", "ledger_status": "reported", "ledger_should_update": "true"}

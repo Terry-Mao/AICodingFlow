@@ -54,7 +54,7 @@ Be conservative: quality over quantity. When a change is not clearly reportable,
 - Review recent files matching `docs/updates/auto-update-*.md` to match structure and terminology
 
 **Review source context:**
-- Merged PRs and commit diffs
+- Merged PRs and diffs
 - PR descriptions and linked issues
 - `specs/issue-*/product.md` and `specs/issue-*/tech.md` when present
 - Existing `docs/product/` content for terminology and product concepts
@@ -76,7 +76,9 @@ Map source changes into report sections. Use the repository's existing report fo
 
 **Guidelines:**
 - Prioritize user-facing changes, then operationally important engineering changes
-- Keep entries concise but traceable to source PRs, commits, issues, or specs
+- Keep entries concise but traceable to source PRs, issue URLs, or specs
+- Do not include commit IDs in generated reports.
+- When adding a related issue reference, use the GitHub issue URL from the linked issue metadata rather than a PR URL.
 - Describe behavior and impact, not implementation details, unless the implementation detail explains risk or validation
 - Do not present planned, unmerged, or speculative work as shipped
 - Do not make `docs/updates/` sound authoritative over `docs/product/`, approved specs, or code
@@ -87,7 +89,7 @@ Map source changes into report sections. Use the repository's existing report fo
 - Use the same tone, voice, and formality level identified in previous reports
 - Follow the same heading structure and hierarchy
 - Use consistent terminology from specs and `docs/product/`
-- Include source references for traceability
+- Include source references for traceability without commit IDs
 - Preserve existing report content if updating an already-created report for the same date
 
 ### 5. Execute or Report
@@ -113,7 +115,7 @@ Output a text summary describing:
 
 ## Multi-Repository Setup
 
-When source code and update reports are in separate repositories, identify changes in the source repo, then switch to the docs repo and follow the workflow above. Reference source commits or PRs in the report and PR description.
+When source code and update reports are in separate repositories, identify changes in the source repo, then switch to the docs repo and follow the workflow above. Reference source PRs, issue URLs, or specs in the report and PR description.
 
 ## Edge Cases
 
@@ -127,7 +129,7 @@ When source code and update reports are in separate repositories, identify chang
 - **Time-series**: Update reports capture what changed during a period; they are not authoritative product docs
 - **Conservative**: Better to skip than clutter the report
 - **Consistent**: Match existing style, tone, and structure exactly
-- **Traceable**: Link report entries back to issues, specs, PRs, or commits
+- **Traceable**: Link report entries back to issues, specs, or PRs without exposing commit IDs
 - **Contextual**: Consider specs, product docs, and prior reports before summarizing
 - **Clear**: Explain significance, user impact, risk, and validation needs
 - **Bounded**: Modify only the target update report. Do not modify `docs/product/`, compiled wiki pages, source specs, workflow files, or ledger state from this skill
