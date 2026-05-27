@@ -190,8 +190,17 @@ jobs:
           trap 'rm -f "$body_file"' EXIT
           python3 .github/scripts/write_product_change_report_pr_body.py --output "$body_file"
 
-          if gh pr view "$branch" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh pr edit "$branch" \
+          existing_pr="$(
+            gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
               --repo "${{ github.repository }}" \
               --title "Add product change report for ${REPORT_DATE}" \
               --body-file "$body_file"

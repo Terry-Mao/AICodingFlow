@@ -169,8 +169,17 @@ jobs:
           trap 'rm -f "$body_file"' EXIT
           python3 .github/scripts/write_update_dedupe_pr_body.py --output "$body_file"
 
-          if gh pr view "$branch" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh pr edit "$branch" \
+          existing_pr="$(
+            gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
               --repo "${{ github.repository }}" \
               --title "Update dedupe guidance" \
               --body-file "$body_file"

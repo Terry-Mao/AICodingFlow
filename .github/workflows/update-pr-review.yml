@@ -161,8 +161,17 @@ jobs:
           EOF
           )"
 
-          if gh pr view "$branch" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh pr edit "$branch" \
+          existing_pr="$(
+            gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
               --repo "${{ github.repository }}" \
               --title "Update PR review guidance" \
               --body "$body"
