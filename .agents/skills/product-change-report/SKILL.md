@@ -83,14 +83,6 @@ Map source changes into report sections. Use the repository's existing report fo
 
 ### 4. Generate the Update Report
 
-**Choose the report language automatically:**
-- If updating an existing report, preserve that report's primary natural language.
-- If creating a new report and previous `docs/updates/auto-update-*.md` reports exist, use the dominant natural language of the most recent reports.
-- If no previous reports exist, infer the primary natural language from the reportable PR titles, PR bodies, linked issues, checked-in specs, and relevant product docs.
-- For primarily Chinese source context, write the report in Chinese. For primarily English source context, write the report in English.
-- If the source context is mixed or unclear, prefer the dominant language used by maintainer-authored docs and specs. If still unclear, default to English.
-- Keep code identifiers, file paths, labels, branch names, API names, PR numbers, URLs, and quoted command output unchanged.
-
 **Match existing report style:**
 - Use the same tone, voice, and formality level identified in previous reports
 - Follow the same heading structure and hierarchy
