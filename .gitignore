@@ -13,5 +13,12 @@ htmlcov/
 /spec_context.md
 /review.json
 /.local_review_baseline.status
+/issue_context.json
+/issue_comments.txt
 /implementation_summary.md
+/pr-metadata.json
+/pr_description.md
+/validation-output.txt
+/validation-error.txt
+/branch-start-shas.json
 /.worktrees/
