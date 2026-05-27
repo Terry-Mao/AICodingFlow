@@ -35,7 +35,7 @@ install_repository="${AICODINGFLOW_INSTALL_REPOSITORY:-https://github.com/Terry-
 
 is_source_tree() {
   [ -f "$script_dir/install.sh" ] &&
-    [ -f "$script_dir/.agents/AGENTS.md" ] &&
+    [ -f "$script_dir/AGENTS.md" ] &&
     [ -d "$script_dir/.agents/skills" ] &&
     [ -d "$script_dir/.github/workflows" ]
 }
