@@ -81,7 +81,11 @@ def validate_report_references(report_text: str, context: dict[str, Any]) -> Non
         number = issue["number"]
         url = issue["url"]
         mentions_issue = bool(
-            re.search(rf"(?<!\d)#\s*{number}(?!\d)|\bissue\s*#?\s*{number}\b", report_text, re.IGNORECASE)
+            re.search(
+                rf"\b(?:related\s+issues?|issue)\b[^\n#]{{0,80}}#?\s*{number}(?!\d)",
+                report_text,
+                re.IGNORECASE,
+            )
         )
         if mentions_issue and url and url not in report_text:
             raise SystemExit(f"related issue #{number} must reference the issue URL: {url}")

@@ -587,6 +587,34 @@ class ProductChangeReportScriptTest(unittest.TestCase):
 
             self.assertEqual(status["ledger_status"], "reported")
 
+    def test_report_status_allows_pr_number_matching_linked_issue_number(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT) as temp_dir:
+            report_path = Path(temp_dir) / "report.md"
+            report_path.write_text("# Report\n\n- Delivered report generation. Source: PR #87.\n", encoding="utf-8")
+            context = {
+                "report_path": str(report_path),
+                "reportable_prs": [
+                    {
+                        "number": 87,
+                        "url": "https://github.com/owner/repo/pull/87",
+                        "closingIssuesReferences": [
+                            {
+                                "number": 87,
+                                "url": "https://github.com/owner/repo/issues/87",
+                            }
+                        ],
+                    }
+                ],
+            }
+            original_has_worktree_change = report_status.has_worktree_change
+            try:
+                report_status.has_worktree_change = lambda path: True  # type: ignore[assignment]
+                status = report_status.classify_report(context, report_path)
+            finally:
+                report_status.has_worktree_change = original_has_worktree_change
+
+            self.assertEqual(status["ledger_status"], "reported")
+
     def test_report_status_marks_unchanged_unreferenced_report_as_scanned_no_update(self) -> None:
         with tempfile.TemporaryDirectory(dir=ROOT) as temp_dir:
             report_path = Path(temp_dir) / "report.md"
