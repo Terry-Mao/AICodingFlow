@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "pr": 165,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/165",
+      "title": "docs(skill): add product change report workflow",
+      "merged_at": "2026-05-26T16:57:33Z",
+      "merge_commit": "a32bc785fa9145d8e78e65a014a4628c71f53ec7",
+      "status": "reported",
+      "report_date": "2026-05-26",
+      "report_path": "docs/updates/auto-update-2026-05-26.md",
+      "recorded_at": "2026-05-27T13:22:47Z"
+    },
+    {
+      "pr": 166,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/166",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-26T17:31:53Z",
+      "merge_commit": "fde8890334541a447f113fca4ce1bea822cefd31",
+      "status": "reported",
+      "report_date": "2026-05-26",
+      "report_path": "docs/updates/auto-update-2026-05-26.md",
+      "recorded_at": "2026-05-27T13:22:47Z"
+    }
+  ]
+}
