@@ -20,6 +20,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         workflow_jobs = {
             ".github/workflows/create-implementation-from-issue.yml": "create-implementation",
             ".github/workflows/create-spec-from-issue.yml": "create-spec",
+            ".github/workflows/product-docs-sync.yml": "sync",
             ".github/workflows/review-pr.yml": "review",
             ".github/workflows/respond-to-pr-comment.yml": "respond",
             ".github/workflows/triage-issue.yml": "generate",
