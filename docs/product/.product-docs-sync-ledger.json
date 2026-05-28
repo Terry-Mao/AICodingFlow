@@ -24,6 +24,85 @@
       "affected_docs": [],
       "reason": "PR #53 only corrects the technical spec's implementation branch-name examples from `oz-agent/...` to `spec/...`. The authoritative product documentation already describes the default implementation branch behavior using the `spec/implement-issue_<issue_number>` form, so no long-term product docs change is needed.",
       "recorded_at": "2026-05-28T09:48:57Z"
+    },
+    {
+      "pr": 50,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/50",
+      "title": "feat: add issue implementation workflow",
+      "merged_at": "2026-05-14T13:40:03Z",
+      "merge_commit": "6c5a4c2923c9ead81174f4df33b03a7b7b64c93e",
+      "docs_update": "not-needed",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #50",
+        "Issue #18",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because docs/product/raw/implementation-workflow.md already accurately documents the merged workflow behavior.",
+      "reason": "PR #50 introduced the automatic implementation workflow for ready-to-implement issues, which is product-significant. The existing authoritative product doc already covers the durable behavior: trigger guards, spec-context priority, target branch selection, noop handling, draft implementation PR behavior, agent handoff files, and outer workflow responsibilities.",
+      "recorded_at": "2026-05-28T11:35:00Z"
+    },
+    {
+      "pr": 55,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/55",
+      "title": "docs(spec): create issue 51 specs",
+      "merged_at": "2026-05-14T13:41:34Z",
+      "merge_commit": "5380167e96fb8ead9207cbc87b889800a192a695",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #55",
+        "Issue #51",
+        "specs/issue-51/product.md"
+      ],
+      "proposed_patch": "新增 docs/product/raw/pr-review-verdict.md，记录 review.json verdict 契约、PR 类型与作者身份判断、GitHub review event 映射、human reviewer 选择和 merge gate 语义。",
+      "reason": "PR #55 合并了 issue #51 的产品规格，新增 PR review verdict、GitHub review event 映射、non-member gate 与 CODEOWNERS reviewer 选择规则。这些属于长期产品契约，现有产品文档尚未覆盖。",
+      "recorded_at": "2026-05-28T11:40:45Z"
+    },
+    {
+      "pr": 56,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/56",
+      "title": "fix(ci): tighten workflow trigger gates",
+      "merged_at": "2026-05-14T14:36:17Z",
+      "merge_commit": "ca4b81f14715afb37b9b1ff5aaa9166099deef5b",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #56",
+        "Issue #54",
+        "specs/issue-18/product.md",
+        "README.md"
+      ],
+      "proposed_patch": "更新 authoritative implementation workflow 文档，补充触发 gate、AGENT_LOGIN 配置和 plan-approved 语义；新增 raw 产品文档记录自动 spec workflow 的触发契约。",
+      "reason": "PR #56 改变了长期 workflow 触发语义和仓库配置：spec 与 implementation workflow 的 label/assignment 事件现在需要 ready label 与目标 agent assignment 同时满足，并统一使用 AGENT_LOGIN；plan-approved spec PR label 也不再触发 implementation workflow。现有产品文档只部分覆盖 implementation workflow，且没有记录 spec workflow 的触发契约。",
+      "recorded_at": "2026-05-28T11:47:05Z"
+    },
+    {
+      "pr": 58,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/58",
+      "title": "fix(ci): commit implementation workflow diffs",
+      "merged_at": "2026-05-14T15:34:55Z",
+      "merge_commit": "0a49aaadfd24398a87c1eb9f88932cb652f1d2f4",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/spec-workflow.md",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #58",
+        "Issue #54",
+        "specs/issue-18/product.md"
+      ],
+      "proposed_patch": "Document that manual spec workflow dispatch still requires ready-to-spec plus target agent assignment, document that ready-to-implement suppresses spec workflow startup, and add PR #58 to affected source references.",
+      "reason": "PR #58 changed durable workflow behavior: implementation agents now leave diffs and metadata for the outer workflow to commit and push, and spec workflow entry points are guarded from issues already marked ready-to-implement. The implementation handoff behavior was already documented, but the spec workflow gating and source attribution needed to be updated.",
+      "recorded_at": "2026-05-28T11:57:14Z"
     }
   ]
 }
