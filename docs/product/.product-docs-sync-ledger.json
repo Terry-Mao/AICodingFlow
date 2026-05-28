@@ -120,6 +120,23 @@
       "proposed_patch": "No product docs patch is needed.",
       "reason": "PR #59 only hardens the implementation branch handoff internals by stashing the full worktree and recomputing committable paths after restore. It does not change the long-term implementation workflow contract already documented in docs/product/raw/implementation-workflow.md.",
       "recorded_at": "2026-05-28T12:02:01Z"
+    },
+    {
+      "pr": 60,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/60",
+      "title": "fix(ci): preserve implementation status paths",
+      "merged_at": "2026-05-14T16:35:03Z",
+      "merge_commit": "d305880e5285b0ec030b1afbe5ce97b4aeeea182",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #60",
+        "Issue #54",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #60 only fixes internal implementation-branch handoff plumbing so captured git porcelain status output preserves leading spaces, with a regression test. It does not change long-term product behavior, workflow triggers, user-visible semantics, configuration, or integration contracts beyond the behavior already covered by existing implementation workflow docs.",
+      "recorded_at": "2026-05-28T14:05:38Z"
     }
   ]
 }
