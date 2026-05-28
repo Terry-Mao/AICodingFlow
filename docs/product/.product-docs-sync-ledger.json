@@ -197,6 +197,22 @@
       "proposed_patch": "Updated the automatic implementation workflow product doc to describe WORKFLOW_UPDATE_TOKEN requirements for .github/workflows changes and added PR #68 to the source references.",
       "reason": "PR #68 changes the automatic implementation workflow's long-term configuration behavior for implementation branches that modify GitHub workflow files. Product docs needed to record that such changes require WORKFLOW_UPDATE_TOKEN, while ordinary implementation pushes continue to use GITHUB_TOKEN.",
       "recorded_at": "2026-05-28T14:23:06Z"
+    },
+    {
+      "pr": 69,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/69",
+      "title": "fix(ci): use workflow token for git push auth",
+      "merged_at": "2026-05-15T06:38:44Z",
+      "merge_commit": "59aeeeca8867dc91e28b9485cf0a5f26c1c3e5bf",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #69",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the change is an internal CI authentication hardening and diagnostic improvement already covered at the product-behavior level.",
+      "reason": "PR #69 fixes the internal git push authentication path for workflow-file implementation branches and flushes diagnostics, without changing the documented implementation workflow contract. The existing implementation workflow docs already state that workflow-file changes require WORKFLOW_UPDATE_TOKEN and use that token for pushing.",
+      "recorded_at": "2026-05-28T14:29:03Z"
     }
   ]
 }
