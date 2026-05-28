@@ -268,6 +268,24 @@
       "proposed_patch": "No product docs patch needed; the authoritative PR review behavior is already covered by existing docs/product content.",
       "reason": "PR #76 changed the AI PR Review workflow so draft or fork PRs are stopped by preflight before the real review job runs. Existing product docs already state that only open, non-draft, same-repository PRs are reviewable and that draft or fork PRs are skipped without running the agent, posting review, or uploading artifacts.",
       "recorded_at": "2026-05-28T18:14:00Z"
+    },
+    {
+      "pr": 71,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/71",
+      "title": "feat: add PR review verdict gate",
+      "merged_at": "2026-05-15T11:02:38Z",
+      "merge_commit": "2dd675bbf73dbed96fc7db27120605b83cb93c24",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #71",
+        "Issue #51",
+        "specs/issue-51/product.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "proposed_patch": "无需补丁；现有产品文档已描述本次合并后的长期产品行为。",
+      "reason": "PR #71 引入的 review.json verdict 契约、non-member code PR 的 REQUEST_CHANGES 映射、CODEOWNERS reviewer 请求与保守作者判断，已由现有 docs/product/raw/pr-review-verdict.md 准确覆盖。该 PR 不需要额外长期产品文档更新。",
+      "recorded_at": "2026-05-28T18:24:14Z"
     }
   ]
 }
