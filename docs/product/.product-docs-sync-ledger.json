@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "pr": 52,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/52",
+      "title": "Update product.md",
+      "merged_at": "2026-05-14T13:18:10Z",
+      "merge_commit": "9b0915e1298f855ceef424a09e3034adefb7f675",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "reason": "PR #52 更新了已合并产品规格中的自动实现 workflow 分支契约：无 approved spec PR 时默认 implementation 分支从 `oz-agent/implement-issue-<issue_number>` 改为 `spec/implement-issue-<issue_number>`。现有长期产品文档未覆盖该 workflow 行为，因此需要补充 authoritative product docs。",
+      "recorded_at": "2026-05-28T09:28:15Z"
+    }
+  ]
+}
