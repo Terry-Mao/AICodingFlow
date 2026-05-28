@@ -213,6 +213,22 @@
       "proposed_patch": "No product docs patch is needed because the change is an internal CI authentication hardening and diagnostic improvement already covered at the product-behavior level.",
       "reason": "PR #69 fixes the internal git push authentication path for workflow-file implementation branches and flushes diagnostics, without changing the documented implementation workflow contract. The existing implementation workflow docs already state that workflow-file changes require WORKFLOW_UPDATE_TOKEN and use that token for pushing.",
       "recorded_at": "2026-05-28T14:29:03Z"
+    },
+    {
+      "pr": 73,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/73",
+      "title": "fix(ci): update actions for Node 24 runtime",
+      "merged_at": "2026-05-15T07:11:02Z",
+      "merge_commit": "118d4a50d316c4b9329a9d6a0ba565faa1b93529",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #73",
+        "Issue #70"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #73 only updates GitHub Actions runtime compatibility by upgrading action versions and opting workflow jobs into Node 24. The merged changes are CI/build plumbing and test coverage, with no change to product workflows, permissions, lifecycle rules, public contracts, or documented user-visible behavior.",
+      "recorded_at": "2026-05-28T17:47:41Z"
     }
   ]
 }
