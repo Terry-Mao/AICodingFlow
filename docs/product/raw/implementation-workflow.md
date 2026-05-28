@@ -45,7 +45,13 @@ implementation PR，并维护 issue progress comment。提交实现分支时，�
 只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files`
 不一致，或包含 Python/cache 等生成文件，workflow 会拒绝提交。
 
+当实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，仓库必须配置
+`WORKFLOW_UPDATE_TOKEN` secret。外层 workflow 会使用该 token 推送 implementation
+分支，以获得 workflow 文件写入权限；若缺少该 secret，包含 workflow 文件的实现提交会在
+commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继续使用默认
+`GITHUB_TOKEN` 推送。
+
 创建或更新 implementation PR 并产生实际实现变更后，workflow 会显式触发 AI PR
 Review workflow review 该 implementation PR。
 
-来源：PR #52，PR #56，PR #58，PR #67，`specs/issue-18/product.md`。
+来源：PR #52，PR #56，PR #58，PR #67，PR #68，`specs/issue-18/product.md`。

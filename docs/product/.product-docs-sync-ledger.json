@@ -178,6 +178,25 @@
       "proposed_patch": "更新 authoritative raw 产品文档，覆盖 implementation handoff 文件选择、AI PR Review 的 open/comment 触发行为，以及 spec workflow 只复用 open PR 的规则。",
       "reason": "PR #67 改变了长期 workflow 行为：implementation metadata 现在必须包含 intended_files，外层 workflow 会拒绝未声明、handoff 或生成缓存文件。该 PR 也改变了 AI PR Review 的可 review 条件与 spec PR 复用语义，因此现有产品文档需要更新。",
       "recorded_at": "2026-05-28T14:19:31Z"
+    },
+    {
+      "pr": 68,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/68",
+      "title": "fix(ci): support workflow-file push token",
+      "merged_at": "2026-05-14T20:15:43Z",
+      "merge_commit": "41454f2db45fb3037f8e3b4e9cc52d83e812e84a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #68",
+        "Issue #51",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "Updated the automatic implementation workflow product doc to describe WORKFLOW_UPDATE_TOKEN requirements for .github/workflows changes and added PR #68 to the source references.",
+      "reason": "PR #68 changes the automatic implementation workflow's long-term configuration behavior for implementation branches that modify GitHub workflow files. Product docs needed to record that such changes require WORKFLOW_UPDATE_TOKEN, while ordinary implementation pushes continue to use GITHUB_TOKEN.",
+      "recorded_at": "2026-05-28T14:23:06Z"
     }
   ]
 }
