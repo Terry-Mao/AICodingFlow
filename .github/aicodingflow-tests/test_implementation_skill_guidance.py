@@ -52,6 +52,17 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
             self.assertIn("Read the skill path printed by the command", compact_text)
             self.assertIn("Follow the selected skill exactly", compact_text)
 
+    def test_create_pr_skill_only_reuses_open_prs(self) -> None:
+        text = (ROOT / ".agents/skills/create-pr/SKILL.md").read_text(encoding="utf-8")
+        compact_text = compact(text)
+
+        self.assertIn('pr_url="$(gh pr list --state open --head "$branch" --json url', text)
+        self.assertIn("gh pr edit \"$pr_url\"", text)
+        self.assertIn("Do not use `gh pr view` as the existence check", text)
+        self.assertIn("A merged or closed PR with the same branch name is not reusable", compact_text)
+        self.assertNotIn("$pr_number", text)
+        self.assertNotIn("gh pr view --json url,title,body,baseRefName,headRefName", text)
+
 
 if __name__ == "__main__":
     unittest.main()
