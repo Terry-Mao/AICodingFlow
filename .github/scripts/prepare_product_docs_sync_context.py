@@ -25,6 +25,7 @@ ISSUE_REFERENCE_KEYWORD_RE = re.compile(
     re.IGNORECASE,
 )
 ISSUE_NUMBER_RE = re.compile(r"#(\d+)\b")
+PULL_REQUEST_REFERENCE_PREFIX_RE = re.compile(r"(?:\bPR|\bpull\s+request)\s*$", re.IGNORECASE)
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -244,8 +245,11 @@ def issue_numbers(pr: dict[str, Any]) -> list[int]:
         add_number(issue.get("number"))
     for text in (pr.get("title") or "", pr.get("body") or ""):
         for match in ISSUE_REFERENCE_KEYWORD_RE.finditer(str(text)):
-            for number in ISSUE_NUMBER_RE.findall(match.group(0)):
-                add_number(number)
+            reference_text = match.group(0)
+            for number_match in ISSUE_NUMBER_RE.finditer(reference_text):
+                if PULL_REQUEST_REFERENCE_PREFIX_RE.search(reference_text[: number_match.start()]):
+                    continue
+                add_number(number_match.group(1))
     return numbers
 
 

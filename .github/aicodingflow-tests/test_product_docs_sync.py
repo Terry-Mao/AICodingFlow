@@ -37,7 +37,7 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
     def test_issue_numbers_are_deduplicated_from_closing_and_refs_references(self) -> None:
         pr = {
             "title": "Implement product flow refs #90",
-            "body": "Refs #88, #89\n\nMentioned PR #123 should not count.\nFixes #91",
+            "body": "Refs #88, #89 and PR #123\n\nReferenced pull request #124 should not count.\nFixes #91",
             "closingIssuesReferences": [
                 {"number": 87},
                 {"number": "87"},
