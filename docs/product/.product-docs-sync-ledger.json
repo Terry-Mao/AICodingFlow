@@ -103,6 +103,23 @@
       "proposed_patch": "Document that manual spec workflow dispatch still requires ready-to-spec plus target agent assignment, document that ready-to-implement suppresses spec workflow startup, and add PR #58 to affected source references.",
       "reason": "PR #58 changed durable workflow behavior: implementation agents now leave diffs and metadata for the outer workflow to commit and push, and spec workflow entry points are guarded from issues already marked ready-to-implement. The implementation handoff behavior was already documented, but the spec workflow gating and source attribution needed to be updated.",
       "recorded_at": "2026-05-28T11:57:14Z"
+    },
+    {
+      "pr": 59,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/59",
+      "title": "fix(ci): harden implementation branch handoff",
+      "merged_at": "2026-05-14T16:10:44Z",
+      "merge_commit": "6f81570fa17c469e49e63ebcca2e34ec984acd38",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #59",
+        "Issue #54",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #59 only hardens the implementation branch handoff internals by stashing the full worktree and recomputing committable paths after restore. It does not change the long-term implementation workflow contract already documented in docs/product/raw/implementation-workflow.md.",
+      "recorded_at": "2026-05-28T12:02:01Z"
     }
   ]
 }
