@@ -229,6 +229,27 @@
       "proposed_patch": "No product docs patch is needed.",
       "reason": "PR #73 only updates GitHub Actions runtime compatibility by upgrading action versions and opting workflow jobs into Node 24. The merged changes are CI/build plumbing and test coverage, with no change to product workflows, permissions, lifecycle rules, public contracts, or documented user-visible behavior.",
       "recorded_at": "2026-05-28T17:47:41Z"
+    },
+    {
+      "pr": 74,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/74",
+      "title": "fix(ci): avoid auto review for implementation PRs",
+      "merged_at": "2026-05-15T08:34:03Z",
+      "merge_commit": "6065320fd4bc11a0df3671f214f48d8d9ae1cc6a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #74",
+        "Issue #72",
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "proposed_patch": "Updated implementation workflow docs to state that implementation PRs remain draft and require manual PR comment mention for review, and updated spec/implementation trigger docs to clarify that PR comments are handled by the review workflow.",
+      "reason": "PR #74 changes long-term workflow behavior: implementation PR creation no longer dispatches AI PR Review automatically, and PR comment mentions are routed away from issue spec/implementation workflows to review-pr. Existing product docs stated the old automatic implementation review behavior and did not clarify the PR-comment exclusion.",
+      "recorded_at": "2026-05-28T18:03:13Z"
     }
   ]
 }

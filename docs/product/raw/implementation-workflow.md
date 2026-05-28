@@ -11,6 +11,9 @@ mention 触发。自动 issue 事件只有在 issue 不是 PR 且满足以下条
 - assign 给目标 agent 时，issue 必须已经带有 `ready-to-implement` label。
 - issue comment 显式 mention 目标 agent 时，可以触发已 ready 的 issue。
 
+PR comment 不会触发 implementation workflow；PR comment mention 由 AI PR Review
+workflow 处理。
+
 目标 agent login 来自 workflow input `agent_login`，未提供时使用仓库 Actions
 variable `AGENT_LOGIN`。`SPEC_AGENT_LOGIN` 与 `IMPLEMENT_AGENT_LOGIN` 不再作为该
 workflow 的配置入口。
@@ -51,7 +54,8 @@ implementation PR，并维护 issue progress comment。提交实现分支时，�
 commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继续使用默认
 `GITHUB_TOKEN` 推送。
 
-创建或更新 implementation PR 并产生实际实现变更后，workflow 会显式触发 AI PR
-Review workflow review 该 implementation PR。
+创建或更新 implementation PR 后不会自动触发 AI PR Review，因为 implementation PR
+默认保持 draft。需要 review 时，在 PR comment 中 `@AGENT_LOGIN` 手动触发；是否真正执行
+review 仍由 AI PR Review workflow 自身的 open、draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #67，PR #68，`specs/issue-18/product.md`。
+来源：PR #52，PR #56，PR #58，PR #67，PR #68，PR #74，`specs/issue-18/product.md`。
