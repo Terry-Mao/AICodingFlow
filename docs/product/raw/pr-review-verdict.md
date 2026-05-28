@@ -27,6 +27,29 @@ skill：
 `review-pr` / `review-spec` 工作流的仓库本地包装器，用于补充本仓库的评审偏好，
 不改变核心输出契约。
 
+## 本地 review 入口
+
+本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或
+`review-spec-local` 在当前分支运行与 GitHub review workflow 一致的评审流程。
+两个本地 skill 会先准备根目录快照，再分别委托给 `review-pr-repo` 或
+`review-spec-repo`。
+
+本地 review 输入与输出固定在仓库根目录：
+
+- `pr_description.txt`
+- `pr_diff.txt`
+- `spec_context.md`，仅 code review 需要且存在可用 spec context 时生成
+- `review.json`
+
+本地 review 准备阶段要求 worktree 先保持干净，并会删除旧的 review 快照。准备完成后，
+review 阶段只能写入 `review.json`，不得修改源码、workflow、测试、spec 或 skill 文件；
+校验会拒绝 staged change、非 review 快照文件变更，以及 review 输出被意外删除。
+
+本地 review 的 PR diff 默认比较当前 head 与默认 base，base 按
+`upstream/main`、`origin/main`、`main` 的优先级解析，也可以显式传入 base。code
+review 会根据本地 diff 中的 changed files 解析 spec context；spec-only review 不生成
+spec context。
+
 ## Review 输出契约
 
 `review.json` 必须包含：
@@ -98,4 +121,4 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，PR #65，PR #67，PR #79，`specs/issue-51/product.md`。
+来源：PR #55，PR #65，PR #67，PR #79，PR #81，`specs/issue-51/product.md`。

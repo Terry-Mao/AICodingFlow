@@ -306,6 +306,24 @@
       "proposed_patch": "Updated the PR review product doc to state that spec-only PRs use review-spec-repo, other code PRs use review-pr-repo, and both repo companions preserve the core review-pr/review-spec output contract.",
       "reason": "PR #79 renamed the long-lived repo review companion skills used by AI PR Review from review-pr-local/review-spec-local to review-pr-repo/review-spec-repo. Existing product docs described PR review behavior but did not record the current repo companion selection, so the authoritative docs needed a concise update.",
       "recorded_at": "2026-05-28T18:30:04Z"
+    },
+    {
+      "pr": 81,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/81",
+      "title": "新增一个 review-pr-local / review-spec-local",
+      "merged_at": "2026-05-16T03:37:59Z",
+      "merge_commit": "d2b40d3c480dc2675836a42926d33ab4cdc48019",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #81",
+        "Issue #80"
+      ],
+      "proposed_patch": "已在 docs/product/raw/pr-review-verdict.md 增加本地 review 入口章节，说明 review-pr-local/review-spec-local 的适用时机、委托关系、根目录快照契约、干净 worktree 要求、只允许 review 输出变更的校验约束，以及 base/spec context 解析行为。",
+      "reason": "PR #81 新增 review-pr-local 与 review-spec-local，提供本地运行仓库 PR/spec review workflow 的用户入口，改变了长期 review 工作流行为。现有产品文档只覆盖 GitHub AI PR Review 的触发、skill 选择和 verdict 语义，未记录本地 review 的输入输出快照、spec context 行为和 mutation guard 约束。",
+      "recorded_at": "2026-05-28T19:06:17Z"
     }
   ]
 }
