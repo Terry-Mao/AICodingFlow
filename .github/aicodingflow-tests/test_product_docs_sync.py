@@ -23,6 +23,10 @@ body_writer = import_script(
     ".github/scripts/write_product_docs_sync_pr_body.py",
     "write_product_docs_sync_pr_body",
 )
+ledger_writer = import_script(
+    ".github/scripts/update_product_docs_sync_ledger.py",
+    "update_product_docs_sync_ledger",
+)
 
 
 def workflow() -> dict:
@@ -56,6 +60,41 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
         self.assertEqual(specs[0]["path"], "specs/issue-87/product.md")
         self.assertEqual(docs[0]["path"], "docs/product/raw/overview.md")
 
+    def test_ledger_selects_first_unprocessed_pr(self) -> None:
+        prs = [
+            {"number": 87, "title": "done", "url": "https://example.test/87", "mergedAt": "2026-05-25T01:00:00Z"},
+            {"number": 88, "title": "next", "url": "https://example.test/88", "mergedAt": "2026-05-25T02:00:00Z"},
+        ]
+        ledger = {"version": 1, "entries": [{"pr": 87, "docs_update": "not-needed", "recorded_at": "2026-05-25T03:00:00Z"}]}
+
+        selected, skipped = prepare.select_unprocessed_pr(prs, ledger)
+
+        self.assertEqual(selected["number"], 88)
+        self.assertEqual(skipped[0]["number"], 87)
+        self.assertEqual(skipped[0]["docs_update"], "not-needed")
+
+    def test_update_ledger_records_docs_sync_decision(self) -> None:
+        context = {
+            "pr": {
+                "number": 87,
+                "title": "Implement flow",
+                "url": "https://example.test/pull/87",
+                "mergedAt": "2026-05-25T02:00:00Z",
+                "mergeCommit": {"oid": "abc123"},
+            }
+        }
+        result = {
+            "docs_update": "required",
+            "reason": "Product flow changed.",
+            "affected_docs": ["docs/product/raw/flow.md"],
+        }
+
+        ledger = ledger_writer.update_ledger({"version": 1, "entries": []}, context, result, "2026-05-25T03:00:00Z")
+
+        self.assertEqual(ledger["entries"][0]["pr"], 87)
+        self.assertEqual(ledger["entries"][0]["docs_update"], "required")
+        self.assertEqual(ledger["entries"][0]["merge_commit"], "abc123")
+
     def test_validate_schema_accepts_required_contract(self) -> None:
         decision = validator.validate_schema(
             {
@@ -85,6 +124,21 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             validator.validate_write_surface("uncertain", ["product-docs-sync-result.json"])
 
+    def test_write_surface_does_not_count_ledger_as_product_docs(self) -> None:
+        with self.assertRaises(SystemExit):
+            validator.validate_write_surface(
+                "required",
+                ["product-docs-sync-result.json", "docs/product/.product-docs-sync-ledger.json"],
+            )
+
+    def test_write_surface_allows_not_needed_ledger_update(self) -> None:
+        docs = validator.validate_write_surface(
+            "not-needed",
+            ["product-docs-sync-result.json", "docs/product/.product-docs-sync-ledger.json"],
+        )
+
+        self.assertEqual(docs, [])
+
     def test_write_surface_allows_not_needed_without_docs_change(self) -> None:
         docs = validator.validate_write_surface(
             "not-needed",
@@ -92,6 +146,13 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
         )
 
         self.assertEqual(docs, [])
+
+    def test_write_surface_rejects_non_markdown_product_paths(self) -> None:
+        with self.assertRaises(SystemExit):
+            validator.validate_write_surface(
+                "not-needed",
+                ["product-docs-sync-result.json", "docs/product/raw/flow.json"],
+            )
 
     def test_write_surface_rejects_non_docs_product_paths(self) -> None:
         with self.assertRaises(SystemExit):
@@ -153,13 +214,14 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
 
 
 class ProductDocsSyncWorkflowTest(unittest.TestCase):
-    def test_workflow_runs_on_merged_prs_and_manual_dispatch(self) -> None:
+    def test_workflow_runs_on_schedule_and_manual_dispatch(self) -> None:
         data = workflow()
         triggers = data[True]
 
         self.assertIn("workflow_dispatch", triggers)
-        self.assertEqual(triggers["pull_request"]["types"], ["closed"])
-        self.assertIn("github.event.pull_request.merged == true", data["jobs"]["sync"]["if"])
+        self.assertIn("schedule", triggers)
+        self.assertNotIn("pull_request", triggers)
+        self.assertEqual(triggers["workflow_dispatch"]["inputs"]["pr_number"]["required"], False)
         self.assertEqual(data["permissions"]["contents"], "write")
         self.assertEqual(data["permissions"]["pull-requests"], "write")
 
@@ -180,12 +242,15 @@ class ProductDocsSyncWorkflowTest(unittest.TestCase):
         names = [step.get("name") or step.get("uses") for step in steps]
 
         self.assertLess(names.index("Validate product docs sync context integrity"), names.index("Validate product docs sync result"))
-        self.assertLess(names.index("Validate product docs sync result"), names.index("Create or update product docs sync pull request"))
+        self.assertLess(names.index("Validate product docs sync result"), names.index("Update product docs sync ledger"))
+        self.assertLess(names.index("Update product docs sync ledger"), names.index("Create or update product docs sync pull request"))
 
         validate_step = next(step for step in steps if step.get("name") == "Validate product docs sync result")
+        ledger_step = next(step for step in steps if step.get("name") == "Update product docs sync ledger")
         create_step = next(step for step in steps if step.get("name") == "Create or update product docs sync pull request")
         self.assertIn("validate_product_docs_sync_result.py", validate_step["run"])
-        self.assertIn("steps.decision.outputs.should_create_pr == 'true'", create_step["if"])
+        self.assertIn("update_product_docs_sync_ledger.py", ledger_step["run"])
+        self.assertIn("steps.changes.outputs.changed == 'true'", create_step["if"])
         self.assertIn('branch="docs/product-docs-sync-pr-${SOURCE_PR_NUMBER}"', create_step["run"])
         self.assertIn("--draft", create_step["run"])
 

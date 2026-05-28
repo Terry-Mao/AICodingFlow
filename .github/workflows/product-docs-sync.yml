@@ -4,22 +4,34 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: "Merged implementation pull request number"
-        required: true
-  pull_request:
-    types: [closed]
+        description: "Optional merged implementation pull request number. Leave empty to scan merged PRs."
+        required: false
+        default: ""
+      scan_days:
+        description: "Days back to scan when pr_number is empty."
+        required: false
+        default: "14"
+      start_date:
+        description: "UTC scan start date, YYYY-MM-DD. Use with end_date."
+        required: false
+        default: ""
+      end_date:
+        description: "UTC scan end date, exclusive YYYY-MM-DD. Use with start_date."
+        required: false
+        default: ""
+  schedule:
+    - cron: "45 2 * * *"
 
 permissions:
   contents: write
   pull-requests: write
 
 concurrency:
-  group: product-docs-sync-${{ inputs.pr_number || github.event.pull_request.number }}
+  group: product-docs-sync
   cancel-in-progress: false
 
 jobs:
   sync:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -38,14 +50,17 @@ jobs:
         run: |
           python3 .github/scripts/prepare_product_docs_sync_context.py \
             --repo "${{ github.repository }}" \
-            --pr-number "${{ inputs.pr_number || github.event.pull_request.number }}" \
+            --pr-number "${{ inputs.pr_number }}" \
+            --scan-days "${{ inputs.scan_days || '14' }}" \
+            --start-date "${{ inputs.start_date }}" \
+            --end-date "${{ inputs.end_date }}" \
             --context-output product-docs-sync-context.json \
             --markdown-output product-docs-sync-context.md \
             --diff-output product-docs-sync-diff.md \
             --existing-docs-output product-docs-existing.md \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Stop when pull request is not merged
+      - name: Stop when no product docs sync target exists
         if: steps.context.outputs.should_run != 'true'
         run: echo "${{ steps.context.outputs.skip_reason }}"
 
@@ -122,23 +137,38 @@ jobs:
             --result product-docs-sync-result.json \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Report no product docs update needed
-        if: steps.context.outputs.should_run == 'true' && steps.decision.outputs.should_create_pr != 'true'
+      - name: Update product docs sync ledger
+        if: steps.context.outputs.should_run == 'true'
         run: |
-          echo "Product docs sync decision: ${{ steps.decision.outputs.docs_update }}"
+          python3 .github/scripts/update_product_docs_sync_ledger.py \
+            --context product-docs-sync-context.json \
+            --result product-docs-sync-result.json
+
+      - name: Check for product docs sync changes
+        if: steps.context.outputs.should_run == 'true'
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain -- docs/product)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create or update product docs sync pull request
-        if: steps.context.outputs.should_run == 'true' && steps.decision.outputs.should_create_pr == 'true'
+        if: steps.context.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_PR_NUMBER: ${{ steps.context.outputs.pr_number }}
           SOURCE_PR_URL: ${{ steps.context.outputs.pr_url }}
+          LEDGER_PATH: ${{ steps.context.outputs.ledger_path }}
           DOCS_UPDATE: ${{ steps.decision.outputs.docs_update }}
           DRAFT: ${{ steps.decision.outputs.draft }}
         run: |
           branch="docs/product-docs-sync-pr-${SOURCE_PR_NUMBER}"
           if [ "$DOCS_UPDATE" = "uncertain" ]; then
             title="Draft: Product docs sync for PR #${SOURCE_PR_NUMBER} needs confirmation"
+          elif [ "$DOCS_UPDATE" = "not-needed" ]; then
+            title="Record product docs sync decision for PR #${SOURCE_PR_NUMBER}"
           else
             title="Update product docs for PR #${SOURCE_PR_NUMBER}"
           fi
@@ -192,3 +222,4 @@ jobs:
             product-docs-sync-diff.md
             product-docs-existing.md
             product-docs-sync-result.json
+            docs/product/.product-docs-sync-ledger.json

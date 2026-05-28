@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import subprocess
 from pathlib import Path
 from typing import Any
+
+UTC = dt.timezone.utc
+DEFAULT_LEDGER_PATH = "docs/product/.product-docs-sync-ledger.json"
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -28,6 +32,32 @@ def fetch_default_branch(repo: str) -> str:
     return branch
 
 
+def parse_date(value: str) -> dt.date:
+    return dt.date.fromisoformat(value)
+
+
+def default_scan_window(days: int) -> tuple[dt.datetime, dt.datetime]:
+    if days <= 0:
+        raise SystemExit("--scan-days must be positive")
+    end = dt.datetime.now(UTC).replace(microsecond=0)
+    start = end - dt.timedelta(days=days)
+    return start, end
+
+
+def explicit_scan_window(start_date: str, end_date: str) -> tuple[dt.datetime, dt.datetime]:
+    if not start_date or not end_date:
+        raise SystemExit("--start-date and --end-date must be provided together")
+    start = dt.datetime.combine(parse_date(start_date), dt.time.min, tzinfo=UTC)
+    end = dt.datetime.combine(parse_date(end_date), dt.time.min, tzinfo=UTC)
+    if end <= start:
+        raise SystemExit("--end-date must be after --start-date")
+    return start, end
+
+
+def iso_z(value: dt.datetime) -> str:
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def fetch_pr(repo: str, pr_number: str) -> dict[str, Any]:
     return run_gh_json(
         [
@@ -40,6 +70,119 @@ def fetch_pr(repo: str, pr_number: str) -> dict[str, Any]:
             "number,title,body,url,state,isDraft,mergedAt,author,headRefName,baseRefName,mergeCommit,files,commits,closingIssuesReferences,labels",
         ]
     )
+
+
+def search_merged_pr_numbers(repo: str, start: dt.datetime, end: dt.datetime, default_branch: str) -> list[int]:
+    numbers: list[int] = []
+    seen: set[int] = set()
+    current_date = start.date()
+    while current_date <= end.date():
+        query = (
+            f"repo:{repo} is:pr is:merged "
+            f"merged:{current_date.isoformat()} "
+            f"base:{default_branch}"
+        )
+        pages = run_gh_json(
+            [
+                "api",
+                "--method",
+                "GET",
+                "search/issues",
+                "-f",
+                f"q={query}",
+                "-f",
+                "per_page=100",
+                "--paginate",
+                "--slurp",
+            ]
+        )
+        for page in pages or []:
+            if not isinstance(page, dict):
+                continue
+            for item in page.get("items") or []:
+                if not isinstance(item, dict) or "pull_request" not in item:
+                    continue
+                try:
+                    number = int(item["number"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if number in seen:
+                    continue
+                seen.add(number)
+                numbers.append(number)
+        current_date += dt.timedelta(days=1)
+    return numbers
+
+
+def parse_github_datetime(value: str) -> dt.datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def pr_merged_in_window(pr: dict[str, Any], start: dt.datetime, end: dt.datetime) -> bool:
+    merged_at = parse_github_datetime(str(pr.get("mergedAt") or ""))
+    return bool(merged_at and start <= merged_at < end)
+
+
+def fetch_merged_prs(repo: str, start: dt.datetime, end: dt.datetime, default_branch: str) -> list[dict[str, Any]]:
+    prs: list[dict[str, Any]] = []
+    for number in search_merged_pr_numbers(repo, start, end, default_branch):
+        pr = fetch_pr(repo, str(number))
+        if pr_merged_in_window(pr, start, end):
+            prs.append(pr)
+    return sorted(prs, key=lambda pr: (pr.get("mergedAt") or "", int(pr.get("number") or 0)))
+
+
+def load_ledger(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"version": 1, "entries": []}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise SystemExit(f"invalid product docs sync ledger: {path}")
+    data.setdefault("version", 1)
+    data.setdefault("entries", [])
+    if not isinstance(data["entries"], list):
+        raise SystemExit(f"invalid product docs sync ledger entries: {path}")
+    return data
+
+
+def ledger_entries_by_pr(ledger: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    entries: dict[int, dict[str, Any]] = {}
+    for entry in ledger.get("entries") or []:
+        try:
+            entries[int(entry.get("pr"))] = entry
+        except (TypeError, ValueError):
+            continue
+    return entries
+
+
+def select_unprocessed_pr(prs: list[dict[str, Any]], ledger: dict[str, Any]) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    entries = ledger_entries_by_pr(ledger)
+    skipped: list[dict[str, Any]] = []
+    for pr in prs:
+        number = int(pr.get("number") or 0)
+        entry = entries.get(number)
+        if entry:
+            skipped.append(
+                {
+                    "number": number,
+                    "title": pr.get("title") or "",
+                    "url": pr.get("url") or "",
+                    "mergedAt": pr.get("mergedAt") or "",
+                    "recorded_at": entry.get("recorded_at") or "",
+                    "docs_update": entry.get("docs_update") or "",
+                }
+            )
+            continue
+        return pr, skipped
+    return None, skipped
 
 
 def fetch_issue(repo: str, number: int) -> dict[str, Any]:
@@ -130,6 +273,10 @@ def write_context_json(
     issues: list[dict[str, Any]],
     specs: list[dict[str, str]],
     product_docs: list[dict[str, str]],
+    ledger_path: str,
+    scanned_pr_count: int,
+    skipped_prs: list[dict[str, Any]],
+    scan_window: dict[str, str] | None,
 ) -> None:
     payload = {
         "repo": repo,
@@ -140,7 +287,12 @@ def write_context_json(
         "existing_product_docs": [{"path": doc["path"]} for doc in product_docs],
         "docs_update_decisions": ["required", "uncertain", "not-needed"],
         "result_path": "product-docs-sync-result.json",
+        "ledger_path": ledger_path,
         "allowed_write_roots": ["docs/product/"],
+        "scan_window": scan_window,
+        "scanned_pr_count": scanned_pr_count,
+        "skipped_processed_pr_count": len(skipped_prs),
+        "skipped_processed_prs": skipped_prs,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -213,27 +365,99 @@ def write_github_output(path: str | None, values: dict[str, str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
-    parser.add_argument("--pr-number", required=True)
+    parser.add_argument("--pr-number", default="")
+    parser.add_argument("--start-date", default="")
+    parser.add_argument("--end-date", default="")
+    parser.add_argument("--scan-days", type=int, default=14)
     parser.add_argument("--context-output", default="product-docs-sync-context.json")
     parser.add_argument("--markdown-output", default="product-docs-sync-context.md")
     parser.add_argument("--diff-output", default="product-docs-sync-diff.md")
     parser.add_argument("--existing-docs-output", default="product-docs-existing.md")
     parser.add_argument("--github-output", default="")
+    parser.add_argument("--ledger-path", default=DEFAULT_LEDGER_PATH)
     parser.add_argument("--max-diff-chars", type=int, default=100000)
     args = parser.parse_args()
 
     root = Path.cwd()
     default_branch = fetch_default_branch(args.repo)
-    pr = fetch_pr(args.repo, args.pr_number)
+    skipped_prs: list[dict[str, Any]] = []
+    scanned_pr_count = 1
+    scan_window_payload = None
+    if args.pr_number:
+        pr = fetch_pr(args.repo, args.pr_number)
+    else:
+        start, end = (
+            explicit_scan_window(args.start_date, args.end_date)
+            if args.start_date or args.end_date
+            else default_scan_window(args.scan_days)
+        )
+        scan_window_payload = {
+            "start_inclusive": iso_z(start),
+            "end_exclusive": iso_z(end),
+            "timezone": "UTC",
+            "sort_order": "mergedAt ascending, then PR number ascending",
+        }
+        scanned_prs = fetch_merged_prs(args.repo, start, end, default_branch)
+        scanned_pr_count = len(scanned_prs)
+        pr, skipped_prs = select_unprocessed_pr(scanned_prs, load_ledger(Path(args.ledger_path)))
+
+    if pr is None:
+        product_docs = read_existing_product_docs(root)
+        write_context_json(
+            Path(args.context_output),
+            args.repo,
+            default_branch,
+            {},
+            [],
+            [],
+            product_docs,
+            args.ledger_path,
+            scanned_pr_count,
+            skipped_prs,
+            scan_window_payload,
+        )
+        Path(args.markdown_output).write_text("No unprocessed merged PRs found.\n", encoding="utf-8")
+        Path(args.diff_output).write_text("", encoding="utf-8")
+        write_existing_docs(Path(args.existing_docs_output), product_docs)
+        write_github_output(
+            args.github_output,
+            {
+                "pr_number": "",
+                "pr_title": "",
+                "pr_url": "",
+                "merged_at": "",
+                "default_branch": default_branch,
+                "ledger_path": args.ledger_path,
+                "scanned_pr_count": str(scanned_pr_count),
+                "skipped_processed_pr_count": str(len(skipped_prs)),
+                "should_run": "false",
+                "skip_reason": "no unprocessed merged pull requests found",
+            },
+        )
+        return 0
+
     numbers = issue_numbers(pr)
     issues = [fetch_issue(args.repo, number) for number in numbers]
     specs = read_specs(root, numbers)
     product_docs = read_existing_product_docs(root)
     should_run = "true" if pr.get("mergedAt") else "false"
 
-    write_context_json(Path(args.context_output), args.repo, default_branch, pr, issues, specs, product_docs)
+    write_context_json(
+        Path(args.context_output),
+        args.repo,
+        default_branch,
+        pr,
+        issues,
+        specs,
+        product_docs,
+        args.ledger_path,
+        scanned_pr_count,
+        skipped_prs,
+        scan_window_payload,
+    )
     write_markdown(Path(args.markdown_output), pr, issues, specs)
-    Path(args.diff_output).write_text(fetch_pr_diff(args.repo, args.pr_number, args.max_diff_chars), encoding="utf-8")
+    selected_pr_number = str(pr.get("number") or args.pr_number)
+    Path(args.diff_output).write_text(fetch_pr_diff(args.repo, selected_pr_number, args.max_diff_chars), encoding="utf-8")
     write_existing_docs(Path(args.existing_docs_output), product_docs)
     write_github_output(
         args.github_output,
@@ -243,6 +467,9 @@ def main() -> int:
             "pr_url": str(pr.get("url") or ""),
             "merged_at": str(pr.get("mergedAt") or ""),
             "default_branch": default_branch,
+            "ledger_path": args.ledger_path,
+            "scanned_pr_count": str(scanned_pr_count),
+            "skipped_processed_pr_count": str(len(skipped_prs)),
             "should_run": should_run,
             "skip_reason": "" if should_run == "true" else "pull request is not merged",
         },

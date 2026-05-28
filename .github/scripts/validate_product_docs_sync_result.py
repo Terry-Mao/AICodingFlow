@@ -11,6 +11,7 @@ from typing import Any
 
 
 VALID_DECISIONS = {"required", "uncertain", "not-needed"}
+LEDGER_FILE = "docs/product/.product-docs-sync-ledger.json"
 HANDOFF_FILES = {
     "product-docs-sync-context.json",
     "product-docs-sync-context.md",
@@ -63,11 +64,19 @@ def changed_paths() -> list[str]:
 
 
 def validate_write_surface(decision: str, paths: list[str]) -> list[str]:
-    product_doc_paths = [path for path in paths if path.startswith("docs/product/")]
+    product_doc_paths = [
+        path
+        for path in paths
+        if path.startswith("docs/product/")
+        and path != LEDGER_FILE
+        and path.endswith(".md")
+    ]
     invalid_paths = [
         path
         for path in paths
-        if path not in HANDOFF_FILES and not path.startswith("docs/product/")
+        if path not in HANDOFF_FILES
+        and path != LEDGER_FILE
+        and (not path.startswith("docs/product/") or not path.endswith(".md"))
     ]
     if invalid_paths:
         raise SystemExit("product docs sync modified files outside docs/product: " + ", ".join(invalid_paths))
