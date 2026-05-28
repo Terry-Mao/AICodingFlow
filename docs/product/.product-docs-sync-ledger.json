@@ -43,6 +43,25 @@
       "proposed_patch": "No product docs patch is needed because docs/product/raw/implementation-workflow.md already accurately documents the merged workflow behavior.",
       "reason": "PR #50 introduced the automatic implementation workflow for ready-to-implement issues, which is product-significant. The existing authoritative product doc already covers the durable behavior: trigger guards, spec-context priority, target branch selection, noop handling, draft implementation PR behavior, agent handoff files, and outer workflow responsibilities.",
       "recorded_at": "2026-05-28T11:35:00Z"
+    },
+    {
+      "pr": 55,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/55",
+      "title": "docs(spec): create issue 51 specs",
+      "merged_at": "2026-05-14T13:41:34Z",
+      "merge_commit": "5380167e96fb8ead9207cbc87b889800a192a695",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #55",
+        "Issue #51",
+        "specs/issue-51/product.md"
+      ],
+      "proposed_patch": "新增 docs/product/raw/pr-review-verdict.md，记录 review.json verdict 契约、PR 类型与作者身份判断、GitHub review event 映射、human reviewer 选择和 merge gate 语义。",
+      "reason": "PR #55 合并了 issue #51 的产品规格，新增 PR review verdict、GitHub review event 映射、non-member gate 与 CODEOWNERS reviewer 选择规则。这些属于长期产品契约，现有产品文档尚未覆盖。",
+      "recorded_at": "2026-05-28T11:40:45Z"
     }
   ]
 }
