@@ -43,6 +43,25 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
+      - name: Initialize product docs sync branch
+        id: sync_branch
+        run: |
+          branch="docs/product-docs-sync"
+          base="origin/${{ github.event.repository.default_branch }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
+          if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            git switch -C "$branch" "refs/remotes/origin/$branch"
+            git rebase "$base"
+          else
+            git switch -C "$branch" "$base"
+          fi
+
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
       - name: Prepare product docs sync context
         id: context
         env:
@@ -163,23 +182,17 @@ jobs:
           LEDGER_PATH: ${{ steps.context.outputs.ledger_path }}
           DOCS_UPDATE: ${{ steps.decision.outputs.docs_update }}
           DRAFT: ${{ steps.decision.outputs.draft }}
+          SYNC_BRANCH: ${{ steps.sync_branch.outputs.branch }}
         run: |
-          branch="docs/product-docs-sync-pr-${SOURCE_PR_NUMBER}"
+          branch="$SYNC_BRANCH"
           if [ "$DOCS_UPDATE" = "uncertain" ]; then
-            title="Draft: Product docs sync for PR #${SOURCE_PR_NUMBER} needs confirmation"
-          elif [ "$DOCS_UPDATE" = "not-needed" ]; then
-            title="Record product docs sync decision for PR #${SOURCE_PR_NUMBER}"
+            title="Draft: Update product docs"
           else
-            title="Update product docs for PR #${SOURCE_PR_NUMBER}"
+            title="Update product docs"
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
-          git switch -C "$branch"
           git add docs/product
-          git commit -m "docs(product): sync product docs for PR ${SOURCE_PR_NUMBER}"
+          git commit -m "docs(product): sync product docs"
           git push --force-with-lease origin "$branch"
 
           body_file="$(mktemp)"
@@ -188,15 +201,24 @@ jobs:
             --result product-docs-sync-result.json \
             --output "$body_file"
 
-          if gh pr view "$branch" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh pr edit "$branch" \
+          existing_pr="$(
+            gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
               --repo "${{ github.repository }}" \
               --title "$title" \
               --body-file "$body_file"
             if [ "$DRAFT" = "true" ]; then
-              gh pr ready "$branch" --repo "${{ github.repository }}" --undo || true
+              gh pr ready "$existing_pr" --repo "${{ github.repository }}" --undo || true
             else
-              gh pr ready "$branch" --repo "${{ github.repository }}" || true
+              gh pr ready "$existing_pr" --repo "${{ github.repository }}" || true
             fi
           else
             draft_args=()

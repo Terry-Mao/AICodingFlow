@@ -73,6 +73,49 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
         self.assertEqual(skipped[0]["number"], 87)
         self.assertEqual(skipped[0]["docs_update"], "not-needed")
 
+    def test_product_docs_sync_prs_are_detected(self) -> None:
+        generated_prs = [
+            {"headRefName": "docs/product-docs-sync", "title": "Anything"},
+            {"headRefName": "docs/product-docs-sync-pr-87", "title": "Anything"},
+            {"headRefName": "docs/manual-docs", "title": "Update product docs"},
+            {"headRefName": "docs/manual-docs", "title": "Update product docs for PR #87"},
+            {"headRefName": "docs/manual-docs", "title": "Draft: Product docs sync for PR #87 needs confirmation"},
+            {"headRefName": "docs/manual-docs", "title": "Record product docs sync decision for PR #87"},
+        ]
+
+        for pr in generated_prs:
+            self.assertTrue(prepare.is_product_docs_sync_pr(pr))
+
+        self.assertFalse(
+            prepare.is_product_docs_sync_pr(
+                {"headRefName": "docs/product-docs-manual", "title": "Update product documentation"}
+            )
+        )
+
+    def test_fetch_merged_prs_skips_product_docs_sync_prs(self) -> None:
+        start = prepare.parse_github_datetime("2026-05-25T00:00:00Z")
+        end = prepare.parse_github_datetime("2026-05-26T00:00:00Z")
+        pr_by_number = {
+            87: {
+                "number": 87,
+                "title": "Update product docs for PR #86",
+                "headRefName": "docs/product-docs-sync-pr-86",
+                "mergedAt": "2026-05-25T01:00:00Z",
+            },
+            88: {
+                "number": 88,
+                "title": "Implement workflow",
+                "headRefName": "feat/workflow",
+                "mergedAt": "2026-05-25T02:00:00Z",
+            },
+        }
+
+        with patch.object(prepare, "search_merged_pr_numbers", return_value=[87, 88]):
+            with patch.object(prepare, "fetch_pr", side_effect=lambda _repo, number: pr_by_number[int(number)]):
+                prs = prepare.fetch_merged_prs("owner/repo", start, end, "main")
+
+        self.assertEqual([pr["number"] for pr in prs], [88])
+
     def test_update_ledger_records_docs_sync_decision(self) -> None:
         context = {
             "pr": {
@@ -94,6 +137,7 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
         self.assertEqual(ledger["entries"][0]["pr"], 87)
         self.assertEqual(ledger["entries"][0]["docs_update"], "required")
         self.assertEqual(ledger["entries"][0]["merge_commit"], "abc123")
+        self.assertEqual(ledger["entries"][0]["proposed_patch"], "")
 
     def test_validate_schema_accepts_required_contract(self) -> None:
         decision = validator.validate_schema(
@@ -161,7 +205,7 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
                 ["docs/product/raw/flow.md", ".github/workflows/product-docs-sync.yml"],
             )
 
-    def test_pr_body_includes_decision_and_source_pr(self) -> None:
+    def test_pr_body_includes_decision_source_pr_and_processed_entries(self) -> None:
         body = body_writer.build_body(
             pr_number="87",
             pr_url="https://example.test/pull/87",
@@ -172,11 +216,40 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
                 "source_context": ["Issue #87", "PR #87"],
                 "proposed_patch": "Draft docs for review.",
             },
+            ledger={
+                "version": 1,
+                "entries": [
+                    {
+                        "pr": 86,
+                        "title": "Add first flow",
+                        "url": "https://example.test/pull/86",
+                        "merged_at": "2026-05-25T01:00:00Z",
+                        "docs_update": "required",
+                        "reason": "First flow changed.",
+                        "affected_docs": ["docs/product/raw/first.md"],
+                        "proposed_patch": "Document first flow.",
+                    },
+                    {
+                        "pr": 87,
+                        "title": "Add second flow",
+                        "url": "https://example.test/pull/87",
+                        "merged_at": "2026-05-25T02:00:00Z",
+                        "docs_update": "uncertain",
+                        "reason": "Needs product confirmation.",
+                        "affected_docs": ["docs/product/raw/flow.md"],
+                        "proposed_patch": "Draft docs for review.",
+                    },
+                ],
+            },
         )
 
         self.assertIn("docs update: `uncertain`", body)
-        self.assertIn("source PR: https://example.test/pull/87", body)
+        self.assertIn("source PR: #87", body)
+        self.assertIn("source URL: https://example.test/pull/87", body)
         self.assertIn("docs/product/raw/flow.md", body)
+        self.assertIn("Processed decisions in this PR:", body)
+        self.assertIn("PR #86: Add first flow", body)
+        self.assertIn("Document first flow.", body)
 
     def test_main_writes_decision_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -241,17 +314,24 @@ class ProductDocsSyncWorkflowTest(unittest.TestCase):
         steps = data["jobs"]["sync"]["steps"]
         names = [step.get("name") or step.get("uses") for step in steps]
 
+        self.assertLess(names.index("Initialize product docs sync branch"), names.index("Prepare product docs sync context"))
         self.assertLess(names.index("Validate product docs sync context integrity"), names.index("Validate product docs sync result"))
         self.assertLess(names.index("Validate product docs sync result"), names.index("Update product docs sync ledger"))
         self.assertLess(names.index("Update product docs sync ledger"), names.index("Create or update product docs sync pull request"))
 
+        init_step = next(step for step in steps if step.get("name") == "Initialize product docs sync branch")
         validate_step = next(step for step in steps if step.get("name") == "Validate product docs sync result")
         ledger_step = next(step for step in steps if step.get("name") == "Update product docs sync ledger")
         create_step = next(step for step in steps if step.get("name") == "Create or update product docs sync pull request")
+        self.assertIn('branch="docs/product-docs-sync"', init_step["run"])
+        self.assertIn('git rebase "$base"', init_step["run"])
         self.assertIn("validate_product_docs_sync_result.py", validate_step["run"])
         self.assertIn("update_product_docs_sync_ledger.py", ledger_step["run"])
         self.assertIn("steps.changes.outputs.changed == 'true'", create_step["if"])
-        self.assertIn('branch="docs/product-docs-sync-pr-${SOURCE_PR_NUMBER}"', create_step["run"])
+        self.assertIn('branch="$SYNC_BRANCH"', create_step["run"])
+        self.assertIn('title="Update product docs"', create_step["run"])
+        self.assertIn("--state open", create_step["run"])
+        self.assertIn('if [ -n "$existing_pr" ]; then', create_step["run"])
         self.assertIn("--draft", create_step["run"])
 
 

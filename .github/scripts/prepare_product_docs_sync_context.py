@@ -12,6 +12,13 @@ from typing import Any
 
 UTC = dt.timezone.utc
 DEFAULT_LEDGER_PATH = "docs/product/.product-docs-sync-ledger.json"
+PRODUCT_DOCS_SYNC_BRANCH_PREFIX = "docs/product-docs-sync"
+PRODUCT_DOCS_SYNC_TITLE_PREFIXES = (
+    "Update product docs for PR #",
+    "Draft: Product docs sync for PR #",
+    "Record product docs sync decision for PR #",
+)
+PRODUCT_DOCS_SYNC_TITLES = {"Update product docs"}
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -131,11 +138,21 @@ def pr_merged_in_window(pr: dict[str, Any], start: dt.datetime, end: dt.datetime
     return bool(merged_at and start <= merged_at < end)
 
 
+def is_product_docs_sync_pr(pr: dict[str, Any]) -> bool:
+    branch = str(pr.get("headRefName") or "")
+    title = str(pr.get("title") or "")
+    return (
+        branch.startswith(PRODUCT_DOCS_SYNC_BRANCH_PREFIX)
+        or title.startswith(PRODUCT_DOCS_SYNC_TITLE_PREFIXES)
+        or title in PRODUCT_DOCS_SYNC_TITLES
+    )
+
+
 def fetch_merged_prs(repo: str, start: dt.datetime, end: dt.datetime, default_branch: str) -> list[dict[str, Any]]:
     prs: list[dict[str, Any]] = []
     for number in search_merged_pr_numbers(repo, start, end, default_branch):
         pr = fetch_pr(repo, str(number))
-        if pr_merged_in_window(pr, start, end):
+        if pr_merged_in_window(pr, start, end) and not is_product_docs_sync_pr(pr):
             prs.append(pr)
     return sorted(prs, key=lambda pr: (pr.get("mergedAt") or "", int(pr.get("number") or 0)))
 

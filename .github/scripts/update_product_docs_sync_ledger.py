@@ -50,6 +50,8 @@ def build_entry(context: dict[str, Any], result: dict[str, Any], recorded_at: st
         "merge_commit": merge_commit_oid(pr),
         "docs_update": result["docs_update"],
         "affected_docs": result.get("affected_docs") or [],
+        "source_context": result.get("source_context") or [],
+        "proposed_patch": result.get("proposed_patch") or "",
         "reason": result.get("reason") or "",
         "recorded_at": recorded_at,
     }
