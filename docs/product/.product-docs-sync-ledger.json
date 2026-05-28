@@ -24,6 +24,25 @@
       "affected_docs": [],
       "reason": "PR #53 only corrects the technical spec's implementation branch-name examples from `oz-agent/...` to `spec/...`. The authoritative product documentation already describes the default implementation branch behavior using the `spec/implement-issue_<issue_number>` form, so no long-term product docs change is needed.",
       "recorded_at": "2026-05-28T09:48:57Z"
+    },
+    {
+      "pr": 50,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/50",
+      "title": "feat: add issue implementation workflow",
+      "merged_at": "2026-05-14T13:40:03Z",
+      "merge_commit": "6c5a4c2923c9ead81174f4df33b03a7b7b64c93e",
+      "docs_update": "not-needed",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #50",
+        "Issue #18",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because docs/product/raw/implementation-workflow.md already accurately documents the merged workflow behavior.",
+      "reason": "PR #50 introduced the automatic implementation workflow for ready-to-implement issues, which is product-significant. The existing authoritative product doc already covers the durable behavior: trigger guards, spec-context priority, target branch selection, noop handling, draft implementation PR behavior, agent handoff files, and outer workflow responsibilities.",
+      "recorded_at": "2026-05-28T11:35:00Z"
     }
   ]
 }
