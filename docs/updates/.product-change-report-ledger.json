@@ -99,6 +99,28 @@
       "report_date": "2026-05-26-to-2026-05-27",
       "report_path": "docs/updates/auto-update-2026-05-26-to-2026-05-27.md",
       "recorded_at": "2026-05-27T17:36:15Z"
+    },
+    {
+      "pr": 177,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/177",
+      "title": "Add product change report for 2026-05-26-to-2026-05-27",
+      "merged_at": "2026-05-27T17:41:31Z",
+      "merge_commit": "f81ffd351a11d5545b9528f146bfb77eac14b635",
+      "status": "reported",
+      "report_date": "2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-27.md",
+      "recorded_at": "2026-05-28T06:36:03Z"
+    },
+    {
+      "pr": 180,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/180",
+      "title": "修复 install.sh 源码树检测",
+      "merged_at": "2026-05-27T18:31:41Z",
+      "merge_commit": "a6d92f5caa1d96653fcf7ee4a7b2e1ce071b7f5f",
+      "status": "reported",
+      "report_date": "2026-05-27",
+      "report_path": "docs/updates/auto-update-2026-05-27.md",
+      "recorded_at": "2026-05-28T06:36:03Z"
     }
   ]
 }
