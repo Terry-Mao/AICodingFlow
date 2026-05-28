@@ -113,7 +113,8 @@ jobs:
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
             If the report already exists, preserve accurate existing entries and add any missing entries from the current context.
             If none of the input changes are product-reportable, do not create an empty or "no changes" report file.
-            Include source references to PRs, issues, specs, or commits where useful.
+            Include source references to PRs, issue URLs, or specs where useful; do not include commit IDs in the report.
+            When adding a related issue reference, use the GitHub issue URL from closingIssuesReferences instead of a PR URL.
 
       - name: Validate product change report context integrity
         if: steps.context.outputs.reportable_pr_count != '0'
