@@ -250,6 +250,24 @@
       "proposed_patch": "Updated implementation workflow docs to state that implementation PRs remain draft and require manual PR comment mention for review, and updated spec/implementation trigger docs to clarify that PR comments are handled by the review workflow.",
       "reason": "PR #74 changes long-term workflow behavior: implementation PR creation no longer dispatches AI PR Review automatically, and PR comment mentions are routed away from issue spec/implementation workflows to review-pr. Existing product docs stated the old automatic implementation review behavior and did not clarify the PR-comment exclusion.",
       "recorded_at": "2026-05-28T18:03:13Z"
+    },
+    {
+      "pr": 76,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/76",
+      "title": "fix(review): skip AI review for draft PRs",
+      "merged_at": "2026-05-15T09:59:43Z",
+      "merge_commit": "6464834646ea70df266888e8bc372728f33edbd6",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #76",
+        "Issue #75",
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch needed; the authoritative PR review behavior is already covered by existing docs/product content.",
+      "reason": "PR #76 changed the AI PR Review workflow so draft or fork PRs are stopped by preflight before the real review job runs. Existing product docs already state that only open, non-draft, same-repository PRs are reviewable and that draft or fork PRs are skipped without running the agent, posting review, or uploading artifacts.",
+      "recorded_at": "2026-05-28T18:14:00Z"
     }
   ]
 }
