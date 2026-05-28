@@ -31,8 +31,21 @@ workflow 按固定优先级选择实现上下文：
 
 ## Agent 与外层 workflow 职责
 
-agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并写出 `implementation_summary.md` 与 `pr-metadata.json`。agent 不直接 commit、push、创建 PR、更新 PR 或编辑 issue。
+agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并写出
+`implementation_summary.md` 与 `pr-metadata.json`。agent 不直接 commit、push、
+创建 PR、更新 PR 或编辑 issue。
 
-外层 workflow 负责校验 agent 产出的 metadata，提交并推送目标分支，创建或更新 implementation PR，并维护 issue progress comment。
+`pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和
+`intended_files`。`intended_files` 是外层 workflow 应提交的 repository-relative
+实现文件列表，必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow
+文件；不得包含 workflow handoff 文件、validation logs、生成缓存文件或未变化文件。
 
-来源：PR #52，PR #56，PR #58，`specs/issue-18/product.md`。
+外层 workflow 负责校验 agent 产出的 metadata，提交并推送目标分支，创建或更新
+implementation PR，并维护 issue progress comment。提交实现分支时，外层 workflow
+只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files`
+不一致，或包含 Python/cache 等生成文件，workflow 会拒绝提交。
+
+创建或更新 implementation PR 并产生实际实现变更后，workflow 会显式触发 AI PR
+Review workflow review 该 implementation PR。
+
+来源：PR #52，PR #56，PR #58，PR #67，`specs/issue-18/product.md`。

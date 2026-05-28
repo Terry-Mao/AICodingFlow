@@ -23,8 +23,9 @@ spec 与 implementation 阶段。
 ## Spec PR 后续 review
 
 当 workflow 创建或更新 spec PR 并产生实际 diff 后，会显式触发 AI PR Review
-workflow review 该 spec PR。该显式触发用于覆盖 GitHub 对 `GITHUB_TOKEN` 创建 PR
-后的递归 workflow 触发限制；是否真正执行 review 仍由 AI PR Review workflow
-自身的 draft 与同仓库 head 条件决定。
+workflow review 该 spec PR。创建或更新 PR 时，workflow 只复用同一 head branch
+上的 open PR；不会把 closed PR 当作可更新目标。该显式触发用于覆盖 GitHub 对
+`GITHUB_TOKEN` 创建 PR 后的递归 workflow 触发限制；是否真正执行 review 仍由 AI PR
+Review workflow 自身的 open、draft 与同仓库 head 条件决定。
 
-来源：PR #56，PR #58，PR #65。
+来源：PR #56，PR #58，PR #65，PR #67。

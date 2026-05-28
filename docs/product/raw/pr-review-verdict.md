@@ -7,11 +7,13 @@
 ## 触发与 reviewable 条件
 
 AI PR Review 可以由 GitHub `pull_request` 事件触发，也可以通过手动
-`workflow_dispatch` 输入 PR number 来触发。手动触发会先解析目标 PR，再复用与
-普通 PR 事件一致的 review 流程。
+`workflow_dispatch` 输入 PR number 来触发。当 PR comment mention Actions variable
+`AGENT_LOGIN` 指定的账号时，也可以从 `issue_comment` 事件触发。手动触发和 comment
+触发会先解析目标 PR，再复用与普通 PR 事件一致的 review 流程。
 
-只有非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review。draft PR
-或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传 review artifact。
+只有 open、非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review。
+closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传
+review artifact。
 
 ## Review 输出契约
 
@@ -84,4 +86,4 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，PR #65，`specs/issue-51/product.md`。
+来源：PR #55，PR #65，PR #67，`specs/issue-51/product.md`。
