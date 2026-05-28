@@ -34,8 +34,10 @@ def workflow() -> dict:
 
 
 class ProductDocsSyncScriptTest(unittest.TestCase):
-    def test_issue_numbers_are_deduplicated_from_closing_references(self) -> None:
+    def test_issue_numbers_are_deduplicated_from_closing_and_refs_references(self) -> None:
         pr = {
+            "title": "Implement product flow refs #90",
+            "body": "Refs #88, #89\n\nMentioned PR #123 should not count.\nFixes #91",
             "closingIssuesReferences": [
                 {"number": 87},
                 {"number": "87"},
@@ -44,7 +46,7 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
             ]
         }
 
-        self.assertEqual(prepare.issue_numbers(pr), [87, 88])
+        self.assertEqual(prepare.issue_numbers(pr), [87, 88, 90, 89, 91])
 
     def test_prepare_reads_linked_specs_and_product_docs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

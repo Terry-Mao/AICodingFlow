@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,11 @@ PRODUCT_DOCS_SYNC_TITLE_PREFIXES = (
     "Record product docs sync decision for PR #",
 )
 PRODUCT_DOCS_SYNC_TITLES = {"Update product docs"}
+ISSUE_REFERENCE_KEYWORD_RE = re.compile(
+    r"\b(?:refs?|references?|relates\s+to|fixes?|closes?|resolves?)\b[:\s]+[^\n\r]*",
+    re.IGNORECASE,
+)
+ISSUE_NUMBER_RE = re.compile(r"#(\d+)\b")
 
 
 def run_gh_json(args: list[str]) -> Any:
@@ -225,13 +231,21 @@ def fetch_pr_diff(repo: str, pr_number: str, max_chars: int) -> str:
 
 def issue_numbers(pr: dict[str, Any]) -> list[int]:
     numbers: list[int] = []
-    for issue in pr.get("closingIssuesReferences") or []:
+
+    def add_number(value: Any) -> None:
         try:
-            number = int(issue.get("number"))
+            number = int(value)
         except (TypeError, ValueError):
-            continue
+            return
         if number not in numbers:
             numbers.append(number)
+
+    for issue in pr.get("closingIssuesReferences") or []:
+        add_number(issue.get("number"))
+    for text in (pr.get("title") or "", pr.get("body") or ""):
+        for match in ISSUE_REFERENCE_KEYWORD_RE.finditer(str(text)):
+            for number in ISSUE_NUMBER_RE.findall(match.group(0)):
+                add_number(number)
     return numbers
 
 
