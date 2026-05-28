@@ -1,0 +1,22 @@
+# 自动实现 workflow
+
+自动实现 workflow 用于把已经准备实现的 GitHub issue 派发给 Codex agent，并由外层 GitHub Actions 创建或更新 implementation PR。普通新 issue 不会直接进入实现阶段；issue 需要满足 `ready-to-implement` 与 bot assignment 等触发条件。
+
+## Spec context 与目标分支
+
+workflow 按固定优先级选择实现上下文：
+
+- 若存在带 `plan-approved` 的 spec PR，使用该 PR 的 head branch 作为目标分支，并把实现追加到同一个 PR 分支。
+- 若没有 approved spec PR，但默认分支存在 `specs/issue-<issue-number>/` 下的 spec，使用默认分支 spec 作为上下文，目标分支默认为 `spec/implement-issue-<issue_number>`。
+- 若没有任何 spec context，workflow 仍可启动实现，但 agent prompt 必须明确说明没有 approved 或 repository spec context。
+- 若存在未批准 spec PR 且默认分支没有 specs，workflow 不启动实现，并在 progress comment 中说明没有可用的 approved spec context。
+
+当没有 approved spec PR 时，workflow 可以创建新的 draft implementation PR，也可以更新已有 draft implementation PR。
+
+## Agent 与外层 workflow 职责
+
+agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并写出 `implementation_summary.md` 与 `pr-metadata.json`。agent 不直接 commit、push、创建 PR、更新 PR 或编辑 issue。
+
+外层 workflow 负责校验 agent 产出的 metadata，提交并推送目标分支，创建或更新 implementation PR，并维护 issue progress comment。
+
+来源：PR #52，`specs/issue-18/product.md`。
