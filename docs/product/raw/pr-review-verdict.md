@@ -15,6 +15,18 @@ AI PR Review 可以由 GitHub `pull_request` 事件触发，也可以通过手�
 closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传
 review artifact。
 
+## Review skill 选择
+
+AI PR Review 会先按 changed files 判断 PR 类型，再选择仓库本地 review companion
+skill：
+
+- spec-only PR 使用 `review-spec-repo`。
+- 其他 code PR 使用 `review-pr-repo`。
+
+`review-pr-repo` 和 `review-spec-repo` 是 AICodingFlow 仓库对核心
+`review-pr` / `review-spec` 工作流的仓库本地包装器，用于补充本仓库的评审偏好，
+不改变核心输出契约。
+
 ## Review 输出契约
 
 `review.json` 必须包含：
@@ -86,4 +98,4 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，PR #65，PR #67，`specs/issue-51/product.md`。
+来源：PR #55，PR #65，PR #67，PR #79，`specs/issue-51/product.md`。

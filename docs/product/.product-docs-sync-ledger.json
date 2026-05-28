@@ -286,6 +286,26 @@
       "proposed_patch": "无需补丁；现有产品文档已描述本次合并后的长期产品行为。",
       "reason": "PR #71 引入的 review.json verdict 契约、non-member code PR 的 REQUEST_CHANGES 映射、CODEOWNERS reviewer 请求与保守作者判断，已由现有 docs/product/raw/pr-review-verdict.md 准确覆盖。该 PR 不需要额外长期产品文档更新。",
       "recorded_at": "2026-05-28T18:24:14Z"
+    },
+    {
+      "pr": 79,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/79",
+      "title": "Rename repo review companion skills",
+      "merged_at": "2026-05-15T13:10:39Z",
+      "merge_commit": "a34940973e4b8577488ed4a50a7907e73f490780",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #79",
+        "Issue #78",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "proposed_patch": "Updated the PR review product doc to state that spec-only PRs use review-spec-repo, other code PRs use review-pr-repo, and both repo companions preserve the core review-pr/review-spec output contract.",
+      "reason": "PR #79 renamed the long-lived repo review companion skills used by AI PR Review from review-pr-local/review-spec-local to review-pr-repo/review-spec-repo. Existing product docs described PR review behavior but did not record the current repo companion selection, so the authoritative docs needed a concise update.",
+      "recorded_at": "2026-05-28T18:30:04Z"
     }
   ]
 }
