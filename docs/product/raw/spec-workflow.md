@@ -16,4 +16,8 @@ mention 触发。自动 issue 事件只有在 issue 不是 PR 且满足以下条
 目标 agent login 来自 workflow input `agent_login`，未提供时使用仓库 Actions
 variable `AGENT_LOGIN`。`SPEC_AGENT_LOGIN` 不再作为该 workflow 的配置入口。
 
-来源：PR #56。
+手动触发同样必须满足 `ready-to-spec` 与目标 agent assignment 条件。若 issue
+已经带有 `ready-to-implement`，spec workflow 不再启动，避免同一个 issue 同时进入
+spec 与 implementation 阶段。
+
+来源：PR #56，PR #58。

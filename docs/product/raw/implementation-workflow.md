@@ -35,4 +35,4 @@ agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，
 
 外层 workflow 负责校验 agent 产出的 metadata，提交并推送目标分支，创建或更新 implementation PR，并维护 issue progress comment。
 
-来源：PR #52，PR #56，`specs/issue-18/product.md`。
+来源：PR #52，PR #56，PR #58，`specs/issue-18/product.md`。
