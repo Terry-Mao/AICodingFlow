@@ -43,7 +43,7 @@ Always write `product-docs-sync-result.json` at the repository root:
 
 When `docs_update` is `required` or `uncertain`, create or update files only under `docs/product/`. Use `docs/product/raw/` for authoritative long-term product knowledge when creating new source documents. Do not modify `docs/updates/`, `docs/product/wiki/`, `.agents`, `.github`, specs, product code, or workflow handoff files other than `product-docs-sync-result.json`.
 
-When `docs_update` is `not-needed`, do not modify product docs. Record the rationale in `product-docs-sync-result.json`.
+When `docs_update` is `not-needed`, do not modify product docs. Record the rationale in `product-docs-sync-result.json`; the outer workflow records the processed PR in its ledger.
 
 ## Decision Rules
 
@@ -83,6 +83,6 @@ Mark `not-needed` when:
 
 - `required`: the outer workflow creates or updates a normal docs sync PR.
 - `uncertain`: the outer workflow creates or updates a draft docs sync PR and marks the title as needing product confirmation.
-- `not-needed`: the outer workflow does not create a PR; it leaves the decision in logs and artifacts.
+- `not-needed`: the outer workflow records the decision in `docs/product/.product-docs-sync-ledger.json` so future scans skip the PR. If that ledger changes, the outer workflow creates or updates a PR for the ledger-only update.
 
 All long-term product docs changes must go through pull request review. Do not stage, commit, push, merge, create pull requests, post GitHub comments, or edit GitHub issues from this skill.
