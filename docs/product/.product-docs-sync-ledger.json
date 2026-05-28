@@ -62,6 +62,27 @@
       "proposed_patch": "新增 docs/product/raw/pr-review-verdict.md，记录 review.json verdict 契约、PR 类型与作者身份判断、GitHub review event 映射、human reviewer 选择和 merge gate 语义。",
       "reason": "PR #55 合并了 issue #51 的产品规格，新增 PR review verdict、GitHub review event 映射、non-member gate 与 CODEOWNERS reviewer 选择规则。这些属于长期产品契约，现有产品文档尚未覆盖。",
       "recorded_at": "2026-05-28T11:40:45Z"
+    },
+    {
+      "pr": 56,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/56",
+      "title": "fix(ci): tighten workflow trigger gates",
+      "merged_at": "2026-05-14T14:36:17Z",
+      "merge_commit": "ca4b81f14715afb37b9b1ff5aaa9166099deef5b",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #56",
+        "Issue #54",
+        "specs/issue-18/product.md",
+        "README.md"
+      ],
+      "proposed_patch": "更新 authoritative implementation workflow 文档，补充触发 gate、AGENT_LOGIN 配置和 plan-approved 语义；新增 raw 产品文档记录自动 spec workflow 的触发契约。",
+      "reason": "PR #56 改变了长期 workflow 触发语义和仓库配置：spec 与 implementation workflow 的 label/assignment 事件现在需要 ready label 与目标 agent assignment 同时满足，并统一使用 AGENT_LOGIN；plan-approved spec PR label 也不再触发 implementation workflow。现有产品文档只部分覆盖 implementation workflow，且没有记录 spec workflow 的触发契约。",
+      "recorded_at": "2026-05-28T11:47:05Z"
     }
   ]
 }
