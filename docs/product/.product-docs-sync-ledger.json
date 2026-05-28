@@ -137,6 +137,25 @@
       "proposed_patch": "No product docs patch is needed.",
       "reason": "PR #60 only fixes internal implementation-branch handoff plumbing so captured git porcelain status output preserves leading spaces, with a regression test. It does not change long-term product behavior, workflow triggers, user-visible semantics, configuration, or integration contracts beyond the behavior already covered by existing implementation workflow docs.",
       "recorded_at": "2026-05-28T14:05:38Z"
+    },
+    {
+      "pr": 65,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/65",
+      "title": "fix(ci): dispatch reviews for generated spec PRs",
+      "merged_at": "2026-05-14T17:06:50Z",
+      "merge_commit": "c5918f030c09dab27b66ea0274a509c7696f5a02",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/spec-workflow.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #65",
+        "Issue #62"
+      ],
+      "proposed_patch": "更新自动 spec workflow 文档，说明生成 spec PR 后会显式触发 AI PR Review；更新 PR review 文档，说明 pull_request 与 workflow_dispatch 两种触发方式及 draft/fork PR 跳过规则。",
+      "reason": "PR #65 改变了自动 spec PR 创建后的长期工作流行为：由 create-spec workflow 显式触发 AI PR Review，并为 AI PR Review 增加按 PR number 调度的入口。现有产品文档未覆盖该触发路径和 reviewable 条件，因此需要同步权威产品文档。",
+      "recorded_at": "2026-05-28T14:10:32Z"
     }
   ]
 }

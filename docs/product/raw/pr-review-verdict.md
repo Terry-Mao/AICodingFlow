@@ -4,6 +4,15 @@
 `review.json.verdict`，并由发布流程把该结论映射为 GitHub review event。
 `verdict` 是 Bot 的机器判断，不直接等同于 GitHub 的最终 merge gate。
 
+## 触发与 reviewable 条件
+
+AI PR Review 可以由 GitHub `pull_request` 事件触发，也可以通过手动
+`workflow_dispatch` 输入 PR number 来触发。手动触发会先解析目标 PR，再复用与
+普通 PR 事件一致的 review 流程。
+
+只有非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review。draft PR
+或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传 review artifact。
+
 ## Review 输出契约
 
 `review.json` 必须包含：
@@ -75,4 +84,4 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，`specs/issue-51/product.md`。
+来源：PR #55，PR #65，`specs/issue-51/product.md`。

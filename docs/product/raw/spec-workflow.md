@@ -20,4 +20,11 @@ variable `AGENT_LOGIN`。`SPEC_AGENT_LOGIN` 不再作为该 workflow 的配置�
 已经带有 `ready-to-implement`，spec workflow 不再启动，避免同一个 issue 同时进入
 spec 与 implementation 阶段。
 
-来源：PR #56，PR #58。
+## Spec PR 后续 review
+
+当 workflow 创建或更新 spec PR 并产生实际 diff 后，会显式触发 AI PR Review
+workflow review 该 spec PR。该显式触发用于覆盖 GitHub 对 `GITHUB_TOKEN` 创建 PR
+后的递归 workflow 触发限制；是否真正执行 review 仍由 AI PR Review workflow
+自身的 draft 与同仓库 head 条件决定。
+
+来源：PR #56，PR #58，PR #65。
