@@ -343,6 +343,27 @@
       "proposed_patch": "Updated the Spec PR follow-up review section to state that spec PRs are no longer auto-reviewed and must be reviewed via PR comment mention when needed.",
       "reason": "PR #84 changes the long-term spec workflow behavior by stopping automatic AI PR Review dispatch after spec PR creation or update. Existing product docs still described the old automatic dispatch behavior, so the authoritative spec workflow documentation was updated.",
       "recorded_at": "2026-05-29T02:48:51Z"
+    },
+    {
+      "pr": 66,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/66",
+      "title": "feat: sync issue state on plan approval",
+      "merged_at": "2026-05-16T04:53:11Z",
+      "merge_commit": "e5a0777525dc517b98860dd8888c8756ec6df2ae",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/spec-workflow.md",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #66",
+        "Issue #57",
+        "specs/issue-57/product.md",
+        "specs/issue-57/tech.md"
+      ],
+      "proposed_patch": "Updated raw product docs to describe spec plan approval semantics, automatic `ready-to-spec` removal, explicit `ready-to-implement` ownership, and conditional implementation dispatch after approval.",
+      "reason": "PR #66 adds durable lifecycle behavior for spec plan approval: `plan-approved` now removes `ready-to-spec` from the linked issue and may dispatch implementation when `ready-to-implement` and the target agent assignment are already present. Existing product docs mentioned `plan-approved` as implementation context, but did not document the new issue state synchronization or conditional dispatch behavior.",
+      "recorded_at": "2026-05-29T06:45:38Z"
     }
   ]
 }

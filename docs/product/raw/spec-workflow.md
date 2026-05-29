@@ -23,6 +23,22 @@ variable `AGENT_LOGIN`。`SPEC_AGENT_LOGIN` 不再作为该 workflow 的配置�
 已经带有 `ready-to-implement`，spec workflow 不再启动，避免同一个 issue 同时进入
 spec 与 implementation 阶段。
 
+## Spec plan approval
+
+维护者在 spec PR 上添加 `plan-approved` label 表示该 plan 内容已批准，可以作为
+implementation workflow 的 authoritative spec context。`plan-approved` 不是 merge
+gate；spec PR 未 merge 时也可以被实现流程读取。
+
+当 spec PR 获得 `plan-approved` 后，approval workflow 会解析 linked issue，并自动从
+该 issue 移除 `ready-to-spec`。如果 linked issue 原本没有 `ready-to-spec`，该同步视为
+幂等成功。approval workflow 不会自动添加 `ready-to-implement`；该 label 仍由维护者或
+外部流程显式添加。
+
+如果 linked issue 已经同时带有 `ready-to-implement` 且 assign 给目标 agent，approval
+workflow 会在完成 `ready-to-spec` 移除后触发 implementation workflow。缺少
+`ready-to-implement`、缺少目标 agent assignment 或无法解析 linked issue 时，只完成可
+执行的状态同步并跳过 implementation dispatch。
+
 ## Spec PR 后续 review
 
 当 workflow 创建或更新 spec PR 并产生实际 diff 后，不会自动触发 AI PR Review。
@@ -32,4 +48,4 @@ spec 与 implementation 阶段。
 创建或更新 PR 时，workflow 只复用同一 head branch 上的 open PR；不会把 closed
 PR 当作可更新目标。
 
-来源：PR #56，PR #58，PR #65，PR #67，PR #74，PR #84。
+来源：PR #56，PR #58，PR #65，PR #66，PR #67，PR #74，PR #84。
