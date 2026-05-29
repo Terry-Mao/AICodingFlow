@@ -426,6 +426,25 @@
       "proposed_patch": "No docs/product patch needed; existing product docs already describe the delivered PR comment/manual AI PR Review commit status behavior, and the issue 85 dirty-worktree behavior remains spec-only in this PR.",
       "reason": "PR #86 mainly merged specs for future local review dirty-worktree behavior, and those specs explicitly state they do not implement the behavior. The implemented AI PR Review status behavior included in the merge is already covered by docs/product/raw/pr-review-verdict.md, so no long-term product docs change is needed.",
       "recorded_at": "2026-05-29T17:58:05Z"
+    },
+    {
+      "pr": 90,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/90",
+      "title": "feat: allow local review with dirty worktrees",
+      "merged_at": "2026-05-16T10:14:39Z",
+      "merge_commit": "d1246f4ed400d1aefeb7dd29f5fa4a23ab3b8429",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #90",
+        "Issue #85",
+        "specs/issue-85/product.md"
+      ],
+      "proposed_patch": "Updated the local review entrypoint documentation to describe dirty-worktree support, current-worktree diff semantics, the .local_review_baseline.status file, validation boundaries, and the PR/spec sources.",
+      "reason": "PR #90 changed the long-term behavior of local PR/spec review entrypoints: they now support dirty worktrees, generate review diffs from the current worktree snapshot, and use a baseline status file for validation. Existing product docs still stated that local review required a clean worktree, so the authoritative docs needed correction.",
+      "recorded_at": "2026-05-29T21:03:26Z"
     }
   ]
 }
