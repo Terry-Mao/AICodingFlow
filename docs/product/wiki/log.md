@@ -13,7 +13,10 @@
   - [summaries/implementation-workflow.md](summaries/implementation-workflow.md)
   - [summaries/pr-review-verdict.md](summaries/pr-review-verdict.md)
   - [summaries/product-change-reports.md](summaries/product-change-reports.md)
-- 校验 9 个 concept 页面，覆盖 workflow 触发、agent login、spec context、职责边界、PR review verdict、non-member gate 和产品变更报告。
+- 新增 2 个 PR review concept 页面：
+  - [concepts/ai-pr-review-workflow.md](concepts/ai-pr-review-workflow.md)
+  - [concepts/local-pr-review-entrypoints.md](concepts/local-pr-review-entrypoints.md)
+- 校验 11 个 concept 页面，覆盖 workflow 触发、agent login、spec context、职责边界、AI PR Review 触发、本地 review、PR review verdict、non-member gate 和产品变更报告。
 
 ## 待确认 / 开放问题
 

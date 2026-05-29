@@ -36,4 +36,6 @@ sources:
 
 ## Related Concepts
 
+- [AI PR Review workflow](ai-pr-review-workflow.md)
 - [Non-member gate 与 reviewer 请求](non-member-gate-and-reviewer-request.md)
+- [本地 PR review 入口](local-pr-review-entrypoints.md)
