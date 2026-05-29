@@ -103,6 +103,246 @@
       "proposed_patch": "Document that manual spec workflow dispatch still requires ready-to-spec plus target agent assignment, document that ready-to-implement suppresses spec workflow startup, and add PR #58 to affected source references.",
       "reason": "PR #58 changed durable workflow behavior: implementation agents now leave diffs and metadata for the outer workflow to commit and push, and spec workflow entry points are guarded from issues already marked ready-to-implement. The implementation handoff behavior was already documented, but the spec workflow gating and source attribution needed to be updated.",
       "recorded_at": "2026-05-28T11:57:14Z"
+    },
+    {
+      "pr": 59,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/59",
+      "title": "fix(ci): harden implementation branch handoff",
+      "merged_at": "2026-05-14T16:10:44Z",
+      "merge_commit": "6f81570fa17c469e49e63ebcca2e34ec984acd38",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #59",
+        "Issue #54",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #59 only hardens the implementation branch handoff internals by stashing the full worktree and recomputing committable paths after restore. It does not change the long-term implementation workflow contract already documented in docs/product/raw/implementation-workflow.md.",
+      "recorded_at": "2026-05-28T12:02:01Z"
+    },
+    {
+      "pr": 60,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/60",
+      "title": "fix(ci): preserve implementation status paths",
+      "merged_at": "2026-05-14T16:35:03Z",
+      "merge_commit": "d305880e5285b0ec030b1afbe5ce97b4aeeea182",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #60",
+        "Issue #54",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #60 only fixes internal implementation-branch handoff plumbing so captured git porcelain status output preserves leading spaces, with a regression test. It does not change long-term product behavior, workflow triggers, user-visible semantics, configuration, or integration contracts beyond the behavior already covered by existing implementation workflow docs.",
+      "recorded_at": "2026-05-28T14:05:38Z"
+    },
+    {
+      "pr": 65,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/65",
+      "title": "fix(ci): dispatch reviews for generated spec PRs",
+      "merged_at": "2026-05-14T17:06:50Z",
+      "merge_commit": "c5918f030c09dab27b66ea0274a509c7696f5a02",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/spec-workflow.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #65",
+        "Issue #62"
+      ],
+      "proposed_patch": "更新自动 spec workflow 文档，说明生成 spec PR 后会显式触发 AI PR Review；更新 PR review 文档，说明 pull_request 与 workflow_dispatch 两种触发方式及 draft/fork PR 跳过规则。",
+      "reason": "PR #65 改变了自动 spec PR 创建后的长期工作流行为：由 create-spec workflow 显式触发 AI PR Review，并为 AI PR Review 增加按 PR number 调度的入口。现有产品文档未覆盖该触发路径和 reviewable 条件，因此需要同步权威产品文档。",
+      "recorded_at": "2026-05-28T14:10:32Z"
+    },
+    {
+      "pr": 67,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/67",
+      "title": "fix(ci): harden workflow handoff file selection",
+      "merged_at": "2026-05-14T19:38:40Z",
+      "merge_commit": "3af11304ffa27216168ffa422a581f59cd62b18c",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #67",
+        "Issue #64",
+        "specs/issue-18/product.md",
+        "specs/issue-18/tech.md"
+      ],
+      "proposed_patch": "更新 authoritative raw 产品文档，覆盖 implementation handoff 文件选择、AI PR Review 的 open/comment 触发行为，以及 spec workflow 只复用 open PR 的规则。",
+      "reason": "PR #67 改变了长期 workflow 行为：implementation metadata 现在必须包含 intended_files，外层 workflow 会拒绝未声明、handoff 或生成缓存文件。该 PR 也改变了 AI PR Review 的可 review 条件与 spec PR 复用语义，因此现有产品文档需要更新。",
+      "recorded_at": "2026-05-28T14:19:31Z"
+    },
+    {
+      "pr": 68,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/68",
+      "title": "fix(ci): support workflow-file push token",
+      "merged_at": "2026-05-14T20:15:43Z",
+      "merge_commit": "41454f2db45fb3037f8e3b4e9cc52d83e812e84a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #68",
+        "Issue #51",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "Updated the automatic implementation workflow product doc to describe WORKFLOW_UPDATE_TOKEN requirements for .github/workflows changes and added PR #68 to the source references.",
+      "reason": "PR #68 changes the automatic implementation workflow's long-term configuration behavior for implementation branches that modify GitHub workflow files. Product docs needed to record that such changes require WORKFLOW_UPDATE_TOKEN, while ordinary implementation pushes continue to use GITHUB_TOKEN.",
+      "recorded_at": "2026-05-28T14:23:06Z"
+    },
+    {
+      "pr": 69,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/69",
+      "title": "fix(ci): use workflow token for git push auth",
+      "merged_at": "2026-05-15T06:38:44Z",
+      "merge_commit": "59aeeeca8867dc91e28b9485cf0a5f26c1c3e5bf",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #69",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the change is an internal CI authentication hardening and diagnostic improvement already covered at the product-behavior level.",
+      "reason": "PR #69 fixes the internal git push authentication path for workflow-file implementation branches and flushes diagnostics, without changing the documented implementation workflow contract. The existing implementation workflow docs already state that workflow-file changes require WORKFLOW_UPDATE_TOKEN and use that token for pushing.",
+      "recorded_at": "2026-05-28T14:29:03Z"
+    },
+    {
+      "pr": 73,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/73",
+      "title": "fix(ci): update actions for Node 24 runtime",
+      "merged_at": "2026-05-15T07:11:02Z",
+      "merge_commit": "118d4a50d316c4b9329a9d6a0ba565faa1b93529",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #73",
+        "Issue #70"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #73 only updates GitHub Actions runtime compatibility by upgrading action versions and opting workflow jobs into Node 24. The merged changes are CI/build plumbing and test coverage, with no change to product workflows, permissions, lifecycle rules, public contracts, or documented user-visible behavior.",
+      "recorded_at": "2026-05-28T17:47:41Z"
+    },
+    {
+      "pr": 74,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/74",
+      "title": "fix(ci): avoid auto review for implementation PRs",
+      "merged_at": "2026-05-15T08:34:03Z",
+      "merge_commit": "6065320fd4bc11a0df3671f214f48d8d9ae1cc6a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #74",
+        "Issue #72",
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "proposed_patch": "Updated implementation workflow docs to state that implementation PRs remain draft and require manual PR comment mention for review, and updated spec/implementation trigger docs to clarify that PR comments are handled by the review workflow.",
+      "reason": "PR #74 changes long-term workflow behavior: implementation PR creation no longer dispatches AI PR Review automatically, and PR comment mentions are routed away from issue spec/implementation workflows to review-pr. Existing product docs stated the old automatic implementation review behavior and did not clarify the PR-comment exclusion.",
+      "recorded_at": "2026-05-28T18:03:13Z"
+    },
+    {
+      "pr": 76,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/76",
+      "title": "fix(review): skip AI review for draft PRs",
+      "merged_at": "2026-05-15T09:59:43Z",
+      "merge_commit": "6464834646ea70df266888e8bc372728f33edbd6",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #76",
+        "Issue #75",
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch needed; the authoritative PR review behavior is already covered by existing docs/product content.",
+      "reason": "PR #76 changed the AI PR Review workflow so draft or fork PRs are stopped by preflight before the real review job runs. Existing product docs already state that only open, non-draft, same-repository PRs are reviewable and that draft or fork PRs are skipped without running the agent, posting review, or uploading artifacts.",
+      "recorded_at": "2026-05-28T18:14:00Z"
+    },
+    {
+      "pr": 71,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/71",
+      "title": "feat: add PR review verdict gate",
+      "merged_at": "2026-05-15T11:02:38Z",
+      "merge_commit": "2dd675bbf73dbed96fc7db27120605b83cb93c24",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #71",
+        "Issue #51",
+        "specs/issue-51/product.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "proposed_patch": "无需补丁；现有产品文档已描述本次合并后的长期产品行为。",
+      "reason": "PR #71 引入的 review.json verdict 契约、non-member code PR 的 REQUEST_CHANGES 映射、CODEOWNERS reviewer 请求与保守作者判断，已由现有 docs/product/raw/pr-review-verdict.md 准确覆盖。该 PR 不需要额外长期产品文档更新。",
+      "recorded_at": "2026-05-28T18:24:14Z"
+    },
+    {
+      "pr": 79,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/79",
+      "title": "Rename repo review companion skills",
+      "merged_at": "2026-05-15T13:10:39Z",
+      "merge_commit": "a34940973e4b8577488ed4a50a7907e73f490780",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #79",
+        "Issue #78",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "proposed_patch": "Updated the PR review product doc to state that spec-only PRs use review-spec-repo, other code PRs use review-pr-repo, and both repo companions preserve the core review-pr/review-spec output contract.",
+      "reason": "PR #79 renamed the long-lived repo review companion skills used by AI PR Review from review-pr-local/review-spec-local to review-pr-repo/review-spec-repo. Existing product docs described PR review behavior but did not record the current repo companion selection, so the authoritative docs needed a concise update.",
+      "recorded_at": "2026-05-28T18:30:04Z"
+    },
+    {
+      "pr": 81,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/81",
+      "title": "新增一个 review-pr-local / review-spec-local",
+      "merged_at": "2026-05-16T03:37:59Z",
+      "merge_commit": "d2b40d3c480dc2675836a42926d33ab4cdc48019",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #81",
+        "Issue #80"
+      ],
+      "proposed_patch": "已在 docs/product/raw/pr-review-verdict.md 增加本地 review 入口章节，说明 review-pr-local/review-spec-local 的适用时机、委托关系、根目录快照契约、干净 worktree 要求、只允许 review 输出变更的校验约束，以及 base/spec context 解析行为。",
+      "reason": "PR #81 新增 review-pr-local 与 review-spec-local，提供本地运行仓库 PR/spec review workflow 的用户入口，改变了长期 review 工作流行为。现有产品文档只覆盖 GitHub AI PR Review 的触发、skill 选择和 verdict 语义，未记录本地 review 的输入输出快照、spec context 行为和 mutation guard 约束。",
+      "recorded_at": "2026-05-28T19:06:17Z"
+    },
+    {
+      "pr": 84,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/84",
+      "title": "fix(ci): stop auto-reviewing spec PRs",
+      "merged_at": "2026-05-16T04:21:45Z",
+      "merge_commit": "ef268084d4ea79f66f06f954a95da670bc7d7f68",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #84",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated the Spec PR follow-up review section to state that spec PRs are no longer auto-reviewed and must be reviewed via PR comment mention when needed.",
+      "reason": "PR #84 changes the long-term spec workflow behavior by stopping automatic AI PR Review dispatch after spec PR creation or update. Existing product docs still described the old automatic dispatch behavior, so the authoritative spec workflow documentation was updated.",
+      "recorded_at": "2026-05-29T02:48:51Z"
     }
   ]
 }

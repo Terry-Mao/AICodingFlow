@@ -13,6 +13,9 @@ mention 触发。自动 issue 事件只有在 issue 不是 PR 且满足以下条
 - assign 给目标 agent 时，issue 必须已经带有 `ready-to-spec` label。
 - issue comment 显式 mention 目标 agent 时，可以触发已 ready 的 issue。
 
+PR comment 不会触发 spec workflow；PR comment mention 由 AI PR Review workflow
+处理。
+
 目标 agent login 来自 workflow input `agent_login`，未提供时使用仓库 Actions
 variable `AGENT_LOGIN`。`SPEC_AGENT_LOGIN` 不再作为该 workflow 的配置入口。
 
@@ -20,4 +23,13 @@ variable `AGENT_LOGIN`。`SPEC_AGENT_LOGIN` 不再作为该 workflow 的配置�
 已经带有 `ready-to-implement`，spec workflow 不再启动，避免同一个 issue 同时进入
 spec 与 implementation 阶段。
 
-来源：PR #56，PR #58。
+## Spec PR 后续 review
+
+当 workflow 创建或更新 spec PR 并产生实际 diff 后，不会自动触发 AI PR Review。
+需要 review 时，在 PR comment 中 `@AGENT_LOGIN` 手动触发；是否真正执行 review
+仍由 AI PR Review workflow 自身的 open、draft 与同仓库 head 条件决定。
+
+创建或更新 PR 时，workflow 只复用同一 head branch 上的 open PR；不会把 closed
+PR 当作可更新目标。
+
+来源：PR #56，PR #58，PR #65，PR #67，PR #74，PR #84。
