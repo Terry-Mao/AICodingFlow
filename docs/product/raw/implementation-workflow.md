@@ -57,7 +57,9 @@ commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继�
 `GITHUB_TOKEN` 推送。
 
 创建或更新 implementation PR 后不会自动触发 AI PR Review，因为 implementation PR
-默认保持 draft。需要 review 时，在 PR comment 中 `@AGENT_LOGIN` 手动触发；是否真正执行
-review 仍由 AI PR Review workflow 自身的 open、draft 与同仓库 head 条件决定。
+默认保持 draft。需要 review 时，在 open 且非 draft PR 的普通 conversation comment 中发送
+`@AGENT_LOGIN /review`；是否真正执行 review 仍由 AI PR Review workflow 自身的 open、
+draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，`specs/issue-18/product.md`。
+来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，
+`specs/issue-18/product.md`，`specs/issue-77/product.md`。

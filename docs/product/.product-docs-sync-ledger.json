@@ -364,6 +364,28 @@
       "proposed_patch": "Updated raw product docs to describe spec plan approval semantics, automatic `ready-to-spec` removal, explicit `ready-to-implement` ownership, and conditional implementation dispatch after approval.",
       "reason": "PR #66 adds durable lifecycle behavior for spec plan approval: `plan-approved` now removes `ready-to-spec` from the linked issue and may dispatch implementation when `ready-to-implement` and the target agent assignment are already present. Existing product docs mentioned `plan-approved` as implementation context, but did not document the new issue state synchronization or conditional dispatch behavior.",
       "recorded_at": "2026-05-29T06:45:38Z"
+    },
+    {
+      "pr": 82,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/82",
+      "title": "feat: add PR bot review command trigger",
+      "merged_at": "2026-05-16T05:42:32Z",
+      "merge_commit": "d164c31c58eb86fb00612f8a57dcae0abf1d0907",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #82",
+        "Issue #77",
+        "specs/issue-77/product.md",
+        "specs/issue-77/tech.md"
+      ],
+      "proposed_patch": "Updated raw product docs to document `@AGENT_LOGIN /review` as the PR conversation comment command for manually requesting AI review, including body-level command constraints and skipped invalid forms.",
+      "reason": "PR #82 changes the long-term AI PR Review trigger contract from a bare PR comment mention to an exact body-level `@AGENT_LOGIN /review` command, with non-draft/open PR gating and invalid comment forms skipped. Existing product docs still described bare `@AGENT_LOGIN` PR comment triggering, so authoritative docs needed correction.",
+      "recorded_at": "2026-05-29T09:55:07Z"
     }
   ]
 }
