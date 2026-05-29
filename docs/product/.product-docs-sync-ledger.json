@@ -386,6 +386,25 @@
       "proposed_patch": "Updated raw product docs to document `@AGENT_LOGIN /review` as the PR conversation comment command for manually requesting AI review, including body-level command constraints and skipped invalid forms.",
       "reason": "PR #82 changes the long-term AI PR Review trigger contract from a bare PR comment mention to an exact body-level `@AGENT_LOGIN /review` command, with non-draft/open PR gating and invalid comment forms skipped. Existing product docs still described bare `@AGENT_LOGIN` PR comment triggering, so authoritative docs needed correction.",
       "recorded_at": "2026-05-29T09:55:07Z"
+    },
+    {
+      "pr": 89,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/89",
+      "title": "fix(review): link comment-triggered runs to PRs",
+      "merged_at": "2026-05-16T07:30:36Z",
+      "merge_commit": "4d7ba9b5ac9218be57d54df4d4c993e7eee17b5e",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #89",
+        "Issue #88",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated the authoritative PR review raw product doc with the commit status lifecycle, target URL association, and scope limits for comment/manual AI PR Review runs.",
+      "reason": "PR #89 changes long-term AI PR Review behavior: comment-triggered and manual runs for same-repo PRs now publish an AI PR Review commit status on the PR head. Existing product docs described those triggers but did not document the PR association/status semantics.",
+      "recorded_at": "2026-05-29T14:23:53Z"
     }
   ]
 }
