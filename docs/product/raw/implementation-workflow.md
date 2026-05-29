@@ -18,8 +18,10 @@ workflow 处理。
 variable `AGENT_LOGIN`。`SPEC_AGENT_LOGIN` 与 `IMPLEMENT_AGENT_LOGIN` 不再作为该
 workflow 的配置入口。
 
-Spec PR 的 `plan-approved` label 只表示该 PR 可作为实现上下文，不会单独触发
-implementation workflow。
+Spec PR 的 `plan-approved` label 表示该 PR 可作为实现上下文。添加该 label 不会自动让
+issue 进入实现阶段，也不会自动添加 `ready-to-implement`；只有 linked issue 已经带有
+`ready-to-implement` 且 assign 给目标 agent 时，plan approval 同步流程才会在移除
+`ready-to-spec` 后 dispatch implementation workflow。
 
 ## Spec context 与目标分支
 
@@ -58,4 +60,4 @@ commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继�
 默认保持 draft。需要 review 时，在 PR comment 中 `@AGENT_LOGIN` 手动触发；是否真正执行
 review 仍由 AI PR Review workflow 自身的 open、draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #67，PR #68，PR #74，`specs/issue-18/product.md`。
+来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，`specs/issue-18/product.md`。
