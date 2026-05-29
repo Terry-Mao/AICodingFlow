@@ -405,6 +405,27 @@
       "proposed_patch": "Updated the authoritative PR review raw product doc with the commit status lifecycle, target URL association, and scope limits for comment/manual AI PR Review runs.",
       "reason": "PR #89 changes long-term AI PR Review behavior: comment-triggered and manual runs for same-repo PRs now publish an AI PR Review commit status on the PR head. Existing product docs described those triggers but did not document the PR association/status semantics.",
       "recorded_at": "2026-05-29T14:23:53Z"
+    },
+    {
+      "pr": 86,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/86",
+      "title": "docs(spec): create issue 85 specs",
+      "merged_at": "2026-05-16T08:56:57Z",
+      "merge_commit": "3163aa46d9c7bd0d3cfc3291c491835a6bfd067f",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #86",
+        "Issue #85",
+        "Issue #88",
+        "PR #89",
+        "specs/issue-85/product.md",
+        "specs/issue-85/tech.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "proposed_patch": "No docs/product patch needed; existing product docs already describe the delivered PR comment/manual AI PR Review commit status behavior, and the issue 85 dirty-worktree behavior remains spec-only in this PR.",
+      "reason": "PR #86 mainly merged specs for future local review dirty-worktree behavior, and those specs explicitly state they do not implement the behavior. The implemented AI PR Review status behavior included in the merge is already covered by docs/product/raw/pr-review-verdict.md, so no long-term product docs change is needed.",
+      "recorded_at": "2026-05-29T17:58:05Z"
     }
   ]
 }
