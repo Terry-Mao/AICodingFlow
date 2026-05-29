@@ -23,6 +23,7 @@ Issue 不会仅因新建而进入自动 spec 或 implementation 阶段。自动�
 - comment 显式 mention 目标 agent 时，可以触发已 ready 的 issue。
 - 手动触发同样必须满足 `ready-to-spec` 与目标 agent assignment。
 - issue 已带 `ready-to-implement` 时，spec workflow 不启动。
+- spec PR 获得 `plan-approved` 后，approval workflow 会从 linked issue 移除 `ready-to-spec`，但不会自动添加 `ready-to-implement`。
 
 ## Implementation 阶段
 
@@ -30,6 +31,7 @@ Issue 不会仅因新建而进入自动 spec 或 implementation 阶段。自动�
 - assign 给目标 agent 时，issue 必须已经带有 `ready-to-implement` label。
 - comment 显式 mention 目标 agent 时，可以触发已 ready 的 issue。
 - `plan-approved` label 只影响 spec context 可用性，不单独触发 implementation workflow。
+- 只有 linked issue 已经带有 `ready-to-implement` 且 assign 给目标 agent 时，plan approval 同步流程才会 dispatch implementation workflow。
 
 ## Supporting Summaries
 

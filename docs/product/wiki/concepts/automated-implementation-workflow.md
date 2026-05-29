@@ -22,6 +22,15 @@ sources:
 - 自动事件只处理非 PR issue。
 - issue 必须满足 `ready-to-implement` 与目标 agent assignment。
 - Spec PR 的 `plan-approved` label 只表示该 PR 可作为实现上下文，不会单独触发 implementation workflow。
+- PR comment 不触发 implementation workflow；PR comment mention 由 AI PR Review workflow 处理。
+- 创建或更新 implementation PR 后不会自动触发 AI PR Review，因为 implementation PR 默认保持 draft。
+- 需要 review 时，在 open 且非 draft PR 的普通 conversation comment 中发送 `@AGENT_LOGIN /review`。
+
+## Workflow 文件写入
+
+- 普通不修改 GitHub workflow 文件的实现分支使用默认 `GITHUB_TOKEN` 推送。
+- 实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，仓库必须配置 `WORKFLOW_UPDATE_TOKEN` secret。
+- 缺少 `WORKFLOW_UPDATE_TOKEN` 时，包含 workflow 文件的实现提交会在 commit 前被拒绝。
 
 ## Supporting Summaries
 

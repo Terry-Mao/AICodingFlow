@@ -43,4 +43,5 @@ Non-member gate 只对 code PR 的特定场景产生 blocking review event。Spe
 
 ## Related Concepts
 
+- [AI PR Review workflow](ai-pr-review-workflow.md)
 - [PR review verdict](pr-review-verdict.md)

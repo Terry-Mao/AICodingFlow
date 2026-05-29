@@ -26,6 +26,18 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 - 建议和 nit 不应单独导致 `REJECT`。
 - `recommended_reviewers` 仅用于需要推荐人工 reviewer 的场景，必须是字符串数组，最多包含 1 个 reviewer。
 
+## 触发与 skill 选择
+
+- AI PR Review 可以由 `pull_request`、`workflow_dispatch` 或 PR comment mention `AGENT_LOGIN` 触发。
+- 手动触发和 comment 触发会先解析目标 PR，再复用普通 PR 事件一致的 review 流程。
+- Comment 触发要求 `@AGENT_LOGIN /review` 独占一行，允许前后空白。
+- 裸 `/review`、单纯 `@AGENT_LOGIN` mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的 `@AGENT_LOGIN /review ...` 都不会触发 AI review。
+- 普通 issue comment 和 PR inline review comment 不是 comment 触发入口。
+- 只有 open、非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review。
+- closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传 review artifact。
+- spec-only PR 使用 `review-spec-repo`；其他 code PR 使用 `review-pr-repo`。
+- 仓库本地 wrapper skill 补充本仓库评审偏好，不改变核心输出契约。
+
 ## PR 作者与类型
 
 - `COLLABORATOR`、`MEMBER`、`OWNER` 视为 member / collaborator / owner。
@@ -49,7 +61,16 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 
 最终能否 merge 由 GitHub branch protection、required checks、code owner review、blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
+## 本地 review 入口
+
+- 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或 `review-spec-local`。
+- 本地 review 会准备 `pr_description.txt`、`pr_diff.txt`、按需准备 `spec_context.md`，并输出 `review.json`。
+- 准备阶段要求 worktree 先保持干净；review 阶段只能写入 `review.json`。
+- code review 默认比较当前 head 与默认 base，并根据 changed files 解析 spec context；spec-only review 不生成 spec context。
+
 ## 支持的概念
 
+- [AI PR Review workflow](../concepts/ai-pr-review-workflow.md)
 - [PR review verdict](../concepts/pr-review-verdict.md)
 - [Non-member gate 与 reviewer 请求](../concepts/non-member-gate-and-reviewer-request.md)
+- [本地 PR review 入口](../concepts/local-pr-review-entrypoints.md)

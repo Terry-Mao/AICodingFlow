@@ -28,6 +28,18 @@ Source: [docs/product/raw/spec-workflow.md](../../raw/spec-workflow.md)
 - `SPEC_AGENT_LOGIN` 不再作为 spec workflow 的配置入口。
 - 手动触发也必须满足 `ready-to-spec` 与目标 agent assignment。
 - 如果 issue 已经带有 `ready-to-implement`，spec workflow 不启动，避免同一 issue 同时进入 spec 与 implementation 阶段。
+- PR comment 不触发 spec workflow；PR comment mention 由 AI PR Review workflow 处理。
+
+## Plan approval 与后续 review
+
+- 维护者在 spec PR 上添加 `plan-approved` label 表示该 plan 已批准，可作为 implementation workflow 的 authoritative spec context。
+- `plan-approved` 不是 merge gate；未 merge 的 spec PR 也可被 implementation workflow 读取。
+- approval workflow 会解析 linked issue，并自动从该 issue 移除 `ready-to-spec`；如果原本没有该 label，视为幂等成功。
+- approval workflow 不会自动添加 `ready-to-implement`。
+- linked issue 已同时带有 `ready-to-implement` 且 assign 给目标 agent 时，approval workflow 会在移除 `ready-to-spec` 后触发 implementation workflow。
+- 缺少 `ready-to-implement`、缺少目标 agent assignment 或无法解析 linked issue 时，只完成可执行的状态同步并跳过 implementation dispatch。
+- 创建或更新 spec PR 后不会自动触发 AI PR Review；需要 review 时，在 open 且非 draft PR 的普通 conversation comment 中发送 `@AGENT_LOGIN /review`。
+- 创建或更新 PR 时，workflow 只复用同一 head branch 上的 open PR，不把 closed PR 当作可更新目标。
 
 ## 支持的概念
 
