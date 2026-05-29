@@ -1,0 +1,168 @@
+name: Product Wiki Compile
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "10 3 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: product-wiki-compile
+  cancel-in-progress: false
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Initialize product wiki branch
+        id: wiki_branch
+        run: |
+          branch="docs/product-wiki-compile"
+          base="origin/${{ github.event.repository.default_branch }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
+          if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            git switch -C "$branch" "refs/remotes/origin/$branch"
+            git rebase "$base"
+          else
+            git switch -C "$branch" "$base"
+          fi
+
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Capture raw product docs checksums
+        run: |
+          if [ -d docs/product/raw ]; then
+            find docs/product/raw -type f -name '*.md' -print0 \
+              | sort -z \
+              | xargs -0 sha256sum \
+              > product-wiki-raw.sha256
+          else
+            : > product-wiki-raw.sha256
+          fi
+
+      - name: Install Codex sandbox prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+
+      - name: Configure Codex API endpoint
+        id: codex_endpoint
+        env:
+          OPENAI_API_ENDPOINT: ${{ vars.OPENAI_API_ENDPOINT }}
+        run: |
+          endpoint="${OPENAI_API_ENDPOINT%/}"
+          if [ -z "$endpoint" ]; then
+            echo "OPENAI_API_ENDPOINT is not set" >&2
+            exit 1
+          fi
+          case "$endpoint" in
+            */responses) ;;
+            *) endpoint="$endpoint/responses" ;;
+          esac
+          echo "url=$endpoint" >> "$GITHUB_OUTPUT"
+
+      - name: Compile product wiki
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
+          prompt: |
+            Read .agents/skills/product-wiki-compile/SKILL.md and follow it exactly.
+
+            Inputs:
+            - docs/product/raw/**/*.md
+            - existing docs/product/wiki/**/*.md, if present
+
+            Required output root:
+            - docs/product/wiki/
+
+            Build an LLM Wiki with Ingest, Query, and Linter structure:
+            - docs/product/wiki/AGENTS.md
+            - docs/product/wiki/index.md
+            - docs/product/wiki/summaries/*.md
+            - docs/product/wiki/concepts/*.md
+            - docs/product/wiki/schema/README.md
+            - docs/product/wiki/schema/page-types.md
+            - docs/product/wiki/schema/linking.md
+            - docs/product/wiki/log.md
+
+            Treat docs/product/raw as the authoritative source of truth.
+            Use relative Markdown links between wiki pages.
+            Keep source traceability from concepts to summaries to raw sources.
+            Mark conflicts or uncertain facts as 待确认 or 开放问题.
+
+            Modify only Markdown files under docs/product/wiki/.
+            Do not modify docs/product/raw, docs/updates, .agents, .github, specs, product code, or workflow handoff files.
+            Do not run git commands, commit, push, create pull requests, invoke GitHub APIs, or edit issues.
+
+      - name: Validate raw product docs integrity
+        run: sha256sum -c product-wiki-raw.sha256
+
+      - name: Validate product wiki compile
+        id: wiki_status
+        run: |
+          python3 .github/scripts/validate_product_wiki_compile.py \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Create or update product wiki pull request
+        if: steps.wiki_status.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WIKI_BRANCH: ${{ steps.wiki_branch.outputs.branch }}
+        run: |
+          branch="$WIKI_BRANCH"
+
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          python3 .github/scripts/write_product_wiki_compile_pr_body.py --output "$body_file"
+
+          git add docs/product/wiki
+          git commit -m "docs(product): compile product wiki"
+          git push --force-with-lease origin "$branch"
+
+          existing_pr="$(
+            gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
+              --repo "${{ github.repository }}" \
+              --title "Compile product wiki" \
+              --body-file "$body_file"
+          else
+            gh pr create \
+              --repo "${{ github.repository }}" \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$branch" \
+              --title "Compile product wiki" \
+              --body-file "$body_file"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: product-wiki-compile-${{ github.run_id }}
+          path: |
+            product-wiki-raw.sha256
+            docs/product/wiki
