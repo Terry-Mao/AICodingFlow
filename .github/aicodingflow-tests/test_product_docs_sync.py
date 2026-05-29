@@ -295,6 +295,7 @@ class ProductDocsSyncWorkflowTest(unittest.TestCase):
 
         self.assertIn("workflow_dispatch", triggers)
         self.assertIn("schedule", triggers)
+        self.assertIn({"cron": "45 * * * *"}, triggers["schedule"])
         self.assertNotIn("pull_request", triggers)
         self.assertEqual(triggers["workflow_dispatch"]["inputs"]["pr_number"]["required"], False)
         self.assertEqual(data["permissions"]["contents"], "write")
