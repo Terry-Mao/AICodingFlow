@@ -1,6 +1,12 @@
 ---
 type: concept
 title: Spec context 与目标分支选择
+status: current
+confidence: high
+source_status: verified
+owner: product-docs
+last_reviewed: 2026-05-29
+review_due: 2026-08-27
 sources:
   - docs/product/raw/implementation-workflow.md
 ---

@@ -48,7 +48,7 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
     def test_write_surface_rejects_workflow_skill_specs_and_code_changes(self) -> None:
         invalid_paths = [
             ".github/workflows/product-wiki-compile.yml",
-            ".agents/skills/product-wiki-compile/SKILL.md",
+            ".agents/skills/product-wiki/SKILL.md",
             "specs/issue-1/product.md",
             "src/app.py",
         ]
@@ -96,6 +96,12 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                 "---\n"
                 "type: summary\n"
                 "title: Spec workflow source\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-08-27\n"
                 "sources:\n"
                 "  - docs/product/raw/spec-workflow.md\n"
                 "---\n"
@@ -106,6 +112,12 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                 "---\n"
                 "type: concept\n"
                 "title: 自动 spec workflow\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-08-27\n"
                 "sources:\n"
                 "  - docs/product/raw/spec-workflow.md\n"
                 "---\n"
@@ -124,6 +136,12 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                 "---\n"
                 "type: summary\n"
                 "title: Spec workflow source\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-08-27\n"
                 "sources:\n"
                 "---\n"
                 "# Spec workflow source\n",
@@ -133,17 +151,75 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 validator.validate_frontmatter(root)
 
+    def test_frontmatter_rejects_invalid_review_date_value(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            summary = root / "docs/product/wiki/summaries/spec-workflow.md"
+            summary.parent.mkdir(parents=True)
+            summary.write_text(
+                "---\n"
+                "type: summary\n"
+                "title: Spec workflow source\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-02-31\n"
+                "review_due: 2026-08-27\n"
+                "sources:\n"
+                "  - docs/product/raw/spec-workflow.md\n"
+                "---\n"
+                "# Spec workflow source\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SystemExit, "last_reviewed must be a valid date"):
+                validator.validate_frontmatter(root)
+
+    def test_frontmatter_rejects_review_due_before_last_reviewed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            summary = root / "docs/product/wiki/summaries/spec-workflow.md"
+            summary.parent.mkdir(parents=True)
+            summary.write_text(
+                "---\n"
+                "type: summary\n"
+                "title: Spec workflow source\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-05-28\n"
+                "sources:\n"
+                "  - docs/product/raw/spec-workflow.md\n"
+                "---\n"
+                "# Spec workflow source\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SystemExit, "review_due must not be before last_reviewed"):
+                validator.validate_frontmatter(root)
+
     def write_minimal_linked_wiki(self, root: Path) -> None:
         files = {
             "docs/product/wiki/AGENTS.md": "# Agents\n",
             "docs/product/wiki/schema/README.md": "# Schema\n",
             "docs/product/wiki/schema/page-types.md": "# Page types\n",
             "docs/product/wiki/schema/linking.md": "# Linking\n",
+            "docs/product/wiki/schema/query.md": "# Query\n",
+            "docs/product/wiki/schema/staging.md": "# Staging\n",
             "docs/product/wiki/log.md": "# Log\n",
             "docs/product/wiki/summaries/spec-workflow.md": (
                 "---\n"
                 "type: summary\n"
                 "title: Spec workflow source\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-08-27\n"
                 "sources:\n"
                 "  - docs/product/raw/spec-workflow.md\n"
                 "---\n"
@@ -154,6 +230,12 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                 "---\n"
                 "type: concept\n"
                 "title: 自动 spec workflow\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-08-27\n"
                 "sources:\n"
                 "  - docs/product/raw/spec-workflow.md\n"
                 "---\n"
@@ -167,6 +249,8 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
             "[Schema](schema/README.md)",
             "[Page types](schema/page-types.md)",
             "[Linking](schema/linking.md)",
+            "[Query](schema/query.md)",
+            "[Staging](schema/staging.md)",
             "[Spec workflow source](summaries/spec-workflow.md)",
             "[自动 spec workflow](concepts/spec-workflow.md)",
         ]
@@ -194,6 +278,8 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                 "- [Schema](schema/README.md)\n"
                 "- [Page types](schema/page-types.md)\n"
                 "- [Linking](schema/linking.md)\n"
+                "- [Query](schema/query.md)\n"
+                "- [Staging](schema/staging.md)\n"
                 "- [Spec workflow source](summaries/spec-workflow.md)\n",
                 encoding="utf-8",
             )
@@ -213,6 +299,8 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                 "docs/product/wiki/schema/README.md": "# Schema\n",
                 "docs/product/wiki/schema/page-types.md": "# Page types\n",
                 "docs/product/wiki/schema/linking.md": "# Linking\n",
+                "docs/product/wiki/schema/query.md": "# Query\n",
+                "docs/product/wiki/schema/staging.md": "# Staging\n",
                 "docs/product/wiki/index.md": (
                     "# Index\n\n"
                     "- [AGENTS](AGENTS.md)\n"
@@ -220,6 +308,8 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                     "- [Schema](schema/README.md)\n"
                     "- [Page types](schema/page-types.md)\n"
                     "- [Linking](schema/linking.md)\n"
+                    "- [Query](schema/query.md)\n"
+                    "- [Staging](schema/staging.md)\n"
                 ),
             }
             for path, content in wiki_files.items():
@@ -238,6 +328,12 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
                 "---\n"
                 "type: summary\n"
                 "title: Spec workflow source\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-08-27\n"
                 "sources:\n"
                 "  - docs/product/raw/spec-workflow.md\n"
                 "---\n"
@@ -247,6 +343,60 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
 
             with self.assertRaises(SystemExit):
                 validator.validate_link_contract(root)
+
+    def test_frontmatter_rejects_missing_status_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            summary = root / "docs/product/wiki/summaries/spec-workflow.md"
+            summary.parent.mkdir(parents=True)
+            summary.write_text(
+                "---\n"
+                "type: summary\n"
+                "title: Spec workflow source\n"
+                "sources:\n"
+                "  - docs/product/raw/spec-workflow.md\n"
+                "---\n"
+                "# Spec workflow source\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(SystemExit):
+                validator.validate_frontmatter(root)
+
+    def test_health_contract_rejects_duplicate_titles(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.write_minimal_linked_wiki(root)
+            duplicate = root / "docs/product/wiki/concepts/duplicate.md"
+            duplicate.write_text(
+                "---\n"
+                "type: concept\n"
+                "title: 自动 spec workflow\n"
+                "status: current\n"
+                "confidence: high\n"
+                "source_status: verified\n"
+                "owner: product-docs\n"
+                "last_reviewed: 2026-05-29\n"
+                "review_due: 2026-08-27\n"
+                "sources:\n"
+                "  - docs/product/raw/spec-workflow.md\n"
+                "---\n"
+                "# 自动 spec workflow copy\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(SystemExit):
+                validator.validate_health_contract(root)
+
+    def test_health_contract_rejects_unsectioned_review_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.write_minimal_linked_wiki(root)
+            concept = root / "docs/product/wiki/concepts/spec-workflow.md"
+            concept.write_text(concept.read_text(encoding="utf-8") + "\n- 待确认：needs source.\n", encoding="utf-8")
+
+            with self.assertRaises(SystemExit):
+                validator.validate_health_contract(root)
 
     def test_main_writes_changed_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -336,7 +486,7 @@ class ProductWikiCompileWorkflowTest(unittest.TestCase):
         codex_step = next(step for step in steps if step.get("name") == "Compile product wiki")
         prompt = codex_step["with"]["prompt"]
 
-        self.assertIn(".agents/skills/product-wiki-compile/SKILL.md", prompt)
+        self.assertIn(".agents/skills/product-wiki/SKILL.md", prompt)
         self.assertIn("docs/product/wiki/AGENTS.md", prompt)
         self.assertIn("docs/product/wiki/summaries/*.md", prompt)
         self.assertIn("docs/product/wiki/concepts/*.md", prompt)

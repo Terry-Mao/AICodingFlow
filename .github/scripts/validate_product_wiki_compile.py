@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import re
 import subprocess
 from pathlib import Path
@@ -17,12 +18,19 @@ REQUIRED_FILES = {
     "docs/product/wiki/schema/README.md",
     "docs/product/wiki/schema/page-types.md",
     "docs/product/wiki/schema/linking.md",
+    "docs/product/wiki/schema/query.md",
+    "docs/product/wiki/schema/staging.md",
 }
 HANDOFF_FILES = {
     "product-wiki-raw.sha256",
 }
 FRONTMATTER_REQUIRED_TYPES = {"summary", "concept"}
+FRONTMATTER_REQUIRED_STATUS = {"current", "proposed", "needs-review", "deprecated"}
+FRONTMATTER_REQUIRED_CONFIDENCE = {"high", "medium", "low"}
+FRONTMATTER_REQUIRED_SOURCE_STATUS = {"verified", "partial", "conflict"}
+MAX_WIKI_PAGE_LINES = 400
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def changed_paths() -> list[str]:
@@ -115,6 +123,15 @@ def parse_frontmatter(text: str, path: Path) -> dict[str, object] | None:
     raise SystemExit(f"unterminated frontmatter: {path}")
 
 
+def parse_frontmatter_date(value: object, field: str, relative: str) -> dt.date:
+    if not isinstance(value, str) or not DATE_RE.match(value):
+        raise SystemExit(f"{relative} frontmatter {field} must use YYYY-MM-DD")
+    try:
+        return dt.date.fromisoformat(value)
+    except ValueError:
+        raise SystemExit(f"{relative} frontmatter {field} must be a valid date")
+
+
 def validate_frontmatter(root: Path) -> None:
     for path in existing_wiki_markdown(root):
         relative = path.relative_to(root).as_posix()
@@ -132,6 +149,22 @@ def validate_frontmatter(root: Path) -> None:
         sources = data.get("sources")
         if not isinstance(sources, list) or not sources or any(not isinstance(item, str) or not item.strip() for item in sources):
             raise SystemExit(f"{relative} frontmatter sources must be a non-empty list")
+        status = data.get("status")
+        if status not in FRONTMATTER_REQUIRED_STATUS:
+            raise SystemExit(f"{relative} frontmatter status must be one of: {', '.join(sorted(FRONTMATTER_REQUIRED_STATUS))}")
+        confidence = data.get("confidence")
+        if confidence not in FRONTMATTER_REQUIRED_CONFIDENCE:
+            raise SystemExit(f"{relative} frontmatter confidence must be one of: {', '.join(sorted(FRONTMATTER_REQUIRED_CONFIDENCE))}")
+        source_status = data.get("source_status")
+        if source_status not in FRONTMATTER_REQUIRED_SOURCE_STATUS:
+            raise SystemExit(f"{relative} frontmatter source_status must be one of: {', '.join(sorted(FRONTMATTER_REQUIRED_SOURCE_STATUS))}")
+        owner = data.get("owner")
+        if not isinstance(owner, str) or not owner.strip():
+            raise SystemExit(f"{relative} frontmatter owner must be non-empty")
+        last_reviewed = parse_frontmatter_date(data.get("last_reviewed"), "last_reviewed", relative)
+        review_due = parse_frontmatter_date(data.get("review_due"), "review_due", relative)
+        if review_due < last_reviewed:
+            raise SystemExit(f"{relative} frontmatter review_due must not be before last_reviewed")
         if relative.startswith("docs/product/wiki/summaries/") and page_type != "summary":
             raise SystemExit(f"{relative} must use type: summary")
         if relative.startswith("docs/product/wiki/concepts/") and page_type != "concept":
@@ -194,6 +227,26 @@ def validate_link_contract(root: Path) -> None:
                 raise SystemExit(f"{concept} must link to at least one summary page")
 
 
+def validate_health_contract(root: Path) -> None:
+    titles: dict[str, str] = {}
+    for path in existing_wiki_markdown(root):
+        relative = path.relative_to(root).as_posix()
+        text = path.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        if len(lines) > MAX_WIKI_PAGE_LINES:
+            raise SystemExit(f"{relative} exceeds {MAX_WIKI_PAGE_LINES} lines")
+        if relative.startswith(("docs/product/wiki/summaries/", "docs/product/wiki/concepts/")):
+            data = parse_frontmatter(text, path) or {}
+            title = str(data.get("title", "")).strip()
+            if title in titles:
+                raise SystemExit(f"duplicate wiki title: {title} in {titles[title]} and {relative}")
+            titles[title] = relative
+            has_review_marker = "待确认" in text or "开放问题" in text
+            has_review_section = "\n## 待确认" in text or "\n## 开放问题" in text
+            if has_review_marker and not has_review_section:
+                raise SystemExit(f"{relative} uses 待确认 or 开放问题 without a dedicated review section")
+
+
 def write_github_output(path: str | None, values: dict[str, str]) -> None:
     if not path:
         return
@@ -213,6 +266,7 @@ def main() -> int:
     validate_required_files(root, wiki_paths)
     validate_frontmatter(root)
     validate_link_contract(root)
+    validate_health_contract(root)
     write_github_output(
         args.github_output,
         {

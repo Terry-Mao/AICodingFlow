@@ -1,6 +1,12 @@
 ---
 type: concept
 title: Agent login 配置
+status: current
+confidence: high
+source_status: verified
+owner: product-docs
+last_reviewed: 2026-05-29
+review_due: 2026-08-27
 sources:
   - docs/product/raw/spec-workflow.md
   - docs/product/raw/implementation-workflow.md

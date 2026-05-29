@@ -37,3 +37,5 @@
 - [Schema 总览](schema/README.md)
 - [页面类型](schema/page-types.md)
 - [链接规则](schema/linking.md)
+- [查询流程](schema/query.md)
+- [暂存评审](schema/staging.md)
