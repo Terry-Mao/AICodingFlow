@@ -445,6 +445,24 @@
       "proposed_patch": "Updated the local review entrypoint documentation to describe dirty-worktree support, current-worktree diff semantics, the .local_review_baseline.status file, validation boundaries, and the PR/spec sources.",
       "reason": "PR #90 changed the long-term behavior of local PR/spec review entrypoints: they now support dirty worktrees, generate review diffs from the current worktree snapshot, and use a baseline status file for validation. Existing product docs still stated that local review required a clean worktree, so the authoritative docs needed correction.",
       "recorded_at": "2026-05-29T21:03:26Z"
+    },
+    {
+      "pr": 93,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/93",
+      "title": "feat(skill): add security review supplements",
+      "merged_at": "2026-05-16T10:36:08Z",
+      "merge_commit": "6123f8a516ada1696294f7b43acb87925037f382",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #93",
+        "Issue #91"
+      ],
+      "proposed_patch": "Updated the authoritative PR review product doc to describe security supplemental review behavior, covered concern areas, reporting boundaries, [SECURITY] labeling, and verdict impact.",
+      "reason": "PR #93 changes the long-term AI PR Review workflow by adding security-review-pr and security-review-spec as mandatory supplemental passes for code and spec reviews. Existing product docs described review skill selection and review.json semantics but did not cover security supplement scope, reporting, or verdict impact.",
+      "recorded_at": "2026-05-29T23:01:24Z"
     }
   ]
 }
