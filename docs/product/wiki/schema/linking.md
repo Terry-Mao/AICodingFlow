@@ -14,6 +14,7 @@
 - index 必须链接所有 summary、concept、schema、AGENTS 和 log 页面。
 - summary 必须链接它支持的 concept 页面。
 - concept 必须链接 supporting summary 页面。
+- schema 页面必须覆盖页面类型、链接规则、查询流程和暂存评审规则。
 - wiki 内部链接使用相对 Markdown 链接，例如 `[自动 spec workflow](../concepts/automated-spec-workflow.md)`。
 - raw source 链接也使用相对路径，例如 `[docs/product/raw/spec-workflow.md](../../raw/spec-workflow.md)`。
 

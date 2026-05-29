@@ -83,7 +83,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
-            Read .agents/skills/product-wiki-compile/SKILL.md and follow it exactly.
+            Read .agents/skills/product-wiki/SKILL.md and follow it exactly.
 
             Inputs:
             - docs/product/raw/**/*.md
@@ -100,12 +100,16 @@ jobs:
             - docs/product/wiki/schema/README.md
             - docs/product/wiki/schema/page-types.md
             - docs/product/wiki/schema/linking.md
+            - docs/product/wiki/schema/query.md
+            - docs/product/wiki/schema/staging.md
             - docs/product/wiki/log.md
 
             Treat docs/product/raw as the authoritative source of truth.
             Use relative Markdown links between wiki pages.
             Keep source traceability from concepts to summaries to raw sources.
             Mark conflicts or uncertain facts as 待确认 or 开放问题.
+            Maintain Query and staged review gate guidance in the schema docs.
+            Summary and concept frontmatter must include status, confidence, source_status, owner, last_reviewed, review_due, and sources.
 
             Modify only Markdown files under docs/product/wiki/.
             Do not modify docs/product/raw, docs/updates, .agents, .github, specs, product code, or workflow handoff files.

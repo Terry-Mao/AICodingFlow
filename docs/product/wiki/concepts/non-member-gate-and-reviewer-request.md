@@ -1,6 +1,12 @@
 ---
 type: concept
 title: Non-member gate 与 reviewer 请求
+status: current
+confidence: high
+source_status: verified
+owner: product-docs
+last_reviewed: 2026-05-29
+review_due: 2026-08-27
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---

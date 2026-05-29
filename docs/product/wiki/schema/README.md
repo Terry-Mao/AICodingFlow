@@ -13,8 +13,9 @@
 ## 约束
 
 - wiki 文件只使用 Markdown。
-- summary 与 concept 页面必须包含 YAML frontmatter。
+- summary 与 concept 页面必须包含完整 YAML frontmatter，包括状态、置信度、来源状态、owner 和复核日期。
 - wiki 内部链接必须使用相对 Markdown 链接。
-- 不确定或冲突信息必须标记为 `待确认` 或 `开放问题`。
+- 查询应优先沿 index、concept、summary、raw 的链路追溯。
+- 不确定或冲突信息必须标记为 `待确认` 或 `开放问题`，并进入暂存评审。
 
-更多细节见 [page-types.md](page-types.md) 与 [linking.md](linking.md)。
+更多细节见 [page-types.md](page-types.md)、[linking.md](linking.md)、[query.md](query.md) 与 [staging.md](staging.md)。

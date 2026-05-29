@@ -1,12 +1,12 @@
 ---
-name: product-wiki-compile
-description: Compile authoritative raw product documentation into an LLM Wiki under docs/product/wiki with summaries, concepts, index, schema, links, and lintable structure.
+name: product-wiki
+description: Maintain the product LLM Wiki under docs/product/wiki, including raw-doc ingestion, compiled summaries and concepts, query guidance, structural lint rules, and staged review handling for uncertain product knowledge.
 license: MIT
 ---
 
-# Product Wiki Compile
+# Product Wiki
 
-Compile `docs/product/raw/` into an LLM Wiki under `docs/product/wiki/`.
+Maintain `docs/product/raw/` and `docs/product/wiki/` as a source-traceable product LLM Wiki.
 
 `docs/product/raw/` is the authoritative source of product truth. The wiki is a compiled knowledge layer for agents and maintainers: concise, linked, source-traceable, and easier to query than raw source files.
 
@@ -30,6 +30,8 @@ Required files:
 - `docs/product/wiki/schema/README.md`
 - `docs/product/wiki/schema/page-types.md`
 - `docs/product/wiki/schema/linking.md`
+- `docs/product/wiki/schema/query.md`
+- `docs/product/wiki/schema/staging.md`
 
 Required content families:
 
@@ -50,13 +52,13 @@ Do not modify `docs/product/raw/`, `docs/updates/`, `.agents`, `.github`, specs,
    - Each raw source should have a summary page under `docs/product/wiki/summaries/`.
    - The summary must capture durable product knowledge, not implementation trivia.
    - The summary must link to every concept page it supports.
-   - The summary must include frontmatter with `type: summary`, `title`, and `sources`.
+   - The summary must include the required frontmatter described in the Linter Contract.
 
 3. Create or update concept pages.
    - Extract concepts that appear across raw sources or are important enough to query directly.
    - Prefer stable, reusable concepts over one-off report fragments.
    - Concept pages must link to supporting summary pages and related concept pages.
-   - Concept pages must include frontmatter with `type: concept`, `title`, and `sources`.
+   - Concept pages must include the required frontmatter described in the Linter Contract.
 
 4. Maintain the index.
    - `index.md` is the first query entrypoint.
@@ -79,6 +81,7 @@ It must explain this query order:
 3. Follow links from concept pages to source summaries.
 4. Follow summary `sources` back to `docs/product/raw/` when exact source truth is needed.
 5. If wiki and raw conflict, raw wins and the wiki should be updated or marked pending confirmation.
+6. If answering a new product question reveals durable knowledge that is not represented in the wiki, update the relevant summary/concept page or record it as staged review material instead of leaving it only in the answer.
 
 The guide must also state:
 
@@ -96,12 +99,45 @@ The wiki must satisfy these structural rules:
 - Summary and concept pages include YAML frontmatter with:
   - `type`: `summary` or `concept`
   - `title`: non-empty string
+  - `status`: `current`, `proposed`, `needs-review`, or `deprecated`
+  - `confidence`: `high`, `medium`, or `low`
+  - `source_status`: `verified`, `partial`, or `conflict`
+  - `owner`: non-empty owner string
+  - `last_reviewed`: `YYYY-MM-DD`
+  - `review_due`: `YYYY-MM-DD`
   - `sources`: non-empty list of source paths or source references
 - `index.md` links to `AGENTS.md`, schema docs, `log.md`, every summary page, and every concept page.
 - Summary pages link to relevant concept pages.
 - Concept pages link to supporting summary pages.
 - Relative Markdown links should be used for wiki-internal links.
 - Uncertain or conflicting information must be marked with `待确认` or `开放问题`.
+- Any page containing `待确认` or `开放问题` must keep those items in a dedicated review section.
+- Summary and concept titles should be unique.
+- Keep wiki pages compact enough for agent lookup; split or summarize oversized pages instead of creating long catch-all documents.
+
+## Query
+
+Maintain `docs/product/wiki/schema/query.md` as the query workflow contract.
+
+The query workflow should define:
+
+- how agents move from `index.md` to concepts, summaries, and raw sources;
+- when an answer can cite the wiki directly and when it must verify raw sources;
+- when a durable answer should be folded back into an existing page;
+- when missing or uncertain knowledge should be staged for review instead of written as current fact;
+- that broad keyword search is secondary to linked traversal, not a replacement for it.
+
+## Staged Review
+
+Maintain `docs/product/wiki/schema/staging.md` as the review gate for uncertain wiki changes.
+
+When raw sources conflict, are missing, or only partially support a claim:
+
+- do not present the claim as `current` + `verified`;
+- use `status: proposed` or `status: needs-review`, `confidence: medium` or `low`, and `source_status: partial` or `conflict`;
+- place the claim under a dedicated `## 待确认` or `## 开放问题` section;
+- record the uncertainty in `docs/product/wiki/log.md`;
+- keep the source trail explicit enough for PR reviewers to confirm, revise, or remove the staged claim.
 
 ## Style
 
