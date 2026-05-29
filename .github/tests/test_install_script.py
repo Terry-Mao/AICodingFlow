@@ -89,6 +89,7 @@ class InstallScriptTest(unittest.TestCase):
             self.assertFalse((target / ".agents/skills/review-spec-repo/SKILL.md").exists())
             self.assertFalse((target / ".agents/skills/triage-issue-repo/SKILL.md").exists())
             self.assertFalse((target / ".agents/skills/dedupe-issue-repo/SKILL.md").exists())
+            self.assertTrue((target / ".github/agents/product-wiki-query.md").is_file())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
             self.assertFalse((target / ".github/tests").exists())
             self.assertTrue((target / ".github/aicodingflow-tests/test_validate_spec_output.py").is_file())

@@ -96,6 +96,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 .codex/                          # Codex 入口目录
 .claude/                         # Claude 入口目录
 .cursor/rules/                   # Cursor rules
+.github/agents/                  # GitHub Copilot custom agents
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper
 .github/aicodingflow-tests/      # 随安装脚本交付的 workflow/script unittest 和 fixtures
