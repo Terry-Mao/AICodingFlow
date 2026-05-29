@@ -121,6 +121,127 @@
       "report_date": "2026-05-27",
       "report_path": "docs/updates/auto-update-2026-05-27.md",
       "recorded_at": "2026-05-28T06:36:03Z"
+    },
+    {
+      "pr": 179,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/179",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-28T01:59:55Z",
+      "merge_commit": "cee37ff8ef5fa779d45cb8ae0bdd2e9760593a9a",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 181,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/181",
+      "title": "fix(updates): 强化产品变更报告引用校验",
+      "merged_at": "2026-05-28T02:05:25Z",
+      "merge_commit": "cb9e5df6a6784cbc9c34ecd44df3bdb015b8a1eb",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 182,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/182",
+      "title": "Update product docs for PR #181",
+      "merged_at": "2026-05-28T05:47:54Z",
+      "merge_commit": "141f4e25038df0ebe3f09833b5a6a33fdb8f7498",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 183,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/183",
+      "title": "Add product change report for 2026-05-27",
+      "merged_at": "2026-05-28T09:10:57Z",
+      "merge_commit": "43752c52df76bd28078d158f4f4d2d50703d5743",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 184,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/184",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-28T09:23:46Z",
+      "merge_commit": "056357717b3bc062a72e1f4d9e9ae0e7de6885ff",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 185,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/185",
+      "title": "Update product docs for PR #52",
+      "merged_at": "2026-05-28T09:34:55Z",
+      "merge_commit": "b28f6e54ee1a3734fbed072168ab14f4b5130251",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 186,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/186",
+      "title": "Record product docs sync decision for PR #53",
+      "merged_at": "2026-05-28T09:50:11Z",
+      "merge_commit": "4f9d83e97257b918b8197a0e59c15f19484e9dab",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 187,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/187",
+      "title": "fix(product): 累积处理 product docs sync PR",
+      "merged_at": "2026-05-28T11:19:40Z",
+      "merge_commit": "2db0fa6e6a428ce7ab0c8a0f087164d3c6936bb6",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 188,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/188",
+      "title": "fix(product): 处理 PR 描述中的 referenced issues",
+      "merged_at": "2026-05-28T11:31:20Z",
+      "merge_commit": "f0703f44861ccb89841652c3d5eea44d7b05e49f",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 189,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/189",
+      "title": "Update product docs",
+      "merged_at": "2026-05-28T11:58:50Z",
+      "merge_commit": "2c33e1768637d20fcc259acda10151509b5bf190",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 191,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/191",
+      "title": "fix(create-pr): ignore merged branch prs",
+      "merged_at": "2026-05-28T18:10:26Z",
+      "merge_commit": "ef0600303fda5fe6df613cb983a3e84ec2db74c4",
+      "status": "reported",
+      "report_date": "2026-05-28",
+      "report_path": "docs/updates/auto-update-2026-05-28.md",
+      "recorded_at": "2026-05-29T06:37:52Z"
     }
   ]
 }
