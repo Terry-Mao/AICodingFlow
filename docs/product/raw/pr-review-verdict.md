@@ -21,6 +21,17 @@ review comment 也不是该入口。
 closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传
 review artifact。
 
+## Comment 与手动触发的 PR 关联
+
+当 AI PR Review 由 PR comment 或 `workflow_dispatch` 触发，且目标 PR 的 head
+repository 是当前仓库时，workflow 会在 PR head commit 上写入 `AI PR Review` commit
+status。Review 运行开始时 status 为 `pending`，运行结束后按 job 结果更新为
+`success` 或 `failure`，并把 status target URL 指向对应的 GitHub Actions run。
+
+该 commit status 用于让 comment 或手动触发的 review run 出现在目标 PR 的 checks /
+statuses 视图中。普通 `pull_request` 事件触发的 review 不通过这一路径补写 status；
+来自 fork 的 PR 也不会写入该 status。
+
 ## Review skill 选择
 
 AI PR Review 会先按 changed files 判断 PR 类型，再选择仓库本地 review companion
@@ -127,5 +138,5 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，`specs/issue-51/product.md`，
+来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，`specs/issue-51/product.md`，
 `specs/issue-77/product.md`。
