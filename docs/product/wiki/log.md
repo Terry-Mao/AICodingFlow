@@ -1,0 +1,22 @@
+# Compile Log
+
+## 2026-05-29
+
+新增 LLM Wiki 初始结构：
+
+- 创建查询入口：[index.md](index.md) 与 [AGENTS.md](AGENTS.md)。
+- 创建 schema 文档：[schema/README.md](schema/README.md)、[schema/page-types.md](schema/page-types.md)、[schema/linking.md](schema/linking.md)。
+- 为 4 个 raw source 创建 summary：
+  - [summaries/spec-workflow.md](summaries/spec-workflow.md)
+  - [summaries/implementation-workflow.md](summaries/implementation-workflow.md)
+  - [summaries/pr-review-verdict.md](summaries/pr-review-verdict.md)
+  - [summaries/product-change-reports.md](summaries/product-change-reports.md)
+- 创建 9 个 concept 页面，覆盖 workflow 触发、agent login、spec context、职责边界、PR review verdict、non-member gate 和产品变更报告。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。

@@ -1,0 +1,39 @@
+# AICodingFlow 产品 Wiki
+
+本 wiki 将 [docs/product/raw/](../raw/) 的权威产品文档编译为可查询的摘要、概念和结构规则。查询时先看概念页，再沿链接追溯到 summary 和 raw source。
+
+## 使用入口
+
+- [Agent 查询指南](AGENTS.md)
+- [编译日志](log.md)
+
+## Workflow 概念
+
+- [Issue ready label 与 agent assignment](concepts/issue-readiness-and-assignment.md)
+- [Agent login 配置](concepts/agent-login-configuration.md)
+- [自动 spec workflow](concepts/automated-spec-workflow.md)
+- [自动 implementation workflow](concepts/automated-implementation-workflow.md)
+- [Spec context 与目标分支选择](concepts/spec-context-and-target-branch.md)
+- [Agent 与外层 workflow 职责边界](concepts/agent-workflow-boundaries.md)
+
+## PR Review 概念
+
+- [PR review verdict](concepts/pr-review-verdict.md)
+- [Non-member gate 与 reviewer 请求](concepts/non-member-gate-and-reviewer-request.md)
+
+## 产品报告概念
+
+- [产品变更报告](concepts/product-change-reports.md)
+
+## Source Summaries
+
+- [自动 spec workflow 摘要](summaries/spec-workflow.md)
+- [自动实现 workflow 摘要](summaries/implementation-workflow.md)
+- [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md)
+- [产品变更报告摘要](summaries/product-change-reports.md)
+
+## Schema
+
+- [Schema 总览](schema/README.md)
+- [页面类型](schema/page-types.md)
+- [链接规则](schema/linking.md)
