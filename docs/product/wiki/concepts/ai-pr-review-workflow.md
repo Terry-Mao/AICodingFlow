@@ -1,6 +1,12 @@
 ---
 type: concept
 title: AI PR Review workflow
+status: current
+confidence: high
+source_status: verified
+owner: product-docs
+last_reviewed: 2026-05-29
+review_due: 2026-08-27
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -15,6 +21,9 @@ AI PR Review 负责在 PR 满足可评审条件时运行机器评审，并根据
 - `workflow_dispatch` 可以通过 PR number 手动触发 review。
 - PR comment mention Actions variable `AGENT_LOGIN` 指定账号时，可以从 `issue_comment` 事件触发。
 - 手动触发和 comment 触发会先解析目标 PR，再复用普通 PR 事件一致的 review 流程。
+- Comment 触发要求 `@AGENT_LOGIN /review` 独占一行，允许前后空白。
+- 裸 `/review`、单纯 `@AGENT_LOGIN` mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的 `@AGENT_LOGIN /review ...` 都不会触发 AI review。
+- 普通 issue comment 和 PR inline review comment 不是该入口。
 
 ## Reviewable 条件
 

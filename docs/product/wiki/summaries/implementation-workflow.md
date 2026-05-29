@@ -41,6 +41,11 @@ Source: [docs/product/raw/implementation-workflow.md](../../raw/implementation-w
 - agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并写出 `implementation_summary.md` 与 `pr-metadata.json`。
 - agent 不直接 commit、push、创建 PR、更新 PR 或编辑 issue。
 - 外层 workflow 负责校验 metadata、提交并推送目标分支、创建或更新 implementation PR，并维护 issue progress comment。
+- `pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和 `intended_files`。
+- `intended_files` 是外层 workflow 应提交的 repository-relative 实现文件列表，必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow 文件。
+- `intended_files` 不得包含 workflow handoff 文件、validation logs、生成缓存文件或未变化文件；实际变更与 `intended_files` 不一致时，workflow 会拒绝提交。
+- implementation 变更包含 `.github/workflows/` 下 GitHub workflow 文件时，仓库必须配置 `WORKFLOW_UPDATE_TOKEN` secret；缺少该 secret 会在 commit 前拒绝包含 workflow 文件的实现提交。
+- 创建或更新 implementation PR 后不会自动触发 AI PR Review，因为 implementation PR 默认保持 draft；需要 review 时，在 open 且非 draft PR 的普通 conversation comment 中发送 `@AGENT_LOGIN /review`。
 
 ## 支持的概念
 

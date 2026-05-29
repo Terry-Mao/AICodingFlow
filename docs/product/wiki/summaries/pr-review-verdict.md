@@ -30,6 +30,9 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 
 - AI PR Review 可以由 `pull_request`、`workflow_dispatch` 或 PR comment mention `AGENT_LOGIN` 触发。
 - 手动触发和 comment 触发会先解析目标 PR，再复用普通 PR 事件一致的 review 流程。
+- Comment 触发要求 `@AGENT_LOGIN /review` 独占一行，允许前后空白。
+- 裸 `/review`、单纯 `@AGENT_LOGIN` mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的 `@AGENT_LOGIN /review ...` 都不会触发 AI review。
+- 普通 issue comment 和 PR inline review comment 不是 comment 触发入口。
 - 只有 open、非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review。
 - closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传 review artifact。
 - spec-only PR 使用 `review-spec-repo`；其他 code PR 使用 `review-pr-repo`。
