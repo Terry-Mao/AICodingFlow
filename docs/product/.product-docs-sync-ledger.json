@@ -324,6 +324,25 @@
       "proposed_patch": "已在 docs/product/raw/pr-review-verdict.md 增加本地 review 入口章节，说明 review-pr-local/review-spec-local 的适用时机、委托关系、根目录快照契约、干净 worktree 要求、只允许 review 输出变更的校验约束，以及 base/spec context 解析行为。",
       "reason": "PR #81 新增 review-pr-local 与 review-spec-local，提供本地运行仓库 PR/spec review workflow 的用户入口，改变了长期 review 工作流行为。现有产品文档只覆盖 GitHub AI PR Review 的触发、skill 选择和 verdict 语义，未记录本地 review 的输入输出快照、spec context 行为和 mutation guard 约束。",
       "recorded_at": "2026-05-28T19:06:17Z"
+    },
+    {
+      "pr": 84,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/84",
+      "title": "fix(ci): stop auto-reviewing spec PRs",
+      "merged_at": "2026-05-16T04:21:45Z",
+      "merge_commit": "ef268084d4ea79f66f06f954a95da670bc7d7f68",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #84",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated the Spec PR follow-up review section to state that spec PRs are no longer auto-reviewed and must be reviewed via PR comment mention when needed.",
+      "reason": "PR #84 changes the long-term spec workflow behavior by stopping automatic AI PR Review dispatch after spec PR creation or update. Existing product docs still described the old automatic dispatch behavior, so the authoritative spec workflow documentation was updated.",
+      "recorded_at": "2026-05-29T02:48:51Z"
     }
   ]
 }
