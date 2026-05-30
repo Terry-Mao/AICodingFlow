@@ -44,6 +44,20 @@ skill：
 `review-pr` / `review-spec` 工作流的仓库本地包装器，用于补充本仓库的评审偏好，
 不改变核心输出契约。
 
+Code PR review 会在基础 `review-pr` 评审之外应用 `security-review-pr` 补充安全检查；
+spec-only PR review 会在基础 `review-spec` 评审之外应用 `security-review-spec`
+补充设计层安全检查。安全发现不会生成单独输出，而是合并进同一个 `review.json`。
+
+`security-review-pr` 关注代码层面的安全问题，包括输入校验、注入风险、鉴权与权限检查、
+secrets 管理、弱加密或错误随机数、依赖与 supply chain、敏感数据处理，以及不安全默认配置。
+`security-review-spec` 关注 spec 设计层安全缺口，包括 threat surface、trust boundary、
+鉴权与授权模型、敏感数据与 secrets 处理、滥用或 DoS 风险、依赖边界、配置默认值，以及
+安全相关可观测性。
+
+安全补充只报告有证据的问题，不运行动态扫描，不查询外部安全 API，不制造理论风险，也不直接发布
+GitHub comment。安全发现的 review comment 使用 `[SECURITY]` 标签，并计入同一个
+`review.json.verdict` 判断；critical security finding 通常应导致 `REJECT`。
+
 ## 本地 review 入口
 
 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或
@@ -56,16 +70,23 @@ skill：
 - `pr_description.txt`
 - `pr_diff.txt`
 - `spec_context.md`，仅 code review 需要且存在可用 spec context 时生成
+- `.local_review_baseline.status`
 - `review.json`
 
-本地 review 准备阶段要求 worktree 先保持干净，并会删除旧的 review 快照。准备完成后，
-review 阶段只能写入 `review.json`，不得修改源码、workflow、测试、spec 或 skill 文件；
-校验会拒绝 staged change、非 review 快照文件变更，以及 review 输出被意外删除。
+本地 review 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。准备脚本会
+删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`；
+未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和
+`.local_review_baseline.status` 不会纳入 diff。
 
-本地 review 的 PR diff 默认比较当前 head 与默认 base，base 按
-`upstream/main`、`origin/main`、`main` 的优先级解析，也可以显式传入 base。code
-review 会根据本地 diff 中的 changed files 解析 spec context；spec-only review 不生成
-spec context。
+`.local_review_baseline.status` 记录准备阶段完成后的业务文件 dirty 状态，并被 Git ignore。
+review 阶段只能写入受控 review 输出文件，不得修改源码、workflow、测试、spec 或 skill
+文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但会拒绝新增业务文件改动、
+业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
+
+本地 review 的 base 按 `upstream/main`、`origin/main`、`main` 的优先级解析，也可以显式传入
+base。当 worktree 没有未提交修改时，本地 diff 仍表示当前 head 相对 base 的提交差异；当
+同时存在已提交和未提交修改时，本地 diff 覆盖两者合并后的当前文件状态。code review 会
+根据本地 diff 中的 changed files 解析 spec context；spec-only review 不生成 spec context。
 
 ## Review 输出契约
 
@@ -138,5 +159,5 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，`specs/issue-51/product.md`，
-`specs/issue-77/product.md`。
+来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，
+`specs/issue-51/product.md`，`specs/issue-77/product.md`，`specs/issue-85/product.md`。

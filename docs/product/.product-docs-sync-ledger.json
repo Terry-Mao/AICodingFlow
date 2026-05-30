@@ -405,6 +405,85 @@
       "proposed_patch": "Updated the authoritative PR review raw product doc with the commit status lifecycle, target URL association, and scope limits for comment/manual AI PR Review runs.",
       "reason": "PR #89 changes long-term AI PR Review behavior: comment-triggered and manual runs for same-repo PRs now publish an AI PR Review commit status on the PR head. Existing product docs described those triggers but did not document the PR association/status semantics.",
       "recorded_at": "2026-05-29T14:23:53Z"
+    },
+    {
+      "pr": 86,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/86",
+      "title": "docs(spec): create issue 85 specs",
+      "merged_at": "2026-05-16T08:56:57Z",
+      "merge_commit": "3163aa46d9c7bd0d3cfc3291c491835a6bfd067f",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #86",
+        "Issue #85",
+        "Issue #88",
+        "PR #89",
+        "specs/issue-85/product.md",
+        "specs/issue-85/tech.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "proposed_patch": "No docs/product patch needed; existing product docs already describe the delivered PR comment/manual AI PR Review commit status behavior, and the issue 85 dirty-worktree behavior remains spec-only in this PR.",
+      "reason": "PR #86 mainly merged specs for future local review dirty-worktree behavior, and those specs explicitly state they do not implement the behavior. The implemented AI PR Review status behavior included in the merge is already covered by docs/product/raw/pr-review-verdict.md, so no long-term product docs change is needed.",
+      "recorded_at": "2026-05-29T17:58:05Z"
+    },
+    {
+      "pr": 90,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/90",
+      "title": "feat: allow local review with dirty worktrees",
+      "merged_at": "2026-05-16T10:14:39Z",
+      "merge_commit": "d1246f4ed400d1aefeb7dd29f5fa4a23ab3b8429",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #90",
+        "Issue #85",
+        "specs/issue-85/product.md"
+      ],
+      "proposed_patch": "Updated the local review entrypoint documentation to describe dirty-worktree support, current-worktree diff semantics, the .local_review_baseline.status file, validation boundaries, and the PR/spec sources.",
+      "reason": "PR #90 changed the long-term behavior of local PR/spec review entrypoints: they now support dirty worktrees, generate review diffs from the current worktree snapshot, and use a baseline status file for validation. Existing product docs still stated that local review required a clean worktree, so the authoritative docs needed correction.",
+      "recorded_at": "2026-05-29T21:03:26Z"
+    },
+    {
+      "pr": 93,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/93",
+      "title": "feat(skill): add security review supplements",
+      "merged_at": "2026-05-16T10:36:08Z",
+      "merge_commit": "6123f8a516ada1696294f7b43acb87925037f382",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #93",
+        "Issue #91"
+      ],
+      "proposed_patch": "Updated the authoritative PR review product doc to describe security supplemental review behavior, covered concern areas, reporting boundaries, [SECURITY] labeling, and verdict impact.",
+      "reason": "PR #93 changes the long-term AI PR Review workflow by adding security-review-pr and security-review-spec as mandatory supplemental passes for code and spec reviews. Existing product docs described review skill selection and review.json semantics but did not cover security supplement scope, reporting, or verdict impact.",
+      "recorded_at": "2026-05-29T23:01:24Z"
+    },
+    {
+      "pr": 94,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/94",
+      "title": "feat(skill): add git worktree helper",
+      "merged_at": "2026-05-16T11:04:26Z",
+      "merge_commit": "6179c8d6c3fcc39e2e06c2e110d879b05086f81d",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/local-git-helper-skills.md"
+      ],
+      "source_context": [
+        "PR #94",
+        "Issue #92",
+        ".agents/skills/git-worktree/SKILL.md",
+        ".agents/skills/git-branch/SKILL.md",
+        ".gitignore"
+      ],
+      "proposed_patch": "新增 docs/product/raw/local-git-helper-skills.md，记录 git-worktree 的默认目录、分支命名、base 选择、fetch 行为、dirty worktree 语义、已存在 branch/worktree/path 的停止规则，以及不会自动提交、推送或删除的安全边界。",
+      "reason": "PR #94 新增了面向用户/agent 的 git-worktree helper skill，并确立了默认 .worktrees 目录、分支命名复用、安全检查、fetch 行为和已存在资源处理语义。这些是长期本地开发工作流知识，现有 docs/product 内容没有覆盖。",
+      "recorded_at": "2026-05-30T01:32:46Z"
     }
   ]
 }
