@@ -639,6 +639,26 @@
       "proposed_patch": "Added a new authoritative raw product doc describing the CI failure diagnosis skill, including target discovery, log analysis scope, error categorization, plan output, and no-code-change boundary.",
       "reason": "PR #112 added the diagnose-ci-failures skill, which introduces a durable agent-facing workflow for CI failure diagnosis, supported inputs, output expectations, and diagnosis-only boundaries. Existing product docs did not cover this CI diagnosis capability.",
       "recorded_at": "2026-05-30T19:55:05Z"
+    },
+    {
+      "pr": 114,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/114",
+      "title": "新增 resolve-merge-conflicts",
+      "merged_at": "2026-05-18T06:14:47Z",
+      "merge_commit": "c53fc3881a0b82e3c4e755f5aceb9d773f0dcba0",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/merge-conflict-resolution-skill.md"
+      ],
+      "source_context": [
+        "PR #114",
+        "Issue #113",
+        ".agents/skills/resolve-merge-conflicts/SKILL.md",
+        ".agents/skills/resolve-merge-conflicts/scripts/extract_conflict_context.py"
+      ],
+      "proposed_patch": "Added a raw product doc describing when to use the resolve-merge-conflicts skill, what conflict context it exposes, supported output modes, and the local-only resolution and validation boundaries.",
+      "reason": "PR #114 merged a new user-facing agent skill, `resolve-merge-conflicts`, with durable workflow behavior, supported conflict types, CLI output modes, and safety boundaries. Existing product docs did not cover this merge-conflict resolution capability.",
+      "recorded_at": "2026-05-30T21:42:49Z"
     }
   ]
 }
