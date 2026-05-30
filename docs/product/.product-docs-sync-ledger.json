@@ -582,6 +582,23 @@
       "proposed_patch": "Updated the authoritative local Git helper skills doc for combined local checks, conditional remote/freshness checks, preserved .worktrees/<branch-name> directory structure, and the git-commit/git-push helper behavior introduced by PR #109.",
       "reason": "PR #109 changes durable behavior for local Git helper skills, including worktree path semantics and when GitHub, remote, fetch, and freshness checks are performed. Existing product docs still described the old flattened worktree slug path and did not cover the updated git-commit/git-push behavior.",
       "recorded_at": "2026-05-30T14:20:12Z"
+    },
+    {
+      "pr": 110,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/110",
+      "title": "docs(skill): remove cloud workflow guidance",
+      "merged_at": "2026-05-17T10:08:05Z",
+      "merge_commit": "f63a88fc91af346361a5bda64a897e11c89f109c",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #110",
+        "Issue #104",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the current docs/product content already reflects the merged generic workflow behavior.",
+      "reason": "PR #110 only removes obsolete cloud-specific wording from internal skill instructions and keeps the same long-term workflow contract: agents prepare local changes and outer workflows handle publishing. Existing product docs already describe the generic implementation workflow behavior without cloud-specific semantics.",
+      "recorded_at": "2026-05-30T15:53:19Z"
     }
   ]
 }
