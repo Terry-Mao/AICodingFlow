@@ -541,6 +541,27 @@
       "proposed_patch": "更新 `docs/product/raw/local-git-helper-skills.md` 中 `git-worktree` 成功创建后的行为说明，记录 `--no-track`、新 worktree 目录中的 `pwd` 确认、报告字段以及后续命令默认从新 worktree 运行。",
       "reason": "PR #105 改变了 `git-worktree` helper skill 的长期用户可见行为：成功创建后后续 agent 工作默认进入新 worktree，并新增 `pwd` 确认与 `--no-track` 创建语义。现有 raw 产品文档已覆盖该 skill，但仍描述旧行为，因此需要同步更新。",
       "recorded_at": "2026-05-30T10:30:43Z"
+    },
+    {
+      "pr": 107,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/107",
+      "title": "docs(skill): prefer origin for branch bases",
+      "merged_at": "2026-05-17T09:00:55Z",
+      "merge_commit": "9648314b6a9d663b22b64dc504bd8e4f38831292",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/local-git-helper-skills.md"
+      ],
+      "source_context": [
+        "PR #107",
+        "Issue #106",
+        ".agents/skills/git-branch/SKILL.md",
+        ".agents/skills/git-worktree/SKILL.md",
+        "README.md"
+      ],
+      "proposed_patch": "Updated the local Git helper skills raw product doc to document git-branch behavior, origin-first base selection for same-repository work, no-track remote-base creation, git-worktree remote-base handling, and the distinction between Codex tool-call working directories and the user's shell.",
+      "reason": "PR #107 changed the long-term behavior of local Git helper skills: same-repository branch and worktree creation now prefer origin/<base>, remote-base branch creation avoids tracking the base, and git-worktree clarifies that Codex tool-call directories do not move the user's existing shell. Existing product docs still described upstream/main as the default worktree base order, so the authoritative raw doc needed updating.",
+      "recorded_at": "2026-05-30T12:01:16Z"
     }
   ]
 }
