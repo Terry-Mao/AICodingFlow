@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-29
-review_due: 2026-08-27
+last_reviewed: 2026-05-30
+review_due: 2026-08-28
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -65,7 +65,10 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 
 - 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或 `review-spec-local`。
 - 本地 review 会准备 `pr_description.txt`、`pr_diff.txt`、按需准备 `spec_context.md`，并输出 `review.json`。
-- 准备阶段要求 worktree 先保持干净；review 阶段只能写入 `review.json`。
+- 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。
+- 准备脚本会删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`。
+- 未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和 `.local_review_baseline.status` 不会纳入 diff。
+- review 阶段只能写入受控 review 输出文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
 - code review 默认比较当前 head 与默认 base，并根据 changed files 解析 spec context；spec-only review 不生成 spec context。
 
 ## 支持的概念
