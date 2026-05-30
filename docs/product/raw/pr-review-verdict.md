@@ -73,6 +73,10 @@ GitHub comment。安全发现的 review comment 使用 `[SECURITY]` 标签，并
 - `.local_review_baseline.status`
 - `review.json`
 
+准备 `pr_description.txt` 时，本地 review 优先读取当前分支关联的 GitHub PR metadata。
+如果无法获取关联 PR，则回退到基于本地仓库状态构造的 PR metadata。`pr_diff.txt` 不使用
+GitHub PR diff，始终基于当前 worktree 相对选定 base 的完整状态生成。
+
 本地 review 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。准备脚本会
 删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`；
 未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和
@@ -159,5 +163,5 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，
+来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
 `specs/issue-51/product.md`，`specs/issue-77/product.md`，`specs/issue-85/product.md`。

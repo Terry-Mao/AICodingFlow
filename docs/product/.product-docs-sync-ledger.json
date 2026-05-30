@@ -501,6 +501,27 @@
       "proposed_patch": "无需产品文档补丁；保留现有 `docs/product/` 内容不变。",
       "reason": "PR #97 只新增仓库级 `.agents/AGENTS.md`，用于约束 AI coding agent 在本仓库内的操作、校验和安全边界。该变更没有改变 AICodingFlow 的长期产品概念、用户流程、workflow 行为、配置语义或公开契约，因此不需要更新 `docs/product/`。",
       "recorded_at": "2026-05-30T05:35:22Z"
+    },
+    {
+      "pr": 103,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/103",
+      "title": "fix(review): prefer GitHub PR description locally",
+      "merged_at": "2026-05-17T07:22:15Z",
+      "merge_commit": "01b7ae27e192c723fe31569869c4016e5279af5e",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #103",
+        "Issue #101",
+        ".github/scripts/prepare_local_review_inputs.py",
+        ".agents/skills/review-pr-local/SKILL.md",
+        ".agents/skills/review-spec-local/SKILL.md"
+      ],
+      "proposed_patch": "Updated the local review entrypoint documentation to state the pr_description.txt source priority and clarify that pr_diff.txt remains generated from the local worktree diff.",
+      "reason": "PR #103 changed the local review input contract: pr_description.txt now prefers metadata from the GitHub PR associated with the current branch and falls back to locally generated metadata only when that fetch is unavailable. This is durable user-facing workflow behavior already covered by the local review product doc, so the authoritative docs need a targeted update.",
+      "recorded_at": "2026-05-30T08:10:52Z"
     }
   ]
 }
