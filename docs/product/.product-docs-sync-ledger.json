@@ -679,6 +679,24 @@
       "proposed_patch": "Updated the authoritative local review documentation to describe PR base SHA precedence, explicit base synchronization, and the new origin/main fallback order.",
       "reason": "PR #116 changed the long-term behavior of local review input preparation: existing PR branches now use the PR base SHA unless an explicit base is provided, explicit base metadata stays synchronized with the diff base, and fallback base selection now prefers origin/main before upstream/main. Existing product docs described the older base ordering and needed correction.",
       "recorded_at": "2026-05-30T22:40:49Z"
+    },
+    {
+      "pr": 118,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/118",
+      "title": "fix: correct CODEOWNERS enforcement note",
+      "merged_at": "2026-05-18T10:05:00Z",
+      "merge_commit": "8ce80494e239c56dab7b4d1ce7b3a5259a048dc9",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/bootstrap-issue-config-skill.md"
+      ],
+      "source_context": [
+        "PR #118",
+        "Issue #117"
+      ],
+      "proposed_patch": "新增 docs/product/raw/bootstrap-issue-config-skill.md，记录 bootstrap issue triage 初始化 skill 的用途、产出文件、label config 结构、CODEOWNERS owner 推断与 branch protection 语义，以及幂等初始化边界。",
+      "reason": "PR #118 新增 bootstrap-issue-config skill，并引入 issue triage label config 与 CODEOWNERS ownership hints 的长期产品行为。现有 product docs 未覆盖该初始化流程或 CODEOWNERS branch-protection 语义，因此需要新增权威 raw 文档。",
+      "recorded_at": "2026-05-30T23:44:02Z"
     }
   ]
 }
