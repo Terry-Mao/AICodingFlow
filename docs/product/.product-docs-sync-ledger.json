@@ -484,6 +484,23 @@
       "proposed_patch": "新增 docs/product/raw/local-git-helper-skills.md，记录 git-worktree 的默认目录、分支命名、base 选择、fetch 行为、dirty worktree 语义、已存在 branch/worktree/path 的停止规则，以及不会自动提交、推送或删除的安全边界。",
       "reason": "PR #94 新增了面向用户/agent 的 git-worktree helper skill，并确立了默认 .worktrees 目录、分支命名复用、安全检查、fetch 行为和已存在资源处理语义。这些是长期本地开发工作流知识，现有 docs/product 内容没有覆盖。",
       "recorded_at": "2026-05-30T01:32:46Z"
+    },
+    {
+      "pr": 97,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/97",
+      "title": "docs(agents): add repository agent guidance",
+      "merged_at": "2026-05-16T16:29:55Z",
+      "merge_commit": "edded39d97fce2d258552a01381df7eb18864c8b",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #97",
+        "Issue #96",
+        ".agents/AGENTS.md"
+      ],
+      "proposed_patch": "无需产品文档补丁；保留现有 `docs/product/` 内容不变。",
+      "reason": "PR #97 只新增仓库级 `.agents/AGENTS.md`，用于约束 AI coding agent 在本仓库内的操作、校验和安全边界。该变更没有改变 AICodingFlow 的长期产品概念、用户流程、workflow 行为、配置语义或公开契约，因此不需要更新 `docs/product/`。",
+      "recorded_at": "2026-05-30T05:35:22Z"
     }
   ]
 }
