@@ -659,6 +659,26 @@
       "proposed_patch": "Added a raw product doc describing when to use the resolve-merge-conflicts skill, what conflict context it exposes, supported output modes, and the local-only resolution and validation boundaries.",
       "reason": "PR #114 merged a new user-facing agent skill, `resolve-merge-conflicts`, with durable workflow behavior, supported conflict types, CLI output modes, and safety boundaries. Existing product docs did not cover this merge-conflict resolution capability.",
       "recorded_at": "2026-05-30T21:42:49Z"
+    },
+    {
+      "pr": 116,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/116",
+      "title": "fix: align local review base selection with PR metadata",
+      "merged_at": "2026-05-18T06:42:54Z",
+      "merge_commit": "4b0c5fc8aa065bc588786163133fc08953ab8f84",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #116",
+        "Issue #115",
+        "specs/issue-115/product.md",
+        "specs/issue-115/tech.md"
+      ],
+      "proposed_patch": "Updated the authoritative local review documentation to describe PR base SHA precedence, explicit base synchronization, and the new origin/main fallback order.",
+      "reason": "PR #116 changed the long-term behavior of local review input preparation: existing PR branches now use the PR base SHA unless an explicit base is provided, explicit base metadata stays synchronized with the diff base, and fallback base selection now prefers origin/main before upstream/main. Existing product docs described the older base ordering and needed correction.",
+      "recorded_at": "2026-05-30T22:40:49Z"
     }
   ]
 }
