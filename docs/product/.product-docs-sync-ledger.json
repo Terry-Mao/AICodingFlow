@@ -522,6 +522,25 @@
       "proposed_patch": "Updated the local review entrypoint documentation to state the pr_description.txt source priority and clarify that pr_diff.txt remains generated from the local worktree diff.",
       "reason": "PR #103 changed the local review input contract: pr_description.txt now prefers metadata from the GitHub PR associated with the current branch and falls back to locally generated metadata only when that fetch is unavailable. This is durable user-facing workflow behavior already covered by the local review product doc, so the authoritative docs need a targeted update.",
       "recorded_at": "2026-05-30T08:10:52Z"
+    },
+    {
+      "pr": 105,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/105",
+      "title": "docs(skill): enter new worktree by default",
+      "merged_at": "2026-05-17T07:47:33Z",
+      "merge_commit": "b413a4db65e25aac253086e9337ccd599f7594d3",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/local-git-helper-skills.md"
+      ],
+      "source_context": [
+        "PR #105",
+        "Issue #102",
+        ".agents/skills/git-worktree/SKILL.md"
+      ],
+      "proposed_patch": "更新 `docs/product/raw/local-git-helper-skills.md` 中 `git-worktree` 成功创建后的行为说明，记录 `--no-track`、新 worktree 目录中的 `pwd` 确认、报告字段以及后续命令默认从新 worktree 运行。",
+      "reason": "PR #105 改变了 `git-worktree` helper skill 的长期用户可见行为：成功创建后后续 agent 工作默认进入新 worktree，并新增 `pwd` 确认与 `--no-track` 创建语义。现有 raw 产品文档已覆盖该 skill，但仍描述旧行为，因此需要同步更新。",
+      "recorded_at": "2026-05-30T10:30:43Z"
     }
   ]
 }

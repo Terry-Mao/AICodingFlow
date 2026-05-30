@@ -16,6 +16,6 @@
 
 默认 base ref 按 `upstream/main`、`origin/main`、`main` 的顺序选择。若仓库有 remote 且网络可用，Git helper 在检查 base 是否最新前运行 `git fetch`；如果无法 fetch，必须说明 base freshness 未验证。
 
-如果目标 branch、目标 worktree 或目标目录已经存在，`git-worktree` 只报告现有 branch/path 并停止，不覆盖、不删除、不 prune、不强制复用。成功创建时使用 `git worktree add -b <branch-name> .worktrees/<branch-slug> <base-ref>`，然后报告 branch name、worktree path、base ref、当前 dirty changes 是否被排除，以及进入 worktree 的下一步命令。
+如果目标 branch、目标 worktree 或目标目录已经存在，`git-worktree` 只报告现有 branch/path 并停止，不覆盖、不删除、不 prune、不强制复用。成功创建时使用 `git worktree add --no-track -b <branch-name> .worktrees/<branch-slug> <base-ref>`，避免新分支自动跟踪 base ref；然后在新 worktree 目录中运行 `pwd`，并报告 branch name、worktree path、base ref、当前 dirty changes 是否被排除、当前 worktree 目录，以及用户在自己 shell 中进入 worktree 的下一步命令。创建成功后，除非用户明确切换到其他目录，同一会话中的后续 agent 命令和实现工作默认从 `.worktrees/<branch-slug>` 运行。
 
-来源：PR #94，Issue #92。
+来源：PR #94，Issue #92，PR #105，Issue #102。
