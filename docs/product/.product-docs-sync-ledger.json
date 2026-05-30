@@ -463,6 +463,27 @@
       "proposed_patch": "Updated the authoritative PR review product doc to describe security supplemental review behavior, covered concern areas, reporting boundaries, [SECURITY] labeling, and verdict impact.",
       "reason": "PR #93 changes the long-term AI PR Review workflow by adding security-review-pr and security-review-spec as mandatory supplemental passes for code and spec reviews. Existing product docs described review skill selection and review.json semantics but did not cover security supplement scope, reporting, or verdict impact.",
       "recorded_at": "2026-05-29T23:01:24Z"
+    },
+    {
+      "pr": 94,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/94",
+      "title": "feat(skill): add git worktree helper",
+      "merged_at": "2026-05-16T11:04:26Z",
+      "merge_commit": "6179c8d6c3fcc39e2e06c2e110d879b05086f81d",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/local-git-helper-skills.md"
+      ],
+      "source_context": [
+        "PR #94",
+        "Issue #92",
+        ".agents/skills/git-worktree/SKILL.md",
+        ".agents/skills/git-branch/SKILL.md",
+        ".gitignore"
+      ],
+      "proposed_patch": "新增 docs/product/raw/local-git-helper-skills.md，记录 git-worktree 的默认目录、分支命名、base 选择、fetch 行为、dirty worktree 语义、已存在 branch/worktree/path 的停止规则，以及不会自动提交、推送或删除的安全边界。",
+      "reason": "PR #94 新增了面向用户/agent 的 git-worktree helper skill，并确立了默认 .worktrees 目录、分支命名复用、安全检查、fetch 行为和已存在资源处理语义。这些是长期本地开发工作流知识，现有 docs/product 内容没有覆盖。",
+      "recorded_at": "2026-05-30T01:32:46Z"
     }
   ]
 }
