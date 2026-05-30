@@ -562,6 +562,26 @@
       "proposed_patch": "Updated the local Git helper skills raw product doc to document git-branch behavior, origin-first base selection for same-repository work, no-track remote-base creation, git-worktree remote-base handling, and the distinction between Codex tool-call working directories and the user's shell.",
       "reason": "PR #107 changed the long-term behavior of local Git helper skills: same-repository branch and worktree creation now prefer origin/<base>, remote-base branch creation avoids tracking the base, and git-worktree clarifies that Codex tool-call directories do not move the user's existing shell. Existing product docs still described upstream/main as the default worktree base order, so the authoritative raw doc needed updating.",
       "recorded_at": "2026-05-30T12:01:16Z"
+    },
+    {
+      "pr": 109,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/109",
+      "title": "docs(skill): optimize git skill workflows",
+      "merged_at": "2026-05-17T09:31:28Z",
+      "merge_commit": "5ade92d2751064c89597d53eaccac0fd1fdb5580",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/local-git-helper-skills.md"
+      ],
+      "source_context": [
+        "PR #109",
+        "Issue #108",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/local-git-helper-skills.md"
+      ],
+      "proposed_patch": "Updated the authoritative local Git helper skills doc for combined local checks, conditional remote/freshness checks, preserved .worktrees/<branch-name> directory structure, and the git-commit/git-push helper behavior introduced by PR #109.",
+      "reason": "PR #109 changes durable behavior for local Git helper skills, including worktree path semantics and when GitHub, remote, fetch, and freshness checks are performed. Existing product docs still described the old flattened worktree slug path and did not cover the updated git-commit/git-push behavior.",
+      "recorded_at": "2026-05-30T14:20:12Z"
     }
   ]
 }
