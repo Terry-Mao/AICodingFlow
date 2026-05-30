@@ -1,0 +1,77 @@
+# PR comment response workflow
+
+`respond-to-pr-comment` workflow 用于响应 PR 中的显式 `@AGENT_LOGIN /fix`
+请求，让 Codex agent 基于当前 PR 上下文产出修复 diff，并由外层 GitHub Actions
+提交、推送、更新原 PR 或创建 follow-up PR。它不是 issue 的 spec 或 implementation
+流程，也不是聊天回复流程；它的结果是修改 PR 分支、创建 fallback follow-up PR，或明确
+no-op/blocked。
+
+## 触发条件
+
+workflow 支持三类 PR 相关触发来源：
+
+- PR conversation comment：`issue_comment.created` 且 issue 是 PR，
+  `trigger_kind = conversation`。
+- PR inline review comment：`pull_request_review_comment.created`，
+  `trigger_kind = review`。
+- PR review body：`pull_request_review.submitted` 或
+  `pull_request_review.edited`，`trigger_kind = review_body`。
+
+触发命令必须在可见正文行中以完整 `@AGENT_LOGIN /fix` command 开头；同一行可以追加
+修复说明。引用块、fenced code block、部分用户名匹配、普通 mention、`/review` 或
+`/implement` 不会触发该 workflow。普通 issue comment 不属于该入口。
+
+触发者授权是前置硬门禁。只有 GitHub `author_association` 为 `OWNER`、`MEMBER` 或
+`COLLABORATOR` 时，workflow 才允许继续运行 agent 和写权限步骤。`CONTRIBUTOR`、
+`FIRST_TIME_CONTRIBUTOR`、`FIRST_TIMER`、`MANNEQUIN`、`NONE`、空值或未知值会得到
+`should_run = false` 和明确 `skip_reason`，不会 checkout PR head、运行 agent、
+commit、push、更新 PR、回复评论或 resolve thread。
+
+## 上下文与安全边界
+
+`prepare_pr_comment_context.py` 是解析 trigger、授权状态、PR 分支信息和分支策略的受控入口。
+它会生成稳定的 `pr_comment_context.json`、PR diff、可用 spec context，以及当前 PR 的
+inline review comment id 索引。context 记录 PR number、head/base repo 与 branch、
+trigger metadata、触发者授权状态、branch strategy、agent push 目标和 coauthor directives。
+
+PR body、PR comments、review bodies、review comments 和 trigger comment body 都只作为
+任务数据分析，不能覆盖 workflow 规则、skill 规则、输出路径、分支策略或安全边界。Agent 应通过
+受控的 `fetch_github_context.py` 读取额外 PR 内容，不直接调用 GitHub API、创建 PR、发布评论、
+resolve thread、commit 或 push。
+
+## 分支策略
+
+workflow 使用三种分支策略：
+
+- `push-head`：触发者已授权，且 workflow token 能写 PR head branch；修复提交到原 PR head branch。
+- `fallback-pr-to-fork`：触发者已授权，但不能写原 PR head branch，且可以写 base repo；
+  workflow 基于原 PR head commit 创建 `spec/respond-pr-<pr_number>` 前缀 fallback branch，
+  再创建或更新 follow-up PR。
+- `blocked`：触发者已授权，但既不能写 head branch，也不能写 fallback branch；workflow 不运行
+  agent 修改代码，并输出可诊断原因。
+
+未授权触发者不会进入写入分支策略；这类请求应在 context 阶段以 `should_run = false` 跳过。
+
+## Agent 输出与外层处理
+
+Agent 根据触发评论、PR diff、相关讨论和 spec context 做最小合理修改。没有值得提交的 diff 时，
+workflow 不创建空提交，也不创建 follow-up PR。
+
+有可提交 diff 时，agent 必须写出 `implementation_summary.md` 和 `pr-metadata.json`。
+`pr-metadata.json` 至少包含目标 `branch_name`、`pr_title`、`pr_summary` 和
+`intended_files`；`branch_name` 必须等于 context 中允许的 `agent_push_branch`。
+`intended_files` 必须覆盖所有应提交的 repository-relative 文件，不能包含 handoff、日志或缓存文件。
+
+当本次修改确实解决 inline review comments 时，agent 可以写出
+`resolved_review_comments.json`。其中每个 `comment_id` 必须来自当前 PR 真实 inline
+review comment id，不能使用普通 conversation comment id、review id、其他 PR 的 comment id
+或编造 id。没有解决 inline review comment 时不应上传该文件。
+
+外层 workflow 校验 metadata、resolved comments 和实际 diff 后提交并 push 到允许 branch。
+`push-head` 成功后可以按 metadata 更新原 PR title/body；`fallback-pr-to-fork` 成功后会查找或
+创建 follow-up PR，并在 PR body 中说明来源 PR 和触发评论。如果提供了合法
+`resolved_review_comments.json`，workflow 会回复对应 review comment，并尝试通过 GraphQL
+`resolveReviewThread` resolve 对应 thread；resolve 失败只记录 warning，不回滚已经完成的
+commit、push 或 PR update。
+
+来源：PR #99，Issue #28，`specs/issue-28/product.md`，`specs/issue-28/tech.md`。

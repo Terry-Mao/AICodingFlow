@@ -599,6 +599,28 @@
       "proposed_patch": "No product docs patch is needed because the current docs/product content already reflects the merged generic workflow behavior.",
       "reason": "PR #110 only removes obsolete cloud-specific wording from internal skill instructions and keeps the same long-term workflow contract: agents prepare local changes and outer workflows handle publishing. Existing product docs already describe the generic implementation workflow behavior without cloud-specific semantics.",
       "recorded_at": "2026-05-30T15:53:19Z"
+    },
+    {
+      "pr": 99,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/99",
+      "title": "fix: delay PR comment push credentials",
+      "merged_at": "2026-05-17T11:11:48Z",
+      "merge_commit": "b2f54e43495ec3ffd4c912724983b746636b0ecd",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-comment-response-workflow.md",
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "source_context": [
+        "PR #99",
+        "Issue #28",
+        "specs/issue-28/product.md",
+        "specs/issue-28/tech.md"
+      ],
+      "proposed_patch": "Added a raw product doc for the PR comment response workflow and updated spec/implementation workflow docs to distinguish `/review` PR comments from `/fix` PR comments.",
+      "reason": "PR #99 introduced the merged `respond-to-pr-comment` workflow, which changes long-term PR collaboration behavior, trigger semantics, branch strategy, authorization rules, and handoff contracts. Existing product docs did not contain authoritative coverage for this `/fix` workflow and had outdated PR comment routing language.",
+      "recorded_at": "2026-05-30T17:48:10Z"
     }
   ]
 }
