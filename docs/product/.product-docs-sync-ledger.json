@@ -621,6 +621,24 @@
       "proposed_patch": "Added a raw product doc for the PR comment response workflow and updated spec/implementation workflow docs to distinguish `/review` PR comments from `/fix` PR comments.",
       "reason": "PR #99 introduced the merged `respond-to-pr-comment` workflow, which changes long-term PR collaboration behavior, trigger semantics, branch strategy, authorization rules, and handoff contracts. Existing product docs did not contain authoritative coverage for this `/fix` workflow and had outdated PR comment routing language.",
       "recorded_at": "2026-05-30T17:48:10Z"
+    },
+    {
+      "pr": 112,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/112",
+      "title": "docs(skill): add CI failure diagnosis skill",
+      "merged_at": "2026-05-18T03:52:01Z",
+      "merge_commit": "b8dd9d9c594efdf67d7cff8e6b48868d5e406cf3",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/ci-failure-diagnosis-skill.md"
+      ],
+      "source_context": [
+        "PR #112",
+        ".agents/skills/diagnose-ci-failures/SKILL.md"
+      ],
+      "proposed_patch": "Added a new authoritative raw product doc describing the CI failure diagnosis skill, including target discovery, log analysis scope, error categorization, plan output, and no-code-change boundary.",
+      "reason": "PR #112 added the diagnose-ci-failures skill, which introduces a durable agent-facing workflow for CI failure diagnosis, supported inputs, output expectations, and diagnosis-only boundaries. Existing product docs did not cover this CI diagnosis capability.",
+      "recorded_at": "2026-05-30T19:55:05Z"
     }
   ]
 }
