@@ -716,6 +716,27 @@
       "proposed_patch": "Updated the authoritative PR comment response workflow doc to state that push-head runs preserve the original PR title/body, still use pr_title and pr_summary for validation and metadata, and include a cleaned summary in the response comment when present.",
       "reason": "PR #120 changes durable behavior of the PR comment response workflow: direct push-head responses no longer rewrite the original PR title or body, and response comments now include a summary derived from pr_summary. Existing product docs described the old push-head PR metadata update behavior, so they needed correction.",
       "recorded_at": "2026-05-31T01:54:23Z"
+    },
+    {
+      "pr": 121,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/121",
+      "title": "feat(triage): add issue triage workflow",
+      "merged_at": "2026-05-18T17:58:38Z",
+      "merge_commit": "aab6e853b691bcf8172cb4603e31dc22010c2b06",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/issue-triage-workflow.md"
+      ],
+      "source_context": [
+        "PR #121",
+        "Issue #19",
+        ".github/workflows/triage-issue.yml",
+        ".agents/skills/triage-issue/SKILL.md",
+        ".agents/skills/dedupe-issue/SKILL.md"
+      ],
+      "proposed_patch": "Added docs/product/raw/issue-triage-workflow.md covering issue triage triggers, context preparation, triage_result.json contract, label rules, duplicate/follow-up semantics, and GitHub update boundaries.",
+      "reason": "PR #121 adds a new issue triage workflow with durable user-visible trigger behavior, structured triage output semantics, label/comment application rules, and duplicate/follow-up handling. Existing product docs only describe bootstrap triage configuration, so the runtime workflow needed an authoritative long-term product doc.",
+      "recorded_at": "2026-05-31T06:45:20Z"
     }
   ]
 }
