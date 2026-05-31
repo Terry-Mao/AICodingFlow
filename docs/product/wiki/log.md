@@ -1,5 +1,39 @@
 # Compile Log
 
+## 2026-05-31
+
+根据 `docs/product/raw/` 重新编译 wiki，并补齐 PR review raw source 中未单独建模的查询链路：
+
+- 更新 [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md)，补充 comment / manual 触发时的 `AI PR Review` commit status，以及安全补充 review 的输出边界。
+- 新增 [Comment / manual review status](concepts/comment-manual-review-status.md)，追踪 PR comment 与 `workflow_dispatch` review run 如何写入同仓库 PR head commit status。
+- 新增 [安全补充 review](concepts/security-review-supplements.md)，追踪 `security-review-pr` / `security-review-spec` 的适用范围、输出合并规则和证据边界。
+- 更新 [AI PR Review workflow](concepts/ai-pr-review-workflow.md)、[PR review verdict](concepts/pr-review-verdict.md) 与 [index.md](index.md) 的相关链接。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
+## 2026-05-30
+
+根据 `docs/product/raw/` 重新编译 wiki，并补齐新增 raw source 的查询链路：
+
+- 新增 [本地 Git helper skills 摘要](summaries/local-git-helper-skills.md)，覆盖 `git-worktree` 的目录、分支、base、fetch、已有目标处理和安全边界。
+- 新增 [本地 Git helper skills](concepts/local-git-helper-skills.md) concept，便于查询本地 Git 辅助能力的产品边界。
+- 更新 [index.md](index.md)，链接新增 summary 与 concept。
+- 校准 [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md) 和 [本地 PR review 入口](concepts/local-pr-review-entrypoints.md)：本地 review 准备阶段支持已有 staged、unstaged 和未跟踪改动，并通过 `.local_review_baseline.status` 保护 review 阶段写入边界。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-05-29
 
 重新编译 `docs/product/raw/` 的权威产品文档，并校验现有 LLM Wiki 结构：

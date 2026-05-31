@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-29
-review_due: 2026-08-27
+last_reviewed: 2026-05-30
+review_due: 2026-08-28
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -28,14 +28,18 @@ sources:
 - `pr_description.txt`
 - `pr_diff.txt`
 - `spec_context.md`，仅 code review 需要且存在可用 spec context 时生成
+- `.local_review_baseline.status`
 - `review.json`
 
 ## 工作树与写入约束
 
-- 本地 review 准备阶段要求 worktree 先保持干净，并会删除旧的 review 快照。
-- 准备完成后，review 阶段只能写入 `review.json`。
+- 本地 review 准备阶段支持当前 worktree 中已有 staged、unstaged 和未跟踪文件改动，并会删除旧的 review 快照。
+- 准备脚本基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`。
+- 未被 Git ignore 的未跟踪文件会纳入 diff；根目录 review 快照文件和 `.local_review_baseline.status` 不会纳入 diff。
+- `.local_review_baseline.status` 记录准备阶段完成后的业务文件 dirty 状态，并被 Git ignore。
+- review 阶段只能写入受控 review 输出文件。
 - review 阶段不得修改源码、workflow、测试、spec 或 skill 文件。
-- 校验会拒绝 staged change、非 review 快照文件变更，以及 review 输出被意外删除。
+- 校验会允许 baseline 中已存在的业务文件状态继续存在，但会拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
 
 ## Diff 与 spec context
 
@@ -52,3 +56,4 @@ sources:
 
 - [AI PR Review workflow](ai-pr-review-workflow.md)
 - [PR review verdict](pr-review-verdict.md)
+- [本地 Git helper skills](local-git-helper-skills.md)

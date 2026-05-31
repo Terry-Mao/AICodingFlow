@@ -19,9 +19,15 @@
 ## PR Review 概念
 
 - [AI PR Review workflow](concepts/ai-pr-review-workflow.md)
+- [Comment / manual review status](concepts/comment-manual-review-status.md)
+- [安全补充 review](concepts/security-review-supplements.md)
 - [PR review verdict](concepts/pr-review-verdict.md)
 - [Non-member gate 与 reviewer 请求](concepts/non-member-gate-and-reviewer-request.md)
 - [本地 PR review 入口](concepts/local-pr-review-entrypoints.md)
+
+## 本地开发辅助概念
+
+- [本地 Git helper skills](concepts/local-git-helper-skills.md)
 
 ## 产品报告概念
 
@@ -32,6 +38,7 @@
 - [自动 spec workflow 摘要](summaries/spec-workflow.md)
 - [自动实现 workflow 摘要](summaries/implementation-workflow.md)
 - [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md)
+- [本地 Git helper skills 摘要](summaries/local-git-helper-skills.md)
 - [产品变更报告摘要](summaries/product-change-reports.md)
 
 ## Schema

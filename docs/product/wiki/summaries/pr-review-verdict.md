@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-29
-review_due: 2026-08-27
+last_reviewed: 2026-05-31
+review_due: 2026-08-29
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -38,6 +38,21 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 - spec-only PR 使用 `review-spec-repo`；其他 code PR 使用 `review-pr-repo`。
 - 仓库本地 wrapper skill 补充本仓库评审偏好，不改变核心输出契约。
 
+## Comment / manual 触发状态
+
+- PR comment 或 `workflow_dispatch` 触发 AI PR Review，且目标 PR 的 head repository 是当前仓库时，workflow 会在 PR head commit 上写入 `AI PR Review` commit status。
+- Review 开始时 status 为 `pending`，结束后按 job 结果更新为 `success` 或 `failure`，target URL 指向对应 GitHub Actions run。
+- 该 status 让 comment 或手动触发的 review run 出现在目标 PR 的 checks / statuses 视图中。
+- 普通 `pull_request` 事件触发的 review 不通过该路径补写 status；来自 fork 的 PR 也不会写入该 status。
+
+## 安全补充 review
+
+- Code PR review 会在基础 `review-pr` 之外应用 `security-review-pr`。
+- Spec-only PR review 会在基础 `review-spec` 之外应用 `security-review-spec`。
+- 安全发现合并进同一个 `review.json`，不会生成单独输出。
+- 安全补充只报告有证据的问题，不运行动态扫描，不查询外部安全 API，不制造理论风险，也不直接发布 GitHub comment。
+- 安全发现的 review comment 使用 `[SECURITY]` 标签，并计入同一个 `review.json.verdict`；critical security finding 通常应导致 `REJECT`。
+
 ## PR 作者与类型
 
 - `COLLABORATOR`、`MEMBER`、`OWNER` 视为 member / collaborator / owner。
@@ -65,12 +80,17 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 
 - 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或 `review-spec-local`。
 - 本地 review 会准备 `pr_description.txt`、`pr_diff.txt`、按需准备 `spec_context.md`，并输出 `review.json`。
-- 准备阶段要求 worktree 先保持干净；review 阶段只能写入 `review.json`。
+- 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。
+- 准备脚本会删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`。
+- 未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和 `.local_review_baseline.status` 不会纳入 diff。
+- review 阶段只能写入受控 review 输出文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
 - code review 默认比较当前 head 与默认 base，并根据 changed files 解析 spec context；spec-only review 不生成 spec context。
 
 ## 支持的概念
 
 - [AI PR Review workflow](../concepts/ai-pr-review-workflow.md)
+- [Comment / manual review status](../concepts/comment-manual-review-status.md)
+- [安全补充 review](../concepts/security-review-supplements.md)
 - [PR review verdict](../concepts/pr-review-verdict.md)
 - [Non-member gate 与 reviewer 请求](../concepts/non-member-gate-and-reviewer-request.md)
 - [本地 PR review 入口](../concepts/local-pr-review-entrypoints.md)

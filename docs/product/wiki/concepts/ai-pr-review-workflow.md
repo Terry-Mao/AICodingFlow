@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-29
-review_due: 2026-08-27
+last_reviewed: 2026-05-31
+review_due: 2026-08-29
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -36,6 +36,8 @@ AI PR Review 负责在 PR 满足可评审条件时运行机器评审，并根据
 - spec-only PR 使用 `review-spec-repo`。
 - 其他 code PR 使用 `review-pr-repo`。
 - `review-pr-repo` 与 `review-spec-repo` 是仓库本地包装器，用于补充本仓库评审偏好，不改变核心输出契约。
+- Code PR review 会应用 `security-review-pr` 补充安全检查。
+- Spec-only PR review 会应用 `security-review-spec` 补充设计层安全检查。
 
 ## Supporting Summaries
 
@@ -43,6 +45,8 @@ AI PR Review 负责在 PR 满足可评审条件时运行机器评审，并根据
 
 ## Related Concepts
 
+- [Comment / manual review status](comment-manual-review-status.md)
+- [安全补充 review](security-review-supplements.md)
 - [PR review verdict](pr-review-verdict.md)
 - [Non-member gate 与 reviewer 请求](non-member-gate-and-reviewer-request.md)
 - [本地 PR review 入口](local-pr-review-entrypoints.md)
