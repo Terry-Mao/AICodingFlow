@@ -906,6 +906,25 @@
       "proposed_patch": "Updated authoritative raw product docs for issue triage, PR comment response, and implementation workflows to capture PR #133's companion triage rules and stable local context boundaries.",
       "reason": "PR #133 changes durable workflow behavior by adding repository-specific triage guidance and tightening PR/implementation agent context handling around stable local snapshots. Existing product docs covered the workflows generally but did not describe the new companion skill rules, PR comment snapshot inputs, or no-fetch boundary.",
       "recorded_at": "2026-05-31T22:43:11Z"
+    },
+    {
+      "pr": 138,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/138",
+      "title": "fix(triage): allow external issue triage",
+      "merged_at": "2026-05-20T11:02:45Z",
+      "merge_commit": "77eb7a8c6d8111a4867bd62db188588b8213f04d",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/issue-triage-workflow.md"
+      ],
+      "source_context": [
+        "PR #138",
+        "Issue #137",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新 issue triage workflow 的触发条件，记录非 bot issue opened/reopened、needs-info issue 作者 follow-up、bot/automation 与非 created 评论事件排除规则，并补充来源引用。",
+      "reason": "PR #138 改变了 issue triage workflow 的长期触发规则：普通 issue 作者的 needs-info follow-up 可重新触发分诊，同时 bot、PR mirror issue events 和 edited comments 被排除。现有产品文档仍描述旧的 maintainer-only comment trigger，因此需要同步。",
+      "recorded_at": "2026-05-31T23:46:58Z"
     }
   ]
 }
