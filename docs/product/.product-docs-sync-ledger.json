@@ -737,6 +737,25 @@
       "proposed_patch": "Added docs/product/raw/issue-triage-workflow.md covering issue triage triggers, context preparation, triage_result.json contract, label rules, duplicate/follow-up semantics, and GitHub update boundaries.",
       "reason": "PR #121 adds a new issue triage workflow with durable user-visible trigger behavior, structured triage output semantics, label/comment application rules, and duplicate/follow-up handling. Existing product docs only describe bootstrap triage configuration, so the runtime workflow needed an authoritative long-term product doc.",
       "recorded_at": "2026-05-31T06:45:20Z"
+    },
+    {
+      "pr": 123,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/123",
+      "title": "fix(triage): prefetch dedupe candidates",
+      "merged_at": "2026-05-19T02:59:49Z",
+      "merge_commit": "a9197155d4738d37e8bd11cc120f63f5e2a5bf9c",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/issue-triage-workflow.md"
+      ],
+      "source_context": [
+        "PR #123",
+        "Issue #19",
+        "docs/product/raw/issue-triage-workflow.md"
+      ],
+      "proposed_patch": "Updated the issue triage workflow docs to describe dedupe_candidates.json as the authoritative duplicate-check input, the open plus recent-closed candidate window, pull request exclusion, empty-candidate handling, and the duplicate_of source semantics.",
+      "reason": "PR #123 changes the long-term issue triage contract: duplicate checking now uses workflow-prefetched candidates instead of agent-side GitHub issue scans. Existing product docs described the triage context and duplicate output but did not capture this authoritative candidate source, recent-closed window, or empty-candidate behavior.",
+      "recorded_at": "2026-05-31T09:39:53Z"
     }
   ]
 }

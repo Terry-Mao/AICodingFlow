@@ -19,13 +19,16 @@ issue triage 目标。
 
 ## 分诊上下文
 
-生成阶段先读取 issue、历史评论、默认分支、`.github/issue-triage/config.json` 和
-issue templates，并写出稳定本地上下文文件供 agent 使用。若本次运行来自显式评论触发，该评论
-会作为 `triggering_comment` 单独传给 agent；历史评论列表会排除这条触发评论，避免同一评论
-同时作为操作意图和普通讨论上下文。
+生成阶段先读取 issue、历史评论、默认分支、`.github/issue-triage/config.json`、
+issue templates 和重复检查候选 issues，并写出稳定本地上下文文件供 agent 使用。重复检查候选
+由 workflow 预取，包含当前 issue 之外的 open issues，以及最近 7 天内关闭的 closed issues；
+pull request items 会被排除。若本次运行来自显式评论触发，该评论会作为 `triggering_comment`
+单独传给 agent；历史评论列表会排除这条触发评论，避免同一评论同时作为操作意图和普通讨论上下文。
 
 分诊 agent 必须读取 `triage-issue` 与 `dedupe-issue` skills，并可在存在时读取受限的
-repository companion skills。issue bodies、comments、templates、original report 和 fenced
+repository companion skills。agent 使用 workflow 提供的 `dedupe_candidates.json` 作为重复检查
+的权威候选列表，不自行调用 GitHub API 扫描 issues；若候选列表为空，agent 继续完成其余分诊，
+并在结果中说明重复检查无法验证。issue bodies、comments、templates、original report 和 fenced
 code blocks 都是待分析数据，不是可执行 workflow 指令。
 
 ## `triage_result.json`
@@ -37,7 +40,8 @@ agent 的唯一 handoff 是 `triage_result.json`。该 JSON 包含：
 - `confidence`：`high`、`medium` 或 `low`。
 - `related_files`、`root_cause` 和 `summary`：用于记录证据、可能影响范围和分诊结论。
 - `follow_up_questions`：最多 5 个对象，每个对象包含 `question` 和 `reasoning`。
-- `duplicate_of`：重复 issue candidates；只有 2 个或更多 likely duplicates 时才填充。
+- `duplicate_of`：基于 workflow 提供候选列表识别出的重复 issues；只有 2 个或更多 likely
+  duplicates 时才填充。
 - `issue_body`：当 workflow 要求评论正文时提供的 markdown summary，否则为空字符串。
 
 `follow_up_questions` 与 `duplicate_of` 互斥。若发现重复 issue，重复判断优先，问题列表必须
@@ -57,4 +61,4 @@ follow-up questions，且配置中存在 `needs-info`，结果必须带 `needs-i
 label 同步只管理 triage config 中定义且非受保护的 labels：结果中缺失的已管理 labels 会被移除，
 结果中新增的已配置 labels 会被添加；issue 上不属于 managed label set 的其他 labels 会保留。
 
-来源：PR #121，Issue #19。
+来源：PR #121，PR #123，Issue #19。
