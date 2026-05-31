@@ -242,6 +242,17 @@
       "report_date": "2026-05-28",
       "report_path": "docs/updates/auto-update-2026-05-28.md",
       "recorded_at": "2026-05-29T06:37:52Z"
+    },
+    {
+      "pr": 206,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/206",
+      "title": "Update product docs",
+      "merged_at": "2026-05-30T03:55:11Z",
+      "merge_commit": "1b55a3107d81b00b1caf5e8d486b98361061d1e8",
+      "status": "reported",
+      "report_date": "2026-05-30",
+      "report_path": "docs/updates/auto-update-2026-05-30.md",
+      "recorded_at": "2026-05-31T06:38:22Z"
     }
   ]
 }
