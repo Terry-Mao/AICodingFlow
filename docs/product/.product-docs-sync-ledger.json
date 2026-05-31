@@ -756,6 +756,23 @@
       "proposed_patch": "Updated the issue triage workflow docs to describe dedupe_candidates.json as the authoritative duplicate-check input, the open plus recent-closed candidate window, pull request exclusion, empty-candidate handling, and the duplicate_of source semantics.",
       "reason": "PR #123 changes the long-term issue triage contract: duplicate checking now uses workflow-prefetched candidates instead of agent-side GitHub issue scans. Existing product docs described the triage context and duplicate output but did not capture this authoritative candidate source, recent-closed window, or empty-candidate behavior.",
       "recorded_at": "2026-05-31T09:39:53Z"
+    },
+    {
+      "pr": 126,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/126",
+      "title": "docs(skills): remove repo name from descriptions",
+      "merged_at": "2026-05-19T06:17:06Z",
+      "merge_commit": "8f99ed14428a18264d4f48d91f312762ed951ec5",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #126",
+        "Issue #124",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; the change is a narrow wording cleanup in .agents skill descriptions.",
+      "reason": "PR #126 only removes a hard-coded repository name from repo-local skill description metadata. The merged diff does not change long-term product behavior, workflows, permissions, lifecycle rules, configuration semantics, public errors, or integration contracts.",
+      "recorded_at": "2026-05-31T11:21:36Z"
     }
   ]
 }
