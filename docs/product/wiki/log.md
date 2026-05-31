@@ -1,5 +1,22 @@
 # Compile Log
 
+## 2026-05-31
+
+根据 `docs/product/raw/` 重新编译 wiki，并补齐 PR review raw source 中未单独建模的查询链路：
+
+- 更新 [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md)，补充 comment / manual 触发时的 `AI PR Review` commit status，以及安全补充 review 的输出边界。
+- 新增 [Comment / manual review status](concepts/comment-manual-review-status.md)，追踪 PR comment 与 `workflow_dispatch` review run 如何写入同仓库 PR head commit status。
+- 新增 [安全补充 review](concepts/security-review-supplements.md)，追踪 `security-review-pr` / `security-review-spec` 的适用范围、输出合并规则和证据边界。
+- 更新 [AI PR Review workflow](concepts/ai-pr-review-workflow.md)、[PR review verdict](concepts/pr-review-verdict.md) 与 [index.md](index.md) 的相关链接。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-05-30
 
 根据 `docs/product/raw/` 重新编译 wiki，并补齐新增 raw source 的查询链路：

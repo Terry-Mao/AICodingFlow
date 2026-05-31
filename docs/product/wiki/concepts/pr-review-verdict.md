@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-29
-review_due: 2026-08-27
+last_reviewed: 2026-05-31
+review_due: 2026-08-29
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -37,5 +37,7 @@ sources:
 ## Related Concepts
 
 - [AI PR Review workflow](ai-pr-review-workflow.md)
+- [Comment / manual review status](comment-manual-review-status.md)
+- [安全补充 review](security-review-supplements.md)
 - [Non-member gate 与 reviewer 请求](non-member-gate-and-reviewer-request.md)
 - [本地 PR review 入口](local-pr-review-entrypoints.md)

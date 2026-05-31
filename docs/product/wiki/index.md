@@ -19,6 +19,8 @@
 ## PR Review 概念
 
 - [AI PR Review workflow](concepts/ai-pr-review-workflow.md)
+- [Comment / manual review status](concepts/comment-manual-review-status.md)
+- [安全补充 review](concepts/security-review-supplements.md)
 - [PR review verdict](concepts/pr-review-verdict.md)
 - [Non-member gate 与 reviewer 请求](concepts/non-member-gate-and-reviewer-request.md)
 - [本地 PR review 入口](concepts/local-pr-review-entrypoints.md)
