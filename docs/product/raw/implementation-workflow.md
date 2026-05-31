@@ -41,6 +41,13 @@ agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，
 `implementation_summary.md` 与 `pr-metadata.json`。agent 不直接 commit、push、
 创建 PR、更新 PR 或编辑 issue。
 
+在 workflow 提供本地上下文文件时，这些文件是该次运行的权威 GitHub context snapshot。
+agent 应优先使用 workflow-provided files，例如 `issue_context.json`、`issue_comments.txt`、
+`pr_comment_context.json`、`review_comment_ids.json`、`pr_diff.txt` 或 `spec_context.md`。
+只有在本地或手动运行缺少完整稳定上下文、且 prompt 明确允许 fetching 时，agent 才能使用
+受控的 GitHub context helper 获取额外 issue 或 PR 内容；若认证不可用或 prompt 禁止调用
+GitHub API，agent 不应 fetch，并应基于稳定本地上下文继续。
+
 `pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和
 `intended_files`。`intended_files` 是外层 workflow 应提交的 repository-relative
 实现文件列表，必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow
@@ -68,5 +75,5 @@ commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继�
 `@AGENT_LOGIN /review`；是否真正执行 review 仍由 AI PR Review workflow 自身的 open、
 draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，
+来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，PR #133，
 `specs/issue-18/product.md`，`specs/issue-77/product.md`。

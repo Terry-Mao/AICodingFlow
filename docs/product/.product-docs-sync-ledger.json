@@ -882,6 +882,30 @@
       "proposed_patch": "No product docs patch needed because the long-term user-visible workflow contract did not change.",
       "reason": "PR #132 keeps the existing update-dedupe product behavior: when guidance changes exist, the workflow creates or updates a PR whose body includes the evidence summary. The implementation moved body construction into a helper and uses gh --body-file to treat generated summary text as data, but this is internal workflow hardening already consistent with the documented behavior.",
       "recorded_at": "2026-05-31T21:42:28Z"
+    },
+    {
+      "pr": 133,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/133",
+      "title": "docs(triage): add repo triage guidance",
+      "merged_at": "2026-05-19T18:17:07Z",
+      "merge_commit": "06ea7c776acfb30cc124a875ee033c489960cd8f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/issue-triage-workflow.md",
+        "docs/product/raw/pr-comment-response-workflow.md",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #133",
+        ".agents/skills/triage-issue-repo/SKILL.md",
+        ".agents/skills/implement-issue/SKILL.md",
+        ".agents/skills/implement-specs/SKILL.md",
+        ".github/scripts/prepare_pr_comment_context.py",
+        ".github/workflows/respond-to-pr-comment.yml"
+      ],
+      "proposed_patch": "Updated authoritative raw product docs for issue triage, PR comment response, and implementation workflows to capture PR #133's companion triage rules and stable local context boundaries.",
+      "reason": "PR #133 changes durable workflow behavior by adding repository-specific triage guidance and tightening PR/implementation agent context handling around stable local snapshots. Existing product docs covered the workflows generally but did not describe the new companion skill rules, PR comment snapshot inputs, or no-fetch boundary.",
+      "recorded_at": "2026-05-31T22:43:11Z"
     }
   ]
 }
