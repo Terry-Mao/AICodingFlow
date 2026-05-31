@@ -773,6 +773,23 @@
       "proposed_patch": "No product docs patch is needed; the change is a narrow wording cleanup in .agents skill descriptions.",
       "reason": "PR #126 only removes a hard-coded repository name from repo-local skill description metadata. The merged diff does not change long-term product behavior, workflows, permissions, lifecycle rules, configuration semantics, public errors, or integration contracts.",
       "recorded_at": "2026-05-31T11:21:36Z"
+    },
+    {
+      "pr": 127,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/127",
+      "title": "ci(review): clarify review output path",
+      "merged_at": "2026-05-19T06:31:24Z",
+      "merge_commit": "409ffa11217874c374d0d3eb8d5db14de0c3eeba",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #127",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #127 only clarifies the AI review workflow prompt so file-editing tools target pr-worktree/review.json directly. It does not change long-term product behavior, review eligibility, review output schema, verdict semantics, or GitHub review publishing behavior; existing product docs already cover the durable review.json contract.",
+      "recorded_at": "2026-05-31T13:04:08Z"
     }
   ]
 }
