@@ -73,6 +73,11 @@ GitHub comment。安全发现的 review comment 使用 `[SECURITY]` 标签，并
 - `.local_review_baseline.status`
 - `review.json`
 
+准备 `pr_description.txt` 时，本地 review 优先读取当前分支关联的 GitHub PR metadata。
+如果无法获取关联 PR，则回退到基于本地仓库状态构造的 PR metadata。`pr_diff.txt` 不使用
+GitHub PR diff，始终基于当前 worktree 相对选定 base 的完整状态生成；当当前分支可解析到
+GitHub PR 且用户未显式传入 base 时，选定 base 使用该 PR metadata 中的真实 base SHA。
+
 本地 review 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。准备脚本会
 删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`；
 未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和
@@ -83,10 +88,13 @@ review 阶段只能写入受控 review 输出文件，不得修改源码、workf
 文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但会拒绝新增业务文件改动、
 业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
 
-本地 review 的 base 按 `upstream/main`、`origin/main`、`main` 的优先级解析，也可以显式传入
-base。当 worktree 没有未提交修改时，本地 diff 仍表示当前 head 相对 base 的提交差异；当
-同时存在已提交和未提交修改时，本地 diff 覆盖两者合并后的当前文件状态。code review 会
-根据本地 diff 中的 changed files 解析 spec context；spec-only review 不生成 spec context。
+本地 review 的 base 可以显式传入；显式 base 拥有最高优先级，并会同步反映在
+`pr_description.txt` 的 base metadata 中。未显式传入 base 时，已有 GitHub PR 的当前分支优先
+使用该 PR 的 base SHA；没有可用 PR base SHA 时，本地 fallback 按 `origin/main`、
+`upstream/main`、`main` 的优先级解析。当 worktree 没有未提交修改时，本地 diff 仍表示当前
+head 相对 base 的提交差异；当同时存在已提交和未提交修改时，本地 diff 覆盖两者合并后的当前
+文件状态。code review 会根据本地 diff 中的 changed files 解析 spec context；spec-only
+review 不生成 spec context。
 
 ## Review 输出契约
 
@@ -159,5 +167,6 @@ owner。
 最终能否 merge 仍由 GitHub branch protection、required checks、code owner review、
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
-来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，
-`specs/issue-51/product.md`，`specs/issue-77/product.md`，`specs/issue-85/product.md`。
+来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
+PR #116，Issue #115，`specs/issue-51/product.md`，`specs/issue-77/product.md`，
+`specs/issue-85/product.md`，`specs/issue-115/product.md`。
