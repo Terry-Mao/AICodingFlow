@@ -790,6 +790,26 @@
       "proposed_patch": "No product docs patch is needed.",
       "reason": "PR #127 only clarifies the AI review workflow prompt so file-editing tools target pr-worktree/review.json directly. It does not change long-term product behavior, review eligibility, review output schema, verdict semantics, or GitHub review publishing behavior; existing product docs already cover the durable review.json contract.",
       "recorded_at": "2026-05-31T13:04:08Z"
+    },
+    {
+      "pr": 128,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/128",
+      "title": "新增 SKILL: update-dedupe，用于自进化 dedupe-issue",
+      "merged_at": "2026-05-19T06:42:23Z",
+      "merge_commit": "f27532590e8fbc05f06d41ae12ae29acb5d299d1",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/dedupe-guidance-companion.md"
+      ],
+      "source_context": [
+        "PR #128",
+        "Issue #125",
+        "specs/issue-125/product.md",
+        ".agents/skills/dedupe-issue-repo/SKILL.md"
+      ],
+      "proposed_patch": "Added docs/product/raw/dedupe-guidance-companion.md documenting the dedupe-issue-repo companion, its limits relative to core dedupe-issue behavior, the empty initial Known-duplicate clusters state, and the future update boundary.",
+      "reason": "PR #128 adds the long-lived repo-specific dedupe companion skill, which changes the product knowledge available to issue triage and duplicate detection. Existing product docs only referenced this companion indirectly, so a narrow authoritative raw doc was added for its scope, empty initial cluster state, and update boundary.",
+      "recorded_at": "2026-05-31T15:08:14Z"
     }
   ]
 }
