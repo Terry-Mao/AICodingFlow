@@ -68,10 +68,14 @@ review comment id，不能使用普通 conversation comment id、review id、其
 或编造 id。没有解决 inline review comment 时不应上传该文件。
 
 外层 workflow 校验 metadata、resolved comments 和实际 diff 后提交并 push 到允许 branch。
-`push-head` 成功后可以按 metadata 更新原 PR title/body；`fallback-pr-to-fork` 成功后会查找或
-创建 follow-up PR，并在 PR body 中说明来源 PR 和触发评论。如果提供了合法
-`resolved_review_comments.json`，workflow 会回复对应 review comment，并尝试通过 GraphQL
-`resolveReviewThread` resolve 对应 thread；resolve 失败只记录 warning，不回滚已经完成的
-commit、push 或 PR update。
+`push-head` 成功后不会按 metadata 改写原 PR title/body；`pr_title` 与 `pr_summary`
+仍用于校验、commit metadata 和回复评论摘要。`fallback-pr-to-fork` 成功后会查找或创建
+follow-up PR，并在 PR body 中说明来源 PR 和触发评论。无论是更新原 PR 分支还是创建
+follow-up PR，workflow 回复触发评论时都会说明写入的 branch 和 PR URL；当 `pr_summary`
+存在非空正文时，回复中还会包含去除 `Refs #`、`Closes #`、`Fixes #` 等 issue footer 后的
+简短 Summary。如果提供了合法 `resolved_review_comments.json`，workflow 会回复对应 review
+comment，并尝试通过 GraphQL `resolveReviewThread` resolve 对应 thread；resolve 失败只记录
+warning，不回滚已经完成的 commit、push 或 PR update。
 
-来源：PR #99，Issue #28，`specs/issue-28/product.md`，`specs/issue-28/tech.md`。
+来源：PR #99，PR #120，Issue #28，Issue #119，`specs/issue-28/product.md`，
+`specs/issue-28/tech.md`。

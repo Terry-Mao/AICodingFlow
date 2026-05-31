@@ -697,6 +697,25 @@
       "proposed_patch": "新增 docs/product/raw/bootstrap-issue-config-skill.md，记录 bootstrap issue triage 初始化 skill 的用途、产出文件、label config 结构、CODEOWNERS owner 推断与 branch protection 语义，以及幂等初始化边界。",
       "reason": "PR #118 新增 bootstrap-issue-config skill，并引入 issue triage label config 与 CODEOWNERS ownership hints 的长期产品行为。现有 product docs 未覆盖该初始化流程或 CODEOWNERS branch-protection 语义，因此需要新增权威 raw 文档。",
       "recorded_at": "2026-05-30T23:44:02Z"
+    },
+    {
+      "pr": 120,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/120",
+      "title": "fix: preserve PR title for comment responses",
+      "merged_at": "2026-05-18T10:48:57Z",
+      "merge_commit": "bb40d451e868d4a78e608014207ddba765352454",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "source_context": [
+        "PR #120",
+        "Issue #119",
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "proposed_patch": "Updated the authoritative PR comment response workflow doc to state that push-head runs preserve the original PR title/body, still use pr_title and pr_summary for validation and metadata, and include a cleaned summary in the response comment when present.",
+      "reason": "PR #120 changes durable behavior of the PR comment response workflow: direct push-head responses no longer rewrite the original PR title or body, and response comments now include a summary derived from pr_summary. Existing product docs described the old push-head PR metadata update behavior, so they needed correction.",
+      "recorded_at": "2026-05-31T01:54:23Z"
     }
   ]
 }
