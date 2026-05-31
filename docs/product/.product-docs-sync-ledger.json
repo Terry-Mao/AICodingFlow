@@ -830,6 +830,26 @@
       "proposed_patch": "更新自动实现 workflow 文档，说明 .agents 文件的 implementation-output 交接路径、intended_files 校验要求、仅允许 .agents/ 前缀以及 implementation-output 不作为提交候选。",
       "reason": "PR #130 改变了自动实现 workflow 的长期 agent/runner 交接合同：当 .agents 目录在 Codex sandbox 中不可写时，agent 可以通过 implementation-output/.agents/... 输出 replacement 文件，并由外层 workflow 校验后应用。现有产品文档只描述了 intended_files 和提交校验，未覆盖这个持久行为。",
       "recorded_at": "2026-05-31T16:47:20Z"
+    },
+    {
+      "pr": 129,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/129",
+      "title": "feat: add update-dedupe guidance workflow",
+      "merged_at": "2026-05-19T13:34:07Z",
+      "merge_commit": "4c9fcdc947f01ebe46914a74a5615cc4ee959c5f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/update-dedupe-workflow.md"
+      ],
+      "source_context": [
+        "PR #129",
+        "Issue #125",
+        "specs/issue-125/product.md",
+        "specs/issue-125/tech.md"
+      ],
+      "proposed_patch": "Added a new raw product doc describing the update-dedupe workflow, strong duplicate evidence requirements, repeated-cluster learning behavior, allowed write surface, and PR behavior.",
+      "reason": "PR #129 introduced the long-lived `update-dedupe` skill and manual workflow, including trigger semantics, evidence requirements, write-surface boundaries, and PR behavior. Existing product docs covered the dedupe companion but did not document this workflow itself.",
+      "recorded_at": "2026-05-31T18:52:12Z"
     }
   ]
 }
