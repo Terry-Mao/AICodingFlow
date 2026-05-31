@@ -866,6 +866,22 @@
       "proposed_patch": "No product docs patch is needed because the change is an internal script reliability fix and existing long-term docs already describe the stable workflow semantics.",
       "reason": "PR #131 fixes internal update-dedupe feedback aggregation plumbing by avoiding a GitHub GraphQL variable collision, expanding query placeholders correctly, and printing gh stderr on failure. It does not change the documented product workflow, duplicate evidence rules, write boundaries, or user-facing behavior already covered by the update-dedupe product docs.",
       "recorded_at": "2026-05-31T20:42:51Z"
+    },
+    {
+      "pr": 132,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/132",
+      "title": "test(update-dedupe): cover feedback aggregation safety",
+      "merged_at": "2026-05-19T14:38:04Z",
+      "merge_commit": "20898bdfcf3aa8b3336a77f508c71ed32f783fc8",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #132",
+        "docs/product/raw/update-dedupe-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch needed because the long-term user-visible workflow contract did not change.",
+      "reason": "PR #132 keeps the existing update-dedupe product behavior: when guidance changes exist, the workflow creates or updates a PR whose body includes the evidence summary. The implementation moved body construction into a helper and uses gh --body-file to treat generated summary text as data, but this is internal workflow hardening already consistent with the documented behavior.",
+      "recorded_at": "2026-05-31T21:42:28Z"
     }
   ]
 }
