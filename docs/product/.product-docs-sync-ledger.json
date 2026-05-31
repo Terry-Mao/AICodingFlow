@@ -810,6 +810,26 @@
       "proposed_patch": "Added docs/product/raw/dedupe-guidance-companion.md documenting the dedupe-issue-repo companion, its limits relative to core dedupe-issue behavior, the empty initial Known-duplicate clusters state, and the future update boundary.",
       "reason": "PR #128 adds the long-lived repo-specific dedupe companion skill, which changes the product knowledge available to issue triage and duplicate detection. Existing product docs only referenced this companion indirectly, so a narrow authoritative raw doc was added for its scope, empty initial cluster state, and update boundary.",
       "recorded_at": "2026-05-31T15:08:14Z"
+    },
+    {
+      "pr": 130,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/130",
+      "title": "fix: apply agents implementation output",
+      "merged_at": "2026-05-19T11:37:12Z",
+      "merge_commit": "572dbd1e51efa2c46afae9c2d10a373aab03fdda",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #130",
+        "Issue #125",
+        "specs/issue-125/product.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新自动实现 workflow 文档，说明 .agents 文件的 implementation-output 交接路径、intended_files 校验要求、仅允许 .agents/ 前缀以及 implementation-output 不作为提交候选。",
+      "reason": "PR #130 改变了自动实现 workflow 的长期 agent/runner 交接合同：当 .agents 目录在 Codex sandbox 中不可写时，agent 可以通过 implementation-output/.agents/... 输出 replacement 文件，并由外层 workflow 校验后应用。现有产品文档只描述了 intended_files 和提交校验，未覆盖这个持久行为。",
+      "recorded_at": "2026-05-31T16:47:20Z"
     }
   ]
 }

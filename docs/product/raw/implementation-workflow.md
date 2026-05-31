@@ -46,6 +46,12 @@ agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，
 实现文件列表，必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow
 文件；不得包含 workflow handoff 文件、validation logs、生成缓存文件或未变化文件。
 
+当实现需要修改 `.agents` 下的文件，而 Codex sandbox 无法直接写入该目录时，agent 可以把
+完整 replacement 文件写到 `implementation-output/.agents/...` 下，路径必须与目标
+repository-relative path 一致。外层 workflow 会在 diff detection 前应用这些输出文件，
+但只接受 `.agents/` 前缀且已列入 `pr-metadata.json` 的 `intended_files` 的路径；
+`implementation-output` 本身是运行时交接目录，不会作为实现文件提交。
+
 外层 workflow 负责校验 agent 产出的 metadata，提交并推送目标分支，创建或更新
 implementation PR，并维护 issue progress comment。提交实现分支时，外层 workflow
 只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files`
@@ -62,5 +68,5 @@ commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继�
 `@AGENT_LOGIN /review`；是否真正执行 review 仍由 AI PR Review workflow 自身的 open、
 draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，
+来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，
 `specs/issue-18/product.md`，`specs/issue-77/product.md`。
