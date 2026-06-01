@@ -960,6 +960,24 @@
       "proposed_patch": "No product docs patch is needed.",
       "reason": "PR #140 only changes the internal GitHub Actions implementation used by AI PR Review and PR comment response workflows to fetch PR base commits with a one-shot authenticated Git extraheader. The merged behavior does not change product workflow triggers, agent context contracts, branch strategies, permissions exposed to users, or public error semantics already documented under docs/product/.",
       "recorded_at": "2026-06-01T07:33:57Z"
+    },
+    {
+      "pr": 142,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/142",
+      "title": "private repo 会出现 author_association 判定失败",
+      "merged_at": "2026-05-20T17:04:37Z",
+      "merge_commit": "1d89f1c50de2dbe3bb2c578530681db9b7e5aad8",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "source_context": [
+        "PR #142",
+        "Issue #141"
+      ],
+      "proposed_patch": "Updated the PR comment response workflow raw product doc to describe the private-repository CONTRIBUTOR permission fallback, the remaining rejection cases, and the new context fields for base repo privacy and repository permission.",
+      "reason": "PR #142 changed the long-term authorization behavior for PR comment response: private-repo CONTRIBUTOR triggers can now run when the actor has write, maintain, or admin collaborator permission, while public or low-permission contributors remain rejected. Existing product docs still described CONTRIBUTOR as always unauthorized, so the authoritative raw doc needed an update.",
+      "recorded_at": "2026-06-01T13:20:40Z"
     }
   ]
 }
