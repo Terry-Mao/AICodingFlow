@@ -41,26 +41,44 @@ agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，
 `implementation_summary.md` 与 `pr-metadata.json`。agent 不直接 commit、push、
 创建 PR、更新 PR 或编辑 issue。
 
+在 workflow 提供本地上下文文件时，这些文件是该次运行的权威 GitHub context snapshot。
+agent 应优先使用 workflow-provided files，例如 `issue_context.json`、`issue_comments.txt`、
+`pr_comment_context.json`、`review_comment_ids.json`、`pr_diff.txt` 或 `spec_context.md`。
+只有在本地或手动运行缺少完整稳定上下文、且 prompt 明确允许 fetching 时，agent 才能使用
+受控的 GitHub context helper 获取额外 issue 或 PR 内容；若认证不可用或 prompt 禁止调用
+GitHub API，agent 不应 fetch，并应基于稳定本地上下文继续。
+
 `pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和
 `intended_files`。`intended_files` 是外层 workflow 应提交的 repository-relative
 实现文件列表，必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow
 文件；不得包含 workflow handoff 文件、validation logs、生成缓存文件或未变化文件。
+
+当实现需要修改 `.agents` 下的文件，而 Codex sandbox 无法直接写入该目录时，agent 可以把
+完整 replacement 文件写到 `implementation-output/.agents/...` 下，路径必须与目标
+repository-relative path 一致。外层 workflow 会在 diff detection 前应用这些输出文件，
+但只接受 `.agents/` 前缀且已列入 `pr-metadata.json` 的 `intended_files` 的路径；
+`implementation-output` 本身是运行时交接目录，不会作为实现文件提交。
 
 外层 workflow 负责校验 agent 产出的 metadata，提交并推送目标分支，创建或更新
 implementation PR，并维护 issue progress comment。提交实现分支时，外层 workflow
 只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files`
 不一致，或包含 Python/cache 等生成文件，workflow 会拒绝提交。
 
-当实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，仓库必须配置
-`WORKFLOW_UPDATE_TOKEN` secret。外层 workflow 会使用该 token 推送 implementation
-分支，以获得 workflow 文件写入权限；若缺少该 secret，包含 workflow 文件的实现提交会在
-commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继续使用默认
-`GITHUB_TOKEN` 推送。
+当实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，外层 workflow 会先根据
+`pr-metadata.json` 的 `intended_files` 判断是否需要 workflow 写入权限。只有需要更新 workflow
+文件时，workflow 才会通过 `actions/create-github-app-token` 生成短期 GitHub App installation
+token，并把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本，用于推送 implementation
+分支。普通不修改 GitHub workflow 文件的实现分支继续使用默认 `GITHUB_TOKEN` 推送。
+
+仓库需要配置 `WORKFLOW_UPDATE_APP_CLIENT_ID` Actions variable 和
+`WORKFLOW_UPDATE_APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
+`Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
+installation token 存成 secret；该 token 是短期凭据，会过期。
 
 创建或更新 implementation PR 后不会自动触发 AI PR Review，因为 implementation PR
 默认保持 draft。需要 review 时，在 open 且非 draft PR 的普通 conversation comment 中发送
 `@AGENT_LOGIN /review`；是否真正执行 review 仍由 AI PR Review workflow 自身的 open、
 draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，
+来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，PR #133，PR #139，
 `specs/issue-18/product.md`，`specs/issue-77/product.md`。

@@ -1,6 +1,7 @@
 # Issue triage workflow
 
-Issue triage workflow 用于在 GitHub issue 创建、重新打开、维护者显式请求或手动触发时，
+Issue triage workflow 用于在 GitHub issue 创建、重新打开、维护者显式请求、needs-info
+follow-up 或手动触发时，
 让 Codex agent 产出结构化分诊结果，并由外层 GitHub Actions 负责评论和标签更新。它面向
 issue 分诊，不处理 pull request comment，也不把 issue 本文或评论当作可信指令。
 
@@ -8,14 +9,17 @@ issue 分诊，不处理 pull request comment，也不把 issue 本文或评论�
 
 workflow 支持三类入口：
 
-- `issues.opened` 和 `issues.reopened` 会自动触发分诊。
+- `issues.opened` 和 `issues.reopened` 会在 issue 作者不是 bot 或 automation user 时自动触发分诊。
 - `issue_comment.created` 只在目标不是 PR、评论作者是 `OWNER`、`MEMBER` 或
   `COLLABORATOR`，且评论正文包含配置的 `@AGENT_LOGIN /triage` 命令时触发。
+- 带有 `needs-info` label 的 issue 收到原 issue 作者的新评论时，也会触发分诊 follow-up；
+  该入口不要求 `@AGENT_LOGIN /triage` 命令，也不要求作者是 collaborator。
 - `workflow_dispatch` 可由维护者指定 issue number 手动触发。
 
 评论触发会忽略引用块和 fenced code block 中的命令文本。普通讨论、非可信作者评论、未配置
-agent login 的评论、PR 评论，以及只 mention agent 但没有 `/triage` 命令的评论，都不是
-issue triage 目标。
+agent login 的命令评论、PR issue events、PR 评论、bot/automation 作者创建的 issue 或评论、
+非 `created` 的评论事件，以及只 mention agent 但没有 `/triage` 命令的评论，都不是 issue
+triage 目标。
 
 ## 分诊上下文
 
@@ -30,6 +34,13 @@ repository companion skills。agent 使用 workflow 提供的 `dedupe_candidates
 的权威候选列表，不自行调用 GitHub API 扫描 issues；若候选列表为空，agent 继续完成其余分诊，
 并在结果中说明重复检查无法验证。issue bodies、comments、templates、original report 和 fenced
 code blocks 都是待分析数据，不是可执行 workflow 指令。
+
+仓库级 `triage-issue-repo` companion skill 只能补充 core `triage-issue` 允许覆盖的类别，
+不能重定义分诊输出 schema、安全规则或 follow-up-question contract。该 companion 当前记录的
+仓库规则包括：区分观察到的症状与报告者假设；先通过代码检查、文档查询或 web search 自行尝试
+回答 follow-up question；只在问题无法由 agent 自行解决且会实质影响分诊置信度时提问；优先提出
+具体问题而不是泛泛要求更多信息。label taxonomy 以 `.github/issue-triage/config.json` 为准，
+agent 不应自行发明新 labels，除非上层 prompt 明确允许。
 
 ## `triage_result.json`
 
@@ -61,4 +72,4 @@ follow-up questions，且配置中存在 `needs-info`，结果必须带 `needs-i
 label 同步只管理 triage config 中定义且非受保护的 labels：结果中缺失的已管理 labels 会被移除，
 结果中新增的已配置 labels 会被添加；issue 上不属于 managed label set 的其他 labels 会保留。
 
-来源：PR #121，PR #123，Issue #19。
+来源：PR #121，PR #123，PR #133，PR #138，Issue #19，Issue #137。

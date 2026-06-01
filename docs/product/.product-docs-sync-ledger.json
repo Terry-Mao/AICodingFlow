@@ -810,6 +810,156 @@
       "proposed_patch": "Added docs/product/raw/dedupe-guidance-companion.md documenting the dedupe-issue-repo companion, its limits relative to core dedupe-issue behavior, the empty initial Known-duplicate clusters state, and the future update boundary.",
       "reason": "PR #128 adds the long-lived repo-specific dedupe companion skill, which changes the product knowledge available to issue triage and duplicate detection. Existing product docs only referenced this companion indirectly, so a narrow authoritative raw doc was added for its scope, empty initial cluster state, and update boundary.",
       "recorded_at": "2026-05-31T15:08:14Z"
+    },
+    {
+      "pr": 130,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/130",
+      "title": "fix: apply agents implementation output",
+      "merged_at": "2026-05-19T11:37:12Z",
+      "merge_commit": "572dbd1e51efa2c46afae9c2d10a373aab03fdda",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #130",
+        "Issue #125",
+        "specs/issue-125/product.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新自动实现 workflow 文档，说明 .agents 文件的 implementation-output 交接路径、intended_files 校验要求、仅允许 .agents/ 前缀以及 implementation-output 不作为提交候选。",
+      "reason": "PR #130 改变了自动实现 workflow 的长期 agent/runner 交接合同：当 .agents 目录在 Codex sandbox 中不可写时，agent 可以通过 implementation-output/.agents/... 输出 replacement 文件，并由外层 workflow 校验后应用。现有产品文档只描述了 intended_files 和提交校验，未覆盖这个持久行为。",
+      "recorded_at": "2026-05-31T16:47:20Z"
+    },
+    {
+      "pr": 129,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/129",
+      "title": "feat: add update-dedupe guidance workflow",
+      "merged_at": "2026-05-19T13:34:07Z",
+      "merge_commit": "4c9fcdc947f01ebe46914a74a5615cc4ee959c5f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/update-dedupe-workflow.md"
+      ],
+      "source_context": [
+        "PR #129",
+        "Issue #125",
+        "specs/issue-125/product.md",
+        "specs/issue-125/tech.md"
+      ],
+      "proposed_patch": "Added a new raw product doc describing the update-dedupe workflow, strong duplicate evidence requirements, repeated-cluster learning behavior, allowed write surface, and PR behavior.",
+      "reason": "PR #129 introduced the long-lived `update-dedupe` skill and manual workflow, including trigger semantics, evidence requirements, write-surface boundaries, and PR behavior. Existing product docs covered the dedupe companion but did not document this workflow itself.",
+      "recorded_at": "2026-05-31T18:52:12Z"
+    },
+    {
+      "pr": 131,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/131",
+      "title": "fix(update-dedupe): repair feedback aggregation query",
+      "merged_at": "2026-05-19T14:08:32Z",
+      "merge_commit": "052577fec0266ec5ad706136aa818f5acfe50ea8",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #131",
+        "docs/product/raw/update-dedupe-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the change is an internal script reliability fix and existing long-term docs already describe the stable workflow semantics.",
+      "reason": "PR #131 fixes internal update-dedupe feedback aggregation plumbing by avoiding a GitHub GraphQL variable collision, expanding query placeholders correctly, and printing gh stderr on failure. It does not change the documented product workflow, duplicate evidence rules, write boundaries, or user-facing behavior already covered by the update-dedupe product docs.",
+      "recorded_at": "2026-05-31T20:42:51Z"
+    },
+    {
+      "pr": 132,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/132",
+      "title": "test(update-dedupe): cover feedback aggregation safety",
+      "merged_at": "2026-05-19T14:38:04Z",
+      "merge_commit": "20898bdfcf3aa8b3336a77f508c71ed32f783fc8",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #132",
+        "docs/product/raw/update-dedupe-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch needed because the long-term user-visible workflow contract did not change.",
+      "reason": "PR #132 keeps the existing update-dedupe product behavior: when guidance changes exist, the workflow creates or updates a PR whose body includes the evidence summary. The implementation moved body construction into a helper and uses gh --body-file to treat generated summary text as data, but this is internal workflow hardening already consistent with the documented behavior.",
+      "recorded_at": "2026-05-31T21:42:28Z"
+    },
+    {
+      "pr": 133,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/133",
+      "title": "docs(triage): add repo triage guidance",
+      "merged_at": "2026-05-19T18:17:07Z",
+      "merge_commit": "06ea7c776acfb30cc124a875ee033c489960cd8f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/issue-triage-workflow.md",
+        "docs/product/raw/pr-comment-response-workflow.md",
+        "docs/product/raw/implementation-workflow.md"
+      ],
+      "source_context": [
+        "PR #133",
+        ".agents/skills/triage-issue-repo/SKILL.md",
+        ".agents/skills/implement-issue/SKILL.md",
+        ".agents/skills/implement-specs/SKILL.md",
+        ".github/scripts/prepare_pr_comment_context.py",
+        ".github/workflows/respond-to-pr-comment.yml"
+      ],
+      "proposed_patch": "Updated authoritative raw product docs for issue triage, PR comment response, and implementation workflows to capture PR #133's companion triage rules and stable local context boundaries.",
+      "reason": "PR #133 changes durable workflow behavior by adding repository-specific triage guidance and tightening PR/implementation agent context handling around stable local snapshots. Existing product docs covered the workflows generally but did not describe the new companion skill rules, PR comment snapshot inputs, or no-fetch boundary.",
+      "recorded_at": "2026-05-31T22:43:11Z"
+    },
+    {
+      "pr": 138,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/138",
+      "title": "fix(triage): allow external issue triage",
+      "merged_at": "2026-05-20T11:02:45Z",
+      "merge_commit": "77eb7a8c6d8111a4867bd62db188588b8213f04d",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/issue-triage-workflow.md"
+      ],
+      "source_context": [
+        "PR #138",
+        "Issue #137",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新 issue triage workflow 的触发条件，记录非 bot issue opened/reopened、needs-info issue 作者 follow-up、bot/automation 与非 created 评论事件排除规则，并补充来源引用。",
+      "reason": "PR #138 改变了 issue triage workflow 的长期触发规则：普通 issue 作者的 needs-info follow-up 可重新触发分诊，同时 bot、PR mirror issue events 和 edited comments 被排除。现有产品文档仍描述旧的 maintainer-only comment trigger，因此需要同步。",
+      "recorded_at": "2026-05-31T23:46:58Z"
+    },
+    {
+      "pr": 139,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/139",
+      "title": "ci(workflows): use GitHub App token for workflow updates",
+      "merged_at": "2026-05-20T11:40:49Z",
+      "merge_commit": "d70d3328b8f81d9583c72ea4e894203b28c6dd8c",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "source_context": [
+        "PR #139",
+        "Issue #136",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新 raw product docs，说明 workflow 根据 `intended_files` 条件性通过 `actions/create-github-app-token` 生成 GitHub App installation token，并记录所需的 `WORKFLOW_UPDATE_APP_CLIENT_ID` variable、`WORKFLOW_UPDATE_APP_PRIVATE_KEY` secret、GitHub App 权限，以及不修改 workflow 文件时继续使用默认写入凭据。",
+      "reason": "PR #139 改变了修改 `.github/workflows/*` 时 implementation 与 PR comment response 提交所使用的长期凭据模型。现有 raw product docs 仍描述静态 `WORKFLOW_UPDATE_TOKEN` secret，或缺少 PR comment response 的对应行为，因此需要更新权威产品文档。",
+      "recorded_at": "2026-06-01T02:06:51Z"
+    },
+    {
+      "pr": 140,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/140",
+      "title": "fix(workflows): authenticate PR diff fetch",
+      "merged_at": "2026-05-20T14:13:09Z",
+      "merge_commit": "22c11fc18243f80d4b89b5b783e117f140a254bc",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #140"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #140 only changes the internal GitHub Actions implementation used by AI PR Review and PR comment response workflows to fetch PR base commits with a one-shot authenticated Git extraheader. The merged behavior does not change product workflow triggers, agent context contracts, branch strategies, permissions exposed to users, or public error semantics already documented under docs/product/.",
+      "recorded_at": "2026-06-01T07:33:57Z"
     }
   ]
 }
