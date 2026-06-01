@@ -996,6 +996,25 @@
       "proposed_patch": "No product docs patch is needed.",
       "reason": "PR #143 only hardens internal GitHub Actions credential handling while fetching the PR diff; it does not change review or PR-comment workflow triggers, permissions, outputs, branch behavior, public errors, or agent contracts. Existing product docs cover the long-term product semantics, and the credential-storage detail is implementation/security plumbing rather than durable product knowledge.",
       "recorded_at": "2026-06-01T18:52:41Z"
+    },
+    {
+      "pr": 145,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/145",
+      "title": "Rename GitHub App workflow config vars",
+      "merged_at": "2026-05-20T17:52:20Z",
+      "merge_commit": "fd759d58a9846b6e3258091588ed8edbf3875565",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "source_context": [
+        "PR #145",
+        "Issue #144"
+      ],
+      "proposed_patch": "更新两个 raw product docs 中的 GitHub App Actions variable/secret 名称，并在来源列表补充 PR #145 与 Issue #144。",
+      "reason": "PR #145 将生成可写 workflow installation token 所需的 GitHub App 配置名从 WORKFLOW_UPDATE_APP_CLIENT_ID / WORKFLOW_UPDATE_APP_PRIVATE_KEY 改为 APP_CLIENT_ID / APP_PRIVATE_KEY。这改变了 implementation workflow 与 PR comment response workflow 的长期配置契约，现有产品文档仍记录旧名称。",
+      "recorded_at": "2026-06-01T19:15:34Z"
     }
   ]
 }
