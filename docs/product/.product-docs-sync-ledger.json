@@ -978,6 +978,24 @@
       "proposed_patch": "Updated the PR comment response workflow raw product doc to describe the private-repository CONTRIBUTOR permission fallback, the remaining rejection cases, and the new context fields for base repo privacy and repository permission.",
       "reason": "PR #142 changed the long-term authorization behavior for PR comment response: private-repo CONTRIBUTOR triggers can now run when the actor has write, maintain, or admin collaborator permission, while public or low-permission contributors remain rejected. Existing product docs still described CONTRIBUTOR as always unauthorized, so the authoritative raw doc needed an update.",
       "recorded_at": "2026-06-01T13:20:40Z"
+    },
+    {
+      "pr": 143,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/143",
+      "title": "fix(workflows): avoid token in fetch arguments",
+      "merged_at": "2026-05-20T17:17:03Z",
+      "merge_commit": "0383d7bfbb9e627ba5e2db5b9bf5e94e7c1e71d4",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #143",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #143 only hardens internal GitHub Actions credential handling while fetching the PR diff; it does not change review or PR-comment workflow triggers, permissions, outputs, branch behavior, public errors, or agent contracts. Existing product docs cover the long-term product semantics, and the credential-storage detail is implementation/security plumbing rather than durable product knowledge.",
+      "recorded_at": "2026-06-01T18:52:41Z"
     }
   ]
 }
