@@ -342,6 +342,93 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
         self.assertIn("PR #86: Add first flow", body)
         self.assertIn("Document first flow.", body)
 
+    def test_pr_comment_includes_current_run_decision(self) -> None:
+        comment = body_writer.build_comment(
+            pr_number="87",
+            pr_url="https://example.test/pull/87",
+            result={
+                "docs_update": "uncertain",
+                "reason": "Needs product confirmation.",
+                "affected_docs": ["docs/product/raw/flow.md"],
+                "source_context": ["Issue #87", "PR #87"],
+                "proposed_patch": "Draft docs for review.",
+            },
+        )
+
+        self.assertIn("Product Docs Sync processed a source PR.", comment)
+        self.assertIn("source PR: #87", comment)
+        self.assertIn("docs update: `uncertain`", comment)
+        self.assertIn("reason: Needs product confirmation.", comment)
+        self.assertIn("source URL: https://example.test/pull/87", comment)
+        self.assertIn("`docs/product/raw/flow.md`", comment)
+        self.assertIn("Draft docs for review.", comment)
+        self.assertIn("needs maintainer confirmation", comment)
+        self.assertNotIn("Processed decisions in this PR:", comment)
+
+    def test_pr_comment_uses_empty_states_for_missing_docs_and_patch(self) -> None:
+        comment = body_writer.build_comment(
+            pr_number="88",
+            pr_url="https://example.test/pull/88",
+            result={
+                "docs_update": "required",
+                "reason": "Docs changed.",
+                "affected_docs": [],
+                "source_context": [],
+                "proposed_patch": "",
+            },
+        )
+
+        self.assertIn("Affected docs:\n- none", comment)
+        self.assertIn("Patch summary:\nNone.", comment)
+
+    def test_pr_body_writer_cli_can_write_comment_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            result_path = root / "result.json"
+            ledger_path = root / "ledger.json"
+            body_path = root / "body.md"
+            comment_path = root / "comment.md"
+            result_path.write_text(
+                json.dumps(
+                    {
+                        "docs_update": "required",
+                        "reason": "Product flow changed.",
+                        "affected_docs": ["docs/product/raw/flow.md"],
+                        "source_context": ["PR #87"],
+                        "proposed_patch": "Document the flow.",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            ledger_path.write_text(json.dumps({"version": 1, "entries": []}), encoding="utf-8")
+
+            with patch.dict(
+                body_writer.os.environ,
+                {
+                    "SOURCE_PR_NUMBER": "87",
+                    "SOURCE_PR_URL": "https://example.test/pull/87",
+                },
+                clear=False,
+            ):
+                with patch(
+                    "sys.argv",
+                    [
+                        "write_product_docs_sync_pr_body.py",
+                        "--result",
+                        str(result_path),
+                        "--ledger",
+                        str(ledger_path),
+                        "--output",
+                        str(body_path),
+                        "--comment-output",
+                        str(comment_path),
+                    ],
+                ):
+                    self.assertEqual(body_writer.main(), 0)
+
+            self.assertIn("Processed decisions in this PR:", body_path.read_text(encoding="utf-8"))
+            self.assertIn("Product Docs Sync processed a source PR.", comment_path.read_text(encoding="utf-8"))
+
     def test_main_writes_decision_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result_path = Path(temp_dir) / "result.json"
@@ -425,6 +512,11 @@ class ProductDocsSyncWorkflowTest(unittest.TestCase):
         self.assertIn("--state open", create_step["run"])
         self.assertIn('if [ -n "$existing_pr" ]; then', create_step["run"])
         self.assertIn("--draft", create_step["run"])
+        self.assertIn('comment_file="$(mktemp)"', create_step["run"])
+        self.assertIn('--comment-output "$comment_file"', create_step["run"])
+        self.assertIn('target_pr="$existing_pr"', create_step["run"])
+        self.assertIn('gh pr view "$branch"', create_step["run"])
+        self.assertIn('gh pr comment "$target_pr"', create_step["run"])
 
 
 if __name__ == "__main__":

@@ -92,22 +92,51 @@ def build_body(pr_number: str, pr_url: str, result: dict[str, Any], ledger: dict
     )
 
 
+def build_comment(pr_number: str, pr_url: str, result: dict[str, Any]) -> str:
+    affected_docs = result.get("affected_docs") or []
+    lines = [
+        "Product Docs Sync processed a source PR.",
+        "",
+        f"- source PR: #{pr_number}",
+        f"- docs update: `{result.get('docs_update')}`",
+        f"- reason: {result.get('reason') or ''}",
+        f"- source URL: {pr_url}",
+        "",
+        "Affected docs:",
+        *(f"- `{path}`" for path in affected_docs),
+    ]
+    if not affected_docs:
+        lines.append("- none")
+
+    proposed_patch = str(result.get("proposed_patch") or "").strip()
+    lines.extend(["", "Patch summary:", proposed_patch or "None."])
+    if result.get("docs_update") == "uncertain":
+        lines.extend(["", "This docs update is uncertain and needs maintainer confirmation."])
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--result", default="product-docs-sync-result.json")
     parser.add_argument("--ledger", default="")
     parser.add_argument("--output", required=True)
+    parser.add_argument("--comment-output", default="")
     args = parser.parse_args()
 
     result = json.loads(Path(args.result).read_text(encoding="utf-8"))
+    pr_number = os.environ["SOURCE_PR_NUMBER"]
+    pr_url = os.environ.get("SOURCE_PR_URL", "")
     ledger_path = Path(args.ledger or os.environ.get("LEDGER_PATH") or DEFAULT_LEDGER_PATH)
     body = build_body(
-        pr_number=os.environ["SOURCE_PR_NUMBER"],
-        pr_url=os.environ.get("SOURCE_PR_URL", ""),
+        pr_number=pr_number,
+        pr_url=pr_url,
         result=result,
         ledger=load_ledger(ledger_path),
     )
     Path(args.output).write_text(body, encoding="utf-8")
+    if args.comment_output:
+        Path(args.comment_output).write_text(build_comment(pr_number, pr_url, result), encoding="utf-8")
     return 0
 
 

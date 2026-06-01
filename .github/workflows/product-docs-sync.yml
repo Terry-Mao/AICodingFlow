@@ -196,10 +196,12 @@ jobs:
           git push --force-with-lease origin "$branch"
 
           body_file="$(mktemp)"
-          trap 'rm -f "$body_file"' EXIT
+          comment_file="$(mktemp)"
+          trap 'rm -f "$body_file" "$comment_file"' EXIT
           python3 .github/scripts/write_product_docs_sync_pr_body.py \
             --result product-docs-sync-result.json \
-            --output "$body_file"
+            --output "$body_file" \
+            --comment-output "$comment_file"
 
           existing_pr="$(
             gh pr list \
@@ -211,6 +213,7 @@ jobs:
           )"
 
           if [ -n "$existing_pr" ]; then
+            target_pr="$existing_pr"
             gh pr edit "$existing_pr" \
               --repo "${{ github.repository }}" \
               --title "$title" \
@@ -232,7 +235,17 @@ jobs:
               --title "$title" \
               --body-file "$body_file" \
               "${draft_args[@]}"
+            target_pr="$(
+              gh pr view "$branch" \
+                --repo "${{ github.repository }}" \
+                --json number \
+                --jq '.number'
+            )"
           fi
+
+          gh pr comment "$target_pr" \
+            --repo "${{ github.repository }}" \
+            --body-file "$comment_file"
 
       - uses: actions/upload-artifact@v7
         if: always()
