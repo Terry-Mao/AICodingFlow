@@ -21,9 +21,12 @@ workflow 支持三类 PR 相关触发来源：
 修复说明。引用块、fenced code block、部分用户名匹配、普通 mention、`/review` 或
 `/implement` 不会触发该 workflow。普通 issue comment 不属于该入口。
 
-触发者授权是前置硬门禁。只有 GitHub `author_association` 为 `OWNER`、`MEMBER` 或
-`COLLABORATOR` 时，workflow 才允许继续运行 agent 和写权限步骤。`CONTRIBUTOR`、
-`FIRST_TIME_CONTRIBUTOR`、`FIRST_TIMER`、`MANNEQUIN`、`NONE`、空值或未知值会得到
+触发者授权是前置硬门禁。GitHub `author_association` 为 `OWNER`、`MEMBER` 或
+`COLLABORATOR` 时，workflow 允许继续运行 agent 和写权限步骤。私有仓库中
+`author_association = CONTRIBUTOR` 的触发者还需要通过实时 collaborator permission
+查询确认其对仓库具有 `write`、`maintain` 或 `admin` 权限；满足该条件时也视为授权。
+公开仓库中的 `CONTRIBUTOR`、私有仓库中只有 `read` 或 `triage` 权限的 `CONTRIBUTOR`，
+以及 `FIRST_TIME_CONTRIBUTOR`、`FIRST_TIMER`、`MANNEQUIN`、`NONE`、空值或未知值会得到
 `should_run = false` 和明确 `skip_reason`，不会 checkout PR head、运行 agent、
 commit、push、更新 PR、回复评论或 resolve thread。
 
@@ -33,7 +36,9 @@ commit、push、更新 PR、回复评论或 resolve thread。
 它会生成稳定的 `pr_comment_context.json`、PR diff、可用 spec context，以及当前 PR 的
 inline review comment id 索引。context 记录 PR number、head/base repo 与 branch、
 trigger metadata、触发者授权状态、branch strategy、agent push 目标、coauthor directives，
-以及触发评论正文 `trigger_body`。
+以及触发评论正文 `trigger_body`。context 还会暴露 `base_repo_private` 和
+`trigger_actor_repository_permission`，用于说明私有仓库 `CONTRIBUTOR` fallback 授权判断
+或拒绝原因。
 
 agent 使用 workflow 提供的稳定本地快照作为 PR 讨论上下文：`pr_comment_context.json`、
 `pr_event.json`、`pr_diff.txt`、可用的 `spec_context.md` 和 `review_comment_ids.json`。
@@ -94,5 +99,5 @@ workflow 文件的修复提交继续使用当前 workflow 的默认写入凭据�
 `Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
 installation token 存成 secret；该 token 是短期凭据，会过期。
 
-来源：PR #99，PR #120，PR #133，PR #139，Issue #28，Issue #119，`specs/issue-28/product.md`，
+来源：PR #99，PR #120，PR #133，PR #139，PR #142，Issue #28，Issue #119，Issue #141，`specs/issue-28/product.md`，
 `specs/issue-28/tech.md`。
