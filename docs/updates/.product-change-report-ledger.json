@@ -374,6 +374,39 @@
       "report_date": "2026-05-29",
       "report_path": "docs/updates/auto-update-2026-05-29.md",
       "recorded_at": "2026-05-30T06:00:34Z"
+    },
+    {
+      "pr": 208,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/208",
+      "title": "Add product change report for 2026-05-29",
+      "merged_at": "2026-05-31T16:25:08Z",
+      "merge_commit": "e6114959823373e61abf6fac61f4fe15a73d2326",
+      "status": "reported",
+      "report_date": "2026-05-31",
+      "report_path": "docs/updates/auto-update-2026-05-31.md",
+      "recorded_at": "2026-06-01T07:27:40Z"
+    },
+    {
+      "pr": 207,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/207",
+      "title": "Update product docs",
+      "merged_at": "2026-05-31T16:26:23Z",
+      "merge_commit": "cce206fa8113fbd8acf9e882feea78255e6aa033",
+      "status": "reported",
+      "report_date": "2026-05-31",
+      "report_path": "docs/updates/auto-update-2026-05-31.md",
+      "recorded_at": "2026-06-01T07:27:40Z"
+    },
+    {
+      "pr": 209,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/209",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-31T16:27:20Z",
+      "merge_commit": "ad6c47c29df4d299ddd357ebc2f83004dcaa868b",
+      "status": "reported",
+      "report_date": "2026-05-31",
+      "report_path": "docs/updates/auto-update-2026-05-31.md",
+      "recorded_at": "2026-06-01T07:27:40Z"
     }
   ]
 }
