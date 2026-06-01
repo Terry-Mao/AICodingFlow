@@ -9,12 +9,21 @@
 
 ## Workflow 概念
 
+- [Issue triage workflow](concepts/issue-triage-workflow.md)
+- [Issue triage 结果契约](concepts/issue-triage-result-contract.md)
+- [Issue triage 初始化配置](concepts/issue-triage-bootstrap.md)
+- [Repo-specific duplicate guidance](concepts/repo-specific-duplicate-guidance.md)
 - [Issue ready label 与 agent assignment](concepts/issue-readiness-and-assignment.md)
 - [Agent login 配置](concepts/agent-login-configuration.md)
 - [自动 spec workflow](concepts/automated-spec-workflow.md)
 - [自动 implementation workflow](concepts/automated-implementation-workflow.md)
 - [Spec context 与目标分支选择](concepts/spec-context-and-target-branch.md)
 - [Agent 与外层 workflow 职责边界](concepts/agent-workflow-boundaries.md)
+
+## PR Comment 概念
+
+- [PR comment response workflow](concepts/pr-comment-response-workflow.md)
+- [PR comment response 分支策略](concepts/pr-comment-response-branch-strategy.md)
 
 ## PR Review 概念
 
@@ -28,6 +37,11 @@
 ## 本地开发辅助概念
 
 - [本地 Git helper skills](concepts/local-git-helper-skills.md)
+- [Merge conflict resolution](concepts/merge-conflict-resolution.md)
+
+## CI 概念
+
+- [CI failure diagnosis](concepts/ci-failure-diagnosis.md)
 
 ## 产品报告概念
 
@@ -35,10 +49,16 @@
 
 ## Source Summaries
 
+- [Issue triage workflow 摘要](summaries/issue-triage-workflow.md)
+- [Issue triage 初始化配置 skill 摘要](summaries/bootstrap-issue-config-skill.md)
+- [Repo-specific dedupe guidance companion 摘要](summaries/dedupe-guidance-companion.md)
 - [自动 spec workflow 摘要](summaries/spec-workflow.md)
 - [自动实现 workflow 摘要](summaries/implementation-workflow.md)
+- [PR comment response workflow 摘要](summaries/pr-comment-response-workflow.md)
 - [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md)
 - [本地 Git helper skills 摘要](summaries/local-git-helper-skills.md)
+- [Merge conflict resolution skill 摘要](summaries/merge-conflict-resolution-skill.md)
+- [CI failure diagnosis skill 摘要](summaries/ci-failure-diagnosis-skill.md)
 - [产品变更报告摘要](summaries/product-change-reports.md)
 
 ## Schema

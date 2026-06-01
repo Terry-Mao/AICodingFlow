@@ -1,5 +1,29 @@
 # Compile Log
 
+## 2026-06-01
+
+根据 `docs/product/raw/` 重新编译 wiki，并补齐所有当前 raw source 的查询链路：
+
+- 新增 6 个 source summary：
+  - [Issue triage workflow 摘要](summaries/issue-triage-workflow.md)
+  - [Issue triage 初始化配置 skill 摘要](summaries/bootstrap-issue-config-skill.md)
+  - [Repo-specific dedupe guidance companion 摘要](summaries/dedupe-guidance-companion.md)
+  - [PR comment response workflow 摘要](summaries/pr-comment-response-workflow.md)
+  - [Merge conflict resolution skill 摘要](summaries/merge-conflict-resolution-skill.md)
+  - [CI failure diagnosis skill 摘要](summaries/ci-failure-diagnosis-skill.md)
+- 新增 issue triage、dedupe companion、PR comment response、CI diagnosis 和 merge conflict resolution 相关 concept 页面。
+- 更新 [index.md](index.md)，确保链接所有 summary、concept、schema、agent guide 和 compile log。
+- 校准 [本地 Git helper skills 摘要](summaries/local-git-helper-skills.md) 与 [本地 Git helper skills](concepts/local-git-helper-skills.md)：worktree 路径保留分支目录层级，base 选择优先 `origin/<base>`，fetch 仅在影响结果时检查。
+- 校准 [本地 PR review 入口](concepts/local-pr-review-entrypoints.md) 与 [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md)：本地 review base 优先显式 base，其次 PR base SHA，再按 `origin/main`、`upstream/main`、`main` fallback。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-05-31
 
 根据 `docs/product/raw/` 重新编译 wiki，并补齐 PR review raw source 中未单独建模的查询链路：

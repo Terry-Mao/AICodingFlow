@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-31
-review_due: 2026-08-29
+last_reviewed: 2026-06-01
+review_due: 2026-08-30
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -84,7 +84,8 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 - 准备脚本会删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`。
 - 未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和 `.local_review_baseline.status` 不会纳入 diff。
 - review 阶段只能写入受控 review 输出文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
-- code review 默认比较当前 head 与默认 base，并根据 changed files 解析 spec context；spec-only review 不生成 spec context。
+- 本地 review 的 base 可以显式传入；未显式传入时，已有 GitHub PR 的当前分支优先使用该 PR 的 base SHA，没有可用 PR base SHA 时按 `origin/main`、`upstream/main`、`main` 解析。
+- code review 根据本地 diff 中的 changed files 解析 spec context；spec-only review 不生成 spec context。
 
 ## 支持的概念
 

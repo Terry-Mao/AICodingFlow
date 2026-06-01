@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-30
-review_due: 2026-08-28
+last_reviewed: 2026-06-01
+review_due: 2026-08-30
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -43,8 +43,10 @@ sources:
 
 ## Diff 与 spec context
 
-- 本地 review 的 PR diff 默认比较当前 head 与默认 base。
-- 默认 base 按 `upstream/main`、`origin/main`、`main` 的优先级解析，也可以显式传入 base。
+- 本地 review 的 base 可以显式传入；显式 base 拥有最高优先级。
+- 未显式传入 base 时，已有 GitHub PR 的当前分支优先使用该 PR 的 base SHA。
+- 没有可用 PR base SHA 时，本地 fallback 按 `origin/main`、`upstream/main`、`main` 的优先级解析。
+- 当 worktree 没有未提交修改时，本地 diff 仍表示当前 head 相对 base 的提交差异；同时存在已提交和未提交修改时，本地 diff 覆盖两者合并后的当前文件状态。
 - code review 会根据本地 diff 中的 changed files 解析 spec context。
 - spec-only review 不生成 spec context。
 
