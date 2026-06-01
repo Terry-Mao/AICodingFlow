@@ -945,6 +945,21 @@
       "proposed_patch": "更新 raw product docs，说明 workflow 根据 `intended_files` 条件性通过 `actions/create-github-app-token` 生成 GitHub App installation token，并记录所需的 `WORKFLOW_UPDATE_APP_CLIENT_ID` variable、`WORKFLOW_UPDATE_APP_PRIVATE_KEY` secret、GitHub App 权限，以及不修改 workflow 文件时继续使用默认写入凭据。",
       "reason": "PR #139 改变了修改 `.github/workflows/*` 时 implementation 与 PR comment response 提交所使用的长期凭据模型。现有 raw product docs 仍描述静态 `WORKFLOW_UPDATE_TOKEN` secret，或缺少 PR comment response 的对应行为，因此需要更新权威产品文档。",
       "recorded_at": "2026-06-01T02:06:51Z"
+    },
+    {
+      "pr": 140,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/140",
+      "title": "fix(workflows): authenticate PR diff fetch",
+      "merged_at": "2026-05-20T14:13:09Z",
+      "merge_commit": "22c11fc18243f80d4b89b5b783e117f140a254bc",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #140"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #140 only changes the internal GitHub Actions implementation used by AI PR Review and PR comment response workflows to fetch PR base commits with a one-shot authenticated Git extraheader. The merged behavior does not change product workflow triggers, agent context contracts, branch strategies, permissions exposed to users, or public error semantics already documented under docs/product/.",
+      "recorded_at": "2026-06-01T07:33:57Z"
     }
   ]
 }
