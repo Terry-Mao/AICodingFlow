@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -61,6 +62,94 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
 
         self.assertEqual(specs[0]["path"], "specs/issue-87/product.md")
         self.assertEqual(docs[0]["path"], "docs/product/raw/overview.md")
+
+    def test_fetch_existing_issues_skips_issue_view_failures(self) -> None:
+        def fetch_issue(_repo: str, number: int) -> dict:
+            if number == 999999:
+                raise subprocess.CalledProcessError(1, ["gh", "issue", "view", str(number)])
+            return {"number": number, "title": f"Issue {number}"}
+
+        with patch.object(prepare, "fetch_issue", side_effect=fetch_issue):
+            issues, skipped = prepare.fetch_existing_issues("owner/repo", [87, 999999, 88])
+
+        self.assertEqual([issue["number"] for issue in issues], [87, 88])
+        self.assertEqual(skipped, [999999])
+
+    def test_main_skips_missing_linked_issue_and_reads_specs_for_existing_issues(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            context_output = root / "context.json"
+            markdown_output = root / "context.md"
+            diff_output = root / "diff.md"
+            existing_docs_output = root / "existing.md"
+            github_output = root / "github-output.txt"
+            (root / "specs/issue-87").mkdir(parents=True)
+            (root / "specs/issue-87/product.md").write_text("# Existing issue spec\n", encoding="utf-8")
+            (root / "specs/issue-999999").mkdir(parents=True)
+            (root / "specs/issue-999999/product.md").write_text("# Missing issue spec\n", encoding="utf-8")
+            pr = {
+                "number": 123,
+                "title": "Implement workflow",
+                "body": "Refs #87 and #999999",
+                "url": "https://example.test/pull/123",
+                "state": "MERGED",
+                "mergedAt": "2026-05-25T02:00:00Z",
+                "author": {"login": "maintainer"},
+                "headRefName": "feature/docs",
+                "baseRefName": "main",
+                "mergeCommit": {"oid": "abc123"},
+                "files": [],
+                "closingIssuesReferences": [],
+                "labels": [],
+            }
+
+            def fetch_issue(_repo: str, number: int) -> dict:
+                if number == 999999:
+                    raise subprocess.CalledProcessError(1, ["gh", "issue", "view", str(number)])
+                return {
+                    "number": number,
+                    "title": "Existing issue",
+                    "body": "Readable issue.",
+                    "url": "https://example.test/issues/87",
+                    "state": "OPEN",
+                    "labels": [],
+                    "comments": [],
+                }
+
+            with patch.object(prepare.Path, "cwd", return_value=root):
+                with patch.object(prepare, "fetch_default_branch", return_value="main"):
+                    with patch.object(prepare, "fetch_pr", return_value=pr):
+                        with patch.object(prepare, "fetch_issue", side_effect=fetch_issue):
+                            with patch.object(prepare, "fetch_pr_diff", return_value="diff"):
+                                with patch(
+                                    "sys.argv",
+                                    [
+                                        "prepare_product_docs_sync_context.py",
+                                        "--repo",
+                                        "owner/repo",
+                                        "--pr-number",
+                                        "123",
+                                        "--context-output",
+                                        str(context_output),
+                                        "--markdown-output",
+                                        str(markdown_output),
+                                        "--diff-output",
+                                        str(diff_output),
+                                        "--existing-docs-output",
+                                        str(existing_docs_output),
+                                        "--github-output",
+                                        str(github_output),
+                                    ],
+                                ):
+                                    self.assertEqual(prepare.main(), 0)
+
+            payload = json.loads(context_output.read_text(encoding="utf-8"))
+            markdown = markdown_output.read_text(encoding="utf-8")
+            self.assertEqual([issue["number"] for issue in payload["linked_issues"]], [87])
+            self.assertEqual([spec["path"] for spec in payload["specs"]], ["specs/issue-87/product.md"])
+            self.assertNotIn("## Issue #999999", markdown)
+            self.assertNotIn("specs/issue-999999/product.md", markdown)
+            self.assertIn("should_run=true", github_output.read_text(encoding="utf-8"))
 
     def test_ledger_selects_first_unprocessed_pr(self) -> None:
         prs = [

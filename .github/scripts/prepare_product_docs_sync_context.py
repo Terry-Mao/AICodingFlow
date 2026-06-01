@@ -223,6 +223,17 @@ def fetch_issue(repo: str, number: int) -> dict[str, Any]:
     )
 
 
+def fetch_existing_issues(repo: str, numbers: list[int]) -> tuple[list[dict[str, Any]], list[int]]:
+    issues: list[dict[str, Any]] = []
+    skipped: list[int] = []
+    for number in numbers:
+        try:
+            issues.append(fetch_issue(repo, number))
+        except subprocess.CalledProcessError:
+            skipped.append(number)
+    return issues, skipped
+
+
 def fetch_pr_diff(repo: str, pr_number: str, max_chars: int) -> str:
     diff = run_gh_text(["pr", "diff", pr_number, "--repo", repo, "--patch"])
     if len(diff) <= max_chars:
@@ -472,8 +483,14 @@ def main() -> int:
         return 0
 
     numbers = issue_numbers(pr)
-    issues = [fetch_issue(args.repo, number) for number in numbers]
-    specs = read_specs(root, numbers)
+    issues, _skipped_issue_numbers = fetch_existing_issues(args.repo, numbers)
+    existing_issue_numbers = []
+    for issue in issues:
+        try:
+            existing_issue_numbers.append(int(issue.get("number")))
+        except (TypeError, ValueError):
+            continue
+    specs = read_specs(root, existing_issue_numbers)
     product_docs = read_existing_product_docs(root)
     should_run = "true" if pr.get("mergedAt") else "false"
 
