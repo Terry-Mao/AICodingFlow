@@ -83,5 +83,16 @@ follow-up PR，workflow 回复触发评论时都会说明写入的 branch 和 PR
 comment，并尝试通过 GraphQL `resolveReviewThread` resolve 对应 thread；resolve 失败只记录
 warning，不回滚已经完成的 commit、push 或 PR update。
 
-来源：PR #99，PR #120，PR #133，Issue #28，Issue #119，`specs/issue-28/product.md`，
+当 PR comment response 产生的变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，外层
+workflow 会先根据 `pr-metadata.json` 的 `intended_files` 判断是否需要 workflow 写入权限。只有
+需要更新 workflow 文件时，workflow 才会通过 `actions/create-github-app-token` 生成短期 GitHub App
+installation token，并把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。普通不修改 GitHub
+workflow 文件的修复提交继续使用当前 workflow 的默认写入凭据。
+
+仓库需要配置 `WORKFLOW_UPDATE_APP_CLIENT_ID` Actions variable 和
+`WORKFLOW_UPDATE_APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
+`Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
+installation token 存成 secret；该 token 是短期凭据，会过期。
+
+来源：PR #99，PR #120，PR #133，PR #139，Issue #28，Issue #119，`specs/issue-28/product.md`，
 `specs/issue-28/tech.md`。

@@ -925,6 +925,26 @@
       "proposed_patch": "更新 issue triage workflow 的触发条件，记录非 bot issue opened/reopened、needs-info issue 作者 follow-up、bot/automation 与非 created 评论事件排除规则，并补充来源引用。",
       "reason": "PR #138 改变了 issue triage workflow 的长期触发规则：普通 issue 作者的 needs-info follow-up 可重新触发分诊，同时 bot、PR mirror issue events 和 edited comments 被排除。现有产品文档仍描述旧的 maintainer-only comment trigger，因此需要同步。",
       "recorded_at": "2026-05-31T23:46:58Z"
+    },
+    {
+      "pr": 139,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/139",
+      "title": "ci(workflows): use GitHub App token for workflow updates",
+      "merged_at": "2026-05-20T11:40:49Z",
+      "merge_commit": "d70d3328b8f81d9583c72ea4e894203b28c6dd8c",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "source_context": [
+        "PR #139",
+        "Issue #136",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新 raw product docs，说明 workflow 根据 `intended_files` 条件性通过 `actions/create-github-app-token` 生成 GitHub App installation token，并记录所需的 `WORKFLOW_UPDATE_APP_CLIENT_ID` variable、`WORKFLOW_UPDATE_APP_PRIVATE_KEY` secret、GitHub App 权限，以及不修改 workflow 文件时继续使用默认写入凭据。",
+      "reason": "PR #139 改变了修改 `.github/workflows/*` 时 implementation 与 PR comment response 提交所使用的长期凭据模型。现有 raw product docs 仍描述静态 `WORKFLOW_UPDATE_TOKEN` secret，或缺少 PR comment response 的对应行为，因此需要更新权威产品文档。",
+      "recorded_at": "2026-06-01T02:06:51Z"
     }
   ]
 }

@@ -64,16 +64,21 @@ implementation PR，并维护 issue progress comment。提交实现分支时，�
 只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files`
 不一致，或包含 Python/cache 等生成文件，workflow 会拒绝提交。
 
-当实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，仓库必须配置
-`WORKFLOW_UPDATE_TOKEN` secret。外层 workflow 会使用该 token 推送 implementation
-分支，以获得 workflow 文件写入权限；若缺少该 secret，包含 workflow 文件的实现提交会在
-commit 前被拒绝。普通不修改 GitHub workflow 文件的实现分支继续使用默认
-`GITHUB_TOKEN` 推送。
+当实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，外层 workflow 会先根据
+`pr-metadata.json` 的 `intended_files` 判断是否需要 workflow 写入权限。只有需要更新 workflow
+文件时，workflow 才会通过 `actions/create-github-app-token` 生成短期 GitHub App installation
+token，并把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本，用于推送 implementation
+分支。普通不修改 GitHub workflow 文件的实现分支继续使用默认 `GITHUB_TOKEN` 推送。
+
+仓库需要配置 `WORKFLOW_UPDATE_APP_CLIENT_ID` Actions variable 和
+`WORKFLOW_UPDATE_APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
+`Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
+installation token 存成 secret；该 token 是短期凭据，会过期。
 
 创建或更新 implementation PR 后不会自动触发 AI PR Review，因为 implementation PR
 默认保持 draft。需要 review 时，在 open 且非 draft PR 的普通 conversation comment 中发送
 `@AGENT_LOGIN /review`；是否真正执行 review 仍由 AI PR Review workflow 自身的 open、
 draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，PR #133，
+来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，PR #133，PR #139，
 `specs/issue-18/product.md`，`specs/issue-77/product.md`。
