@@ -1015,6 +1015,26 @@
       "proposed_patch": "更新两个 raw product docs 中的 GitHub App Actions variable/secret 名称，并在来源列表补充 PR #145 与 Issue #144。",
       "reason": "PR #145 将生成可写 workflow installation token 所需的 GitHub App 配置名从 WORKFLOW_UPDATE_APP_CLIENT_ID / WORKFLOW_UPDATE_APP_PRIVATE_KEY 改为 APP_CLIENT_ID / APP_PRIVATE_KEY。这改变了 implementation workflow 与 PR comment response workflow 的长期配置契约，现有产品文档仍记录旧名称。",
       "recorded_at": "2026-06-01T19:15:34Z"
+    },
+    {
+      "pr": 148,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/148",
+      "title": "feat: add project installer",
+      "merged_at": "2026-05-21T12:54:51Z",
+      "merge_commit": "bfe4dada1cbced8722d2094c5663afe580f13c44",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/project-installer.md"
+      ],
+      "source_context": [
+        "PR #148",
+        "Issue #146",
+        "README.md",
+        "install.sh"
+      ],
+      "proposed_patch": "Added docs/product/raw/project-installer.md documenting the installer entrypoints, sync scope, repo-local companion preservation, .github preservation behavior, dry-run behavior, and optional bootstrap-issue-config follow-up.",
+      "reason": "PR #148 adds a user-facing project installer and changes the long-term onboarding/sync workflow for adopting AICodingFlow in target repositories. The behavior includes durable install entrypoints, copied paths, preservation rules, dry-run semantics, and optional bootstrap guidance that were not covered by existing product docs.",
+      "recorded_at": "2026-06-01T22:27:26Z"
     }
   ]
 }
