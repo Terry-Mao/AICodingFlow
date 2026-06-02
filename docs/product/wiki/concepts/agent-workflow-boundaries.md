@@ -14,6 +14,8 @@ sources:
   - docs/product/raw/pr-comment-response-workflow.md
   - docs/product/raw/ci-failure-diagnosis-skill.md
   - docs/product/raw/merge-conflict-resolution-skill.md
+  - docs/product/raw/project-installer.md
+  - docs/product/raw/update-dedupe-workflow.md
 ---
 
 # Agent 与外层 workflow 职责边界
@@ -35,6 +37,8 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - PR comment response agent 不直接调用 GitHub API、创建 PR、发布评论、resolve thread、commit 或 push。
 - CI failure diagnosis skill 只输出修复计划，不直接修改代码、提交、推送或创建 PR。
 - Merge conflict resolution skill 是本地冲突处理辅助能力，不负责提交、推送、创建 PR 或修改 GitHub issue/PR。
+- 项目安装脚本同步 AICodingFlow 管理文件，但不初始化目标项目 issue triage 配置，也不覆盖目标项目自己的 repo-local companion skills。
+- `update-dedupe` skill 只写 `update-dedupe-output/` 交接目录；持久应用、提交、推送和 PR 创建由外层 runner 负责。
 
 ## 待确认
 
@@ -48,6 +52,8 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - [PR comment response workflow 摘要](../summaries/pr-comment-response-workflow.md)
 - [CI failure diagnosis skill 摘要](../summaries/ci-failure-diagnosis-skill.md)
 - [Merge conflict resolution skill 摘要](../summaries/merge-conflict-resolution-skill.md)
+- [项目安装脚本摘要](../summaries/project-installer.md)
+- [update-dedupe workflow 摘要](../summaries/update-dedupe-workflow.md)
 
 ## Related Concepts
 
@@ -58,3 +64,5 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - [PR comment response workflow](pr-comment-response-workflow.md)
 - [CI failure diagnosis](ci-failure-diagnosis.md)
 - [Merge conflict resolution](merge-conflict-resolution.md)
+- [项目安装脚本](project-installer.md)
+- [update-dedupe 自进化规则 workflow](update-dedupe-workflow.md)

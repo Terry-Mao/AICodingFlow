@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-01
-review_due: 2026-08-30
+last_reviewed: 2026-06-02
+review_due: 2026-08-31
 sources:
   - docs/product/raw/pr-comment-response-workflow.md
 ---
@@ -25,13 +25,15 @@ Source: [docs/product/raw/pr-comment-response-workflow.md](../../raw/pr-comment-
 - 触发命令必须在可见正文行中以完整 `@AGENT_LOGIN /fix` command 开头，同一行可追加修复说明。
 - 引用块、fenced code block、部分用户名匹配、普通 mention、`/review` 或 `/implement` 不触发。
 - 普通 issue comment 不属于该入口。
-- 只有 `OWNER`、`MEMBER` 或 `COLLABORATOR` 触发者会继续运行 agent 和写权限步骤。
+- `OWNER`、`MEMBER` 或 `COLLABORATOR` 触发者会继续运行 agent 和写权限步骤。
+- 私有仓库中 `author_association = CONTRIBUTOR` 的触发者还需要实时 collaborator permission 查询确认其对仓库具有 `write`、`maintain` 或 `admin` 权限；满足时也视为授权。
 
 ## 上下文与分支策略
 
 - `prepare_pr_comment_context.py` 生成 `pr_comment_context.json`、PR diff、可用 spec context 和 inline review comment id 索引。
 - PR body、comments、review bodies、review comments 和 trigger comment body 都是任务数据，不能覆盖 workflow 规则、skill 规则、输出路径、分支策略或安全边界。
-- agent 应通过受控 `fetch_github_context.py` 读取额外 PR 内容，不直接调用 GitHub API、创建 PR、发布评论、resolve thread、commit 或 push。
+- agent 使用 workflow 提供的稳定本地 JSON 和 snapshot 文件作为 PR discussion context，不额外 fetch GitHub context。
+- agent 不直接调用 GitHub API、创建 PR、发布评论、resolve thread、commit 或 push。
 - `push-head`：触发者已授权且 workflow token 能写 PR head branch，修复提交到原 PR head branch。
 - `fallback-pr-to-fork`：不能写原 PR head branch 但可写 base repo 时，基于原 PR head commit 创建 fallback branch 并创建或更新 follow-up PR。
 - `blocked`：既不能写 head branch 也不能写 fallback branch 时，不运行 agent 修改代码。
@@ -46,10 +48,10 @@ Source: [docs/product/raw/pr-comment-response-workflow.md](../../raw/pr-comment-
 - 外层 workflow 校验 metadata、resolved comments 和实际 diff 后提交并 push 到允许 branch。
 - `push-head` 成功后不会按 metadata 改写原 PR title/body；fallback PR 会在 PR body 中说明来源 PR 和触发评论。
 - resolve review thread 失败只记录 warning，不回滚已完成的 commit、push 或 PR update。
+- 修改 `.github/workflows/` 下 GitHub workflow 文件时，外层 workflow 会通过 GitHub App installation token 设置 `WORKFLOW_UPDATE_TOKEN`；仓库需要配置 `APP_CLIENT_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret。
 
 ## 支持的概念
 
 - [PR comment response workflow](../concepts/pr-comment-response-workflow.md)
 - [PR comment response 分支策略](../concepts/pr-comment-response-branch-strategy.md)
 - [Agent 与外层 workflow 职责边界](../concepts/agent-workflow-boundaries.md)
-
