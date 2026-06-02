@@ -1146,6 +1146,27 @@
       "proposed_patch": "无需修改 docs/product/；现有项目安装脚本文档已经覆盖该行为。",
       "reason": "PR #160 主要拆分 AICodingFlow 仓库自用测试与随安装交付的测试，并调整 CI 测试入口；长期安装边界已经由现有 docs/product/raw/project-installer.md 准确覆盖。现有文档已说明 .github/tests/ 与 .github/workflows/ci.yml 不会同步到目标项目，.github/aicodingflow-tests/ 是交付测试目录。",
       "recorded_at": "2026-06-02T21:38:15Z"
+    },
+    {
+      "pr": 161,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/161",
+      "title": "docs(readme): simplify project documentation",
+      "merged_at": "2026-05-23T10:52:52Z",
+      "merge_commit": "1f74251589adca2390621068ce44b68114bed1df",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #161",
+        "product-docs-sync-diff.md",
+        "docs/agent-directories.md",
+        ".github/workflows/ci.yml"
+      ],
+      "proposed_patch": "Updated raw product docs to describe real top-level .claude/.codex/.cursor directories with inner symlinks to shared .agents content, and to document the pending/failure AI PR Review status behavior when CI has not passed.",
+      "reason": "PR #161 changed durable product behavior for tool entry directories and the AI PR Review status lifecycle. Existing raw product docs described the previous top-level symlink layout and did not state that the reference CI marks AI PR Review as failed when CI blocks review.",
+      "recorded_at": "2026-06-02T23:23:56Z"
     }
   ]
 }
