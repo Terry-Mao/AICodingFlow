@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-01
-review_due: 2026-08-30
+last_reviewed: 2026-06-02
+review_due: 2026-08-31
 sources:
   - docs/product/raw/issue-triage-workflow.md
 ---
@@ -19,8 +19,9 @@ Issue triage workflow 在 issue 创建、重新打开、维护者显式请求或
 
 ## 触发条件
 
-- `issues.opened` 和 `issues.reopened` 自动触发分诊。
+- `issues.opened` 和 `issues.reopened` 会在 issue 作者不是 bot 或 automation user 时自动触发分诊。
 - `issue_comment.created` 只在目标不是 PR、评论作者是 `OWNER`、`MEMBER` 或 `COLLABORATOR`，且正文包含配置的 `@AGENT_LOGIN /triage` 命令时触发。
+- 带有 `needs-info` label 的 issue 收到原 issue 作者的新评论时，会触发分诊 follow-up；该入口不要求 `@AGENT_LOGIN /triage` 命令，也不要求作者是 collaborator。
 - `workflow_dispatch` 可由维护者指定 issue number 手动触发。
 - 评论触发会忽略引用块和 fenced code block 中的命令文本。
 - 普通讨论、非可信作者评论、未配置 agent login 的评论、PR 评论，以及只 mention agent 但没有 `/triage` 命令的评论，都不是 triage 目标。
@@ -49,4 +50,3 @@ Issue triage workflow 在 issue 创建、重新打开、维护者显式请求或
 - [Issue triage 结果契约](../concepts/issue-triage-result-contract.md)
 - [Repo-specific duplicate guidance](../concepts/repo-specific-duplicate-guidance.md)
 - [Agent 与外层 workflow 职责边界](../concepts/agent-workflow-boundaries.md)
-

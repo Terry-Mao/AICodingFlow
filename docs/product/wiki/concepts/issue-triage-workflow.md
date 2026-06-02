@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-01
-review_due: 2026-08-30
+last_reviewed: 2026-06-02
+review_due: 2026-08-31
 sources:
   - docs/product/raw/issue-triage-workflow.md
 ---
@@ -17,8 +17,9 @@ Issue triage workflow 面向 GitHub issue 分诊，不处理 pull request commen
 
 ## 触发
 
-- issue opened / reopened 自动触发。
+- issue opened / reopened 在 issue 作者不是 bot 或 automation user 时自动触发。
 - 维护者、成员或协作者在非 PR issue comment 中使用配置的 `@AGENT_LOGIN /triage` 命令可触发。
+- 带有 `needs-info` label 的 issue 收到原 issue 作者的新评论时，会触发 follow-up；该入口不要求 `/triage` 命令或 collaborator 身份。
 - `workflow_dispatch` 可由维护者指定 issue number 手动触发。
 - 引用块、fenced code block、PR 评论、非可信作者评论、未配置 agent login 的评论、普通讨论和只有 mention 无 `/triage` 的评论都会被忽略。
 
@@ -45,4 +46,3 @@ Issue triage workflow 面向 GitHub issue 分诊，不处理 pull request commen
 - [Issue triage 初始化配置](issue-triage-bootstrap.md)
 - [Repo-specific duplicate guidance](repo-specific-duplicate-guidance.md)
 - [Agent 与外层 workflow 职责边界](agent-workflow-boundaries.md)
-

@@ -1,5 +1,24 @@
 # Compile Log
 
+## 2026-06-02
+
+根据 `docs/product/raw/` 重新编译 wiki，补齐此前未覆盖的 raw source，并校准与 raw source 不一致的旧事实：
+
+- 新增 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)，记录 `install.sh` 的入口、同步范围、repo-local companion 保留规则和 bootstrap 边界。
+- 新增 [update-dedupe workflow 摘要](summaries/update-dedupe-workflow.md) 与 [update-dedupe 自进化规则 workflow](concepts/update-dedupe-workflow.md)，记录 duplicate evidence、repeated cluster、写入范围和 PR 行为。
+- 更新 [index.md](index.md)，链接所有新增 summary 与 concept。
+- 校准 issue triage 的 needs-info follow-up 触发规则。
+- 校准 implementation 和 PR comment response workflow 文件写入权限说明：workflow 文件变更由外层 workflow 通过 GitHub App installation token 设置 `WORKFLOW_UPDATE_TOKEN`，仓库需配置 `APP_CLIENT_ID` 与 `APP_PRIVATE_KEY`。
+- 校准 PR comment response 授权与上下文规则：私有仓库中具备写权限的 `CONTRIBUTOR` 可被授权；agent 使用稳定本地快照，不额外 fetch GitHub context。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-01
 
 根据 `docs/product/raw/` 重新编译 wiki，并补齐所有当前 raw source 的查询链路：

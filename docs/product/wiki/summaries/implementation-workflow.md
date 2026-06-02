@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-05-29
-review_due: 2026-08-27
+last_reviewed: 2026-06-02
+review_due: 2026-08-31
 sources:
   - docs/product/raw/implementation-workflow.md
 ---
@@ -44,7 +44,9 @@ Source: [docs/product/raw/implementation-workflow.md](../../raw/implementation-w
 - `pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和 `intended_files`。
 - `intended_files` 是外层 workflow 应提交的 repository-relative 实现文件列表，必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow 文件。
 - `intended_files` 不得包含 workflow handoff 文件、validation logs、生成缓存文件或未变化文件；实际变更与 `intended_files` 不一致时，workflow 会拒绝提交。
-- implementation 变更包含 `.github/workflows/` 下 GitHub workflow 文件时，仓库必须配置 `WORKFLOW_UPDATE_TOKEN` secret；缺少该 secret 会在 commit 前拒绝包含 workflow 文件的实现提交。
+- implementation 变更包含 `.github/workflows/` 下 GitHub workflow 文件时，外层 workflow 会通过 `actions/create-github-app-token` 生成短期 GitHub App installation token，并作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。
+- 仓库需要配置 `APP_CLIENT_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret；对应 GitHub App 必须安装到目标仓库，并具有 `Contents: Read and write` 与 `Workflows: Read and write` 权限。
+- 生成出来的一次性 installation token 不应存成 secret。
 - 创建或更新 implementation PR 后不会自动触发 AI PR Review，因为 implementation PR 默认保持 draft；需要 review 时，在 open 且非 draft PR 的普通 conversation comment 中发送 `@AGENT_LOGIN /review`。
 
 ## 支持的概念
