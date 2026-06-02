@@ -1072,6 +1072,26 @@
       "proposed_patch": "Updated the authoritative AI PR Review raw doc to state that workflow_dispatch review runs allow `github-actions[bot]`, enabling target-project CI workflows to dispatch AI PR Review after CI without modifying the installed review-pr.yml.",
       "reason": "PR #155 changes the AI PR Review integration contract by allowing `github-actions[bot]` to run the Codex review action when CI dispatches the workflow. Existing product docs described workflow_dispatch as a trigger but did not record the CI bot dispatch behavior or its no-local-workflow-customization purpose.",
       "recorded_at": "2026-06-02T05:18:23Z"
+    },
+    {
+      "pr": 154,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/154",
+      "title": "ci(review): dispatch AI review after CI",
+      "merged_at": "2026-05-23T03:56:47Z",
+      "merge_commit": "22b80da171bd8df46188b6451698f74a2fa80515",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/project-installer.md"
+      ],
+      "source_context": [
+        "PR #154",
+        "Issue #152",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated raw product docs to describe CI-driven AI PR Review dispatch, github-actions[bot] dispatch behavior, queued/failed AI PR Review commit status handling, and the installer exclusion for the reference .github/workflows/ci.yml.",
+      "reason": "PR #154 changed the AI PR Review trigger model from direct pull_request handling to CI-driven workflow_dispatch, and changed installer semantics so the reference ci.yml is not synced to target repositories. Existing product docs partially covered CI dispatch but still described direct pull_request review triggering, so authoritative docs needed correction.",
+      "recorded_at": "2026-06-02T09:53:53Z"
     }
   ]
 }
