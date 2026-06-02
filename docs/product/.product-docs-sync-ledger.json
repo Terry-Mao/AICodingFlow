@@ -1111,6 +1111,25 @@
       "proposed_patch": "Updated the project installer product doc to name `.github/aicodingflow-tests/` as the managed synced test directory, clarify that target-project tests should remain outside that directory, and add PR #158 / Issue #157 as sources.",
       "reason": "PR #158 changed the installer sync contract by moving AICodingFlow-managed workflow tests from `.github/tests/` to `.github/aicodingflow-tests/` and reserving `.github/tests/` for target-project-owned GitHub tests. Existing long-term product docs still described `.github/tests/` as an installed managed directory, so they needed correction.",
       "recorded_at": "2026-06-02T14:41:51Z"
+    },
+    {
+      "pr": 159,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/159",
+      "title": "增加 AGENTS.md、docs 目录",
+      "merged_at": "2026-05-23T06:25:24Z",
+      "merge_commit": "5e5d70e10e6fdf01a751d22b7a70928263f50064",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md"
+      ],
+      "source_context": [
+        "PR #159",
+        "Issue #156",
+        "docs/agent-directories.md"
+      ],
+      "proposed_patch": "Added a narrow authoritative raw product doc describing the shared .agents directory, tool entrypoint symlinks, Claude/Cursor compatibility files, and Windows symlink guidance.",
+      "reason": "PR #159 introduces the shared agent directory layout and tool-specific symlink entrypoints for Claude, Codex, and Cursor, including Windows symlink setup expectations. This is durable product usage behavior that was not covered by existing product raw docs.",
+      "recorded_at": "2026-06-02T18:27:42Z"
     }
   ]
 }
