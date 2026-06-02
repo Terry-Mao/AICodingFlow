@@ -1130,6 +1130,22 @@
       "proposed_patch": "Added a narrow authoritative raw product doc describing the shared .agents directory, tool entrypoint symlinks, Claude/Cursor compatibility files, and Windows symlink guidance.",
       "reason": "PR #159 introduces the shared agent directory layout and tool-specific symlink entrypoints for Claude, Codex, and Cursor, including Windows symlink setup expectations. This is durable product usage behavior that was not covered by existing product raw docs.",
       "recorded_at": "2026-06-02T18:27:42Z"
+    },
+    {
+      "pr": 160,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/160",
+      "title": "test(install): split delivered test suite",
+      "merged_at": "2026-05-23T07:17:37Z",
+      "merge_commit": "318ff1886ad1f4a21c2d040d9ce386c2c2687cba",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #160",
+        "docs/product/raw/project-installer.md"
+      ],
+      "proposed_patch": "无需修改 docs/product/；现有项目安装脚本文档已经覆盖该行为。",
+      "reason": "PR #160 主要拆分 AICodingFlow 仓库自用测试与随安装交付的测试，并调整 CI 测试入口；长期安装边界已经由现有 docs/product/raw/project-installer.md 准确覆盖。现有文档已说明 .github/tests/ 与 .github/workflows/ci.yml 不会同步到目标项目，.github/aicodingflow-tests/ 是交付测试目录。",
+      "recorded_at": "2026-06-02T21:38:15Z"
     }
   ]
 }
