@@ -1092,6 +1092,25 @@
       "proposed_patch": "Updated raw product docs to describe CI-driven AI PR Review dispatch, github-actions[bot] dispatch behavior, queued/failed AI PR Review commit status handling, and the installer exclusion for the reference .github/workflows/ci.yml.",
       "reason": "PR #154 changed the AI PR Review trigger model from direct pull_request handling to CI-driven workflow_dispatch, and changed installer semantics so the reference ci.yml is not synced to target repositories. Existing product docs partially covered CI dispatch but still described direct pull_request review triggering, so authoritative docs needed correction.",
       "recorded_at": "2026-06-02T09:53:53Z"
+    },
+    {
+      "pr": 158,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/158",
+      "title": "fix(install): isolate synced workflow tests",
+      "merged_at": "2026-05-23T05:41:22Z",
+      "merge_commit": "f0c0fc80e5a0d36699cde27f5693bd6d2f6537f1",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/project-installer.md"
+      ],
+      "source_context": [
+        "PR #158",
+        "Issue #157",
+        "docs/product/raw/project-installer.md"
+      ],
+      "proposed_patch": "Updated the project installer product doc to name `.github/aicodingflow-tests/` as the managed synced test directory, clarify that target-project tests should remain outside that directory, and add PR #158 / Issue #157 as sources.",
+      "reason": "PR #158 changed the installer sync contract by moving AICodingFlow-managed workflow tests from `.github/tests/` to `.github/aicodingflow-tests/` and reserving `.github/tests/` for target-project-owned GitHub tests. Existing long-term product docs still described `.github/tests/` as an installed managed directory, so they needed correction.",
+      "recorded_at": "2026-06-02T14:41:51Z"
     }
   ]
 }
