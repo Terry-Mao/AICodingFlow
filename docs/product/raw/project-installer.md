@@ -34,6 +34,11 @@ skills 会保留。此类 companion guidance 应由维护者或对应 `update-*`
 目标项目 `.github` 下不属于这些同步目录的文件不会被删除，例如目标项目自己的
 Dependabot 配置或其他 GitHub 设置文件。
 
+AICodingFlow 源仓库中的 `.github/workflows/ci.yml` 是参考最小 CI，不会由安装脚本同步到
+目标项目。目标项目应保留自己的 CI 编排，并在 CI 成功路径中 dispatch 已安装的
+`review-pr.yml` 来触发 AI PR Review；这样刷新 AICodingFlow managed workflows 时不会覆盖
+目标项目自己的 CI 编排。
+
 安装脚本自身的测试文件 `test_install_script.py` 不会安装到目标项目，因为它只验证
 AICodingFlow 源仓库的安装脚本行为。
 
@@ -47,4 +52,4 @@ AICodingFlow 源仓库的安装脚本行为。
 issues 和 contributors，并可能创建 GitHub labels 或更新 `.github/CODEOWNERS`。它不是
 安装脚本的一部分，也不需要定期运行。
 
-来源：PR #148，Issue #146。
+来源：PR #148，Issue #146；PR #154，Issue #152。

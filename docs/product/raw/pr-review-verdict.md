@@ -6,11 +6,23 @@
 
 ## 触发与 reviewable 条件
 
-AI PR Review 可以由 GitHub `pull_request` 事件触发，也可以通过手动
-`workflow_dispatch` 输入 PR number 来触发。当 open 且非 draft 的 PR conversation
-comment 中包含发给 Actions variable `AGENT_LOGIN` 指定账号的 body-level command
-`@AGENT_LOGIN /review` 时，也可以从 `issue_comment` 事件触发。手动触发和 comment
-触发会先解析目标 PR，再复用与普通 PR 事件一致的 review 流程。
+AI PR Review 默认由目标项目的 CI 成功路径通过 `workflow_dispatch` 输入 PR number
+触发。AICodingFlow 仓库自带的参考 `CI` workflow 会在非 draft、同仓库 head PR 上运行
+单元测试和 Python 编译检查，成功后 dispatch `review-pr.yml`；目标项目已有自己的 CI
+时，应在自己的 CI 成功路径中 dispatch `review-pr.yml`，而不是修改已安装的
+`review-pr.yml`。
+
+AI PR Review 也可以手动通过 `workflow_dispatch` 输入 PR number 触发。当 open 且非
+draft 的 PR conversation comment 中包含发给 Actions variable `AGENT_LOGIN` 指定账号的
+body-level command `@AGENT_LOGIN /review` 时，也可以从 `issue_comment` 事件触发。
+手动触发和 comment 触发会先解析目标 PR，再复用 review 流程。`review-pr.yml` 不直接监听
+GitHub `pull_request` 事件。
+
+`workflow_dispatch` 触发的 review workflow 允许 `github-actions[bot]` 运行 Codex
+review action，因此使用 GitHub Actions 自带 `GITHUB_TOKEN` 的 CI dispatch 可以运行 AI
+PR Review。若目标仓库改用 GitHub App token、PAT 或第三方 CI dispatch，actor 可能不是
+`github-actions[bot]`，需要让 `review-pr.yml` 的 bot allowlist 与实际触发 actor 匹配，
+或改用有人类账号权限的 token 触发。
 
 Comment 触发要求命令独占一行，允许前后空白；裸 `/review`、单纯 `@AGENT_LOGIN`
 mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的
@@ -28,9 +40,10 @@ repository 是当前仓库时，workflow 会在 PR head commit 上写入 `AI PR 
 status。Review 运行开始时 status 为 `pending`，运行结束后按 job 结果更新为
 `success` 或 `failure`，并把 status target URL 指向对应的 GitHub Actions run。
 
-该 commit status 用于让 comment 或手动触发的 review run 出现在目标 PR 的 checks /
-statuses 视图中。普通 `pull_request` 事件触发的 review 不通过这一路径补写 status；
-来自 fork 的 PR 也不会写入该 status。
+该 commit status 用于让 CI dispatch、comment 或手动触发的 review run 出现在目标 PR 的
+checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 在 dispatch 前会先把
+`AI PR Review` status 写为 `pending`，dispatch 失败时写为 `failure`；review workflow
+运行后再按 review job 结果更新该 status。来自 fork 的 PR 不会写入该 status。
 
 ## Review skill 选择
 
@@ -168,5 +181,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，Issue #115，`specs/issue-51/product.md`，`specs/issue-77/product.md`，
-`specs/issue-85/product.md`，`specs/issue-115/product.md`。
+PR #116，PR #154，PR #155，Issue #115，Issue #152，`specs/issue-51/product.md`，
+`specs/issue-77/product.md`，`specs/issue-85/product.md`，`specs/issue-115/product.md`。
