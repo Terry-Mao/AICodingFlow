@@ -70,8 +70,8 @@ implementation PR，并维护 issue progress comment。提交实现分支时，�
 token，并把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本，用于推送 implementation
 分支。普通不修改 GitHub workflow 文件的实现分支继续使用默认 `GITHUB_TOKEN` 推送。
 
-仓库需要配置 `WORKFLOW_UPDATE_APP_CLIENT_ID` Actions variable 和
-`WORKFLOW_UPDATE_APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
+仓库需要配置 `APP_CLIENT_ID` Actions variable 和
+`APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
 `Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
 installation token 存成 secret；该 token 是短期凭据，会过期。
 
@@ -80,5 +80,5 @@ installation token 存成 secret；该 token 是短期凭据，会过期。
 `@AGENT_LOGIN /review`；是否真正执行 review 仍由 AI PR Review workflow 自身的 open、
 draft 与同仓库 head 条件决定。
 
-来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，PR #133，PR #139，
-`specs/issue-18/product.md`，`specs/issue-77/product.md`。
+来源：PR #52，PR #56，PR #58，PR #66，PR #67，PR #68，PR #74，PR #82，PR #130，PR #133，PR #139，PR #145，
+Issue #144，`specs/issue-18/product.md`，`specs/issue-77/product.md`。

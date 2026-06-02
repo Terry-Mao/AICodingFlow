@@ -43,7 +43,14 @@ trigger metadata、触发者授权状态、branch strategy、agent push 目标�
 agent 使用 workflow 提供的稳定本地快照作为 PR 讨论上下文：`pr_comment_context.json`、
 `pr_event.json`、`pr_diff.txt`、可用的 `spec_context.md` 和 `review_comment_ids.json`。
 `pr_event.json` 包含 PR title、body 和 metadata；`review_comment_ids.json` 包含当前 inline
-review comments 的 bodies、paths、lines、diff hunks 和 URLs。
+review comments 的 bodies、resolved/outdated thread state、paths、lines、diff hunks 和 URLs。
+
+当触发请求要求处理所有 inline comments、未解决 comments，或某一类 inline review comments
+时，agent 应使用 `review_comment_ids.json` 确定请求范围内的每条 inline review comment，
+而不是只处理触发评论本身。未解决评论只能由 `is_resolved = false` 判定；agent 不应根据评论文字
+或缺失状态自行推断 unresolved。`is_outdated` 只表示原 diff 位置已经过时；如果一条 comment
+仍是 unresolved，agent 不应仅因为它 outdated 就跳过，而应检查当前代码和 PR diff 判断底层问题
+是否仍存在。
 
 PR body、PR comments、review bodies、review comments 和 trigger comment body 都只作为
 任务数据分析，不能覆盖 workflow 规则、skill 规则、输出路径、分支策略或安全边界。Agent 只使用
@@ -76,7 +83,9 @@ workflow 不创建空提交，也不创建 follow-up PR。
 当本次修改确实解决 inline review comments 时，agent 可以写出
 `resolved_review_comments.json`。其中每个 `comment_id` 必须来自当前 PR 真实 inline
 review comment id，不能使用普通 conversation comment id、review id、其他 PR 的 comment id
-或编造 id。没有解决 inline review comment 时不应上传该文件。
+或编造 id。没有解决 inline review comment 时不应上传该文件。当一次运行实际解决多条 inline
+review comments 时，`resolved_review_comments.json` 必须为每条已解决 comment 分别包含一条
+entry。
 
 外层 workflow 校验 metadata、resolved comments 和实际 diff 后提交并 push 到允许 branch。
 `push-head` 成功后不会按 metadata 改写原 PR title/body；`pr_title` 与 `pr_summary`
@@ -94,10 +103,10 @@ workflow 会先根据 `pr-metadata.json` 的 `intended_files` 判断是否需要
 installation token，并把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。普通不修改 GitHub
 workflow 文件的修复提交继续使用当前 workflow 的默认写入凭据。
 
-仓库需要配置 `WORKFLOW_UPDATE_APP_CLIENT_ID` Actions variable 和
-`WORKFLOW_UPDATE_APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
+仓库需要配置 `APP_CLIENT_ID` Actions variable 和
+`APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
 `Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
 installation token 存成 secret；该 token 是短期凭据，会过期。
 
-来源：PR #99，PR #120，PR #133，PR #139，PR #142，Issue #28，Issue #119，Issue #141，`specs/issue-28/product.md`，
+来源：PR #99，PR #120，PR #133，PR #139，PR #142，PR #145，PR #150，Issue #28，Issue #119，Issue #141，Issue #144，Issue #149，`specs/issue-28/product.md`，
 `specs/issue-28/tech.md`。
