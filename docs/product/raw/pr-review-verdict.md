@@ -12,6 +12,10 @@ comment 中包含发给 Actions variable `AGENT_LOGIN` 指定账号的 body-leve
 `@AGENT_LOGIN /review` 时，也可以从 `issue_comment` 事件触发。手动触发和 comment
 触发会先解析目标 PR，再复用与普通 PR 事件一致的 review 流程。
 
+`workflow_dispatch` 触发的 review workflow 允许 `github-actions[bot]` 运行 Codex
+review action，因此目标项目的 CI workflow 可以在 CI 完成后派发 AI PR Review，而不需要
+修改已安装的 `review-pr.yml`。
+
 Comment 触发要求命令独占一行，允许前后空白；裸 `/review`、单纯 `@AGENT_LOGIN`
 mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的
 `@AGENT_LOGIN /review ...` 都不会触发 AI review。普通 issue comment 和 PR inline
@@ -168,5 +172,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，Issue #115，`specs/issue-51/product.md`，`specs/issue-77/product.md`，
+PR #116，PR #155，Issue #115，Issue #152，`specs/issue-51/product.md`，`specs/issue-77/product.md`，
 `specs/issue-85/product.md`，`specs/issue-115/product.md`。
