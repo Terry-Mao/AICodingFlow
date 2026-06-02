@@ -22,7 +22,7 @@ skills。
 
 - `.agents/skills/`
 - `.github/scripts/`
-- `.github/tests/`
+- `.github/aicodingflow-tests/`
 - `.github/workflows/`
 
 普通 skills 可以复制或更新。仓库本地 companion skills，也就是
@@ -30,9 +30,14 @@ skills。
 skills 会保留。此类 companion guidance 应由维护者或对应 `update-*` self-improvement
 流程在有证据时创建和更新。
 
-`.github/scripts`、`.github/tests` 和 `.github/workflows` 会按 AICodingFlow 源目录同步。
-目标项目 `.github` 下不属于这些同步目录的文件不会被删除，例如目标项目自己的
-Dependabot 配置或其他 GitHub 设置文件。
+`.github/scripts`、`.github/aicodingflow-tests` 和 `.github/workflows` 会按 AICodingFlow
+源目录同步。目标项目 `.github` 下不属于这些同步目录的文件不会被删除，例如目标项目自己的
+Dependabot 配置、`.github/tests` 或其他 GitHub 设置文件。
+
+`.github/aicodingflow-tests` 是 AICodingFlow 上游托管的 workflow/script 测试目录，未来安装
+或同步可能覆盖其中内容。目标项目自己的测试应放在项目原有测试结构中；如果测试属于
+`.github` 相关逻辑，优先使用 `.github/tests/`，不要直接修改
+`.github/aicodingflow-tests/`。
 
 AICodingFlow 源仓库中的 `.github/workflows/ci.yml` 是参考最小 CI，不会由安装脚本同步到
 目标项目。目标项目应保留自己的 CI 编排，并在 CI 成功路径中 dispatch 已安装的
@@ -52,4 +57,4 @@ AICodingFlow 源仓库的安装脚本行为。
 issues 和 contributors，并可能创建 GitHub labels 或更新 `.github/CODEOWNERS`。它不是
 安装脚本的一部分，也不需要定期运行。
 
-来源：PR #148，Issue #146；PR #154，Issue #152。
+来源：PR #148，Issue #146；PR #154，Issue #152；PR #158，Issue #157。
