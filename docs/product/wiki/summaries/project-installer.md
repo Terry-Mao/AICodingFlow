@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-02
-review_due: 2026-08-31
+last_reviewed: 2026-06-03
+review_due: 2026-09-01
 sources:
   - docs/product/raw/project-installer.md
 ---
@@ -26,10 +26,11 @@ AICodingFlow 提供仓库级安装脚本 `install.sh`，用于把 workflow autom
 
 ## 同步范围
 
-- 安装同步 `.agents/skills/`、`.github/scripts/`、`.github/tests/` 和 `.github/workflows/`。
+- 安装同步 `.agents/skills/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和 `.github/workflows/`。
 - 普通 skills 可以复制或更新。
 - `.agents/skills/*-repo/SKILL.md` 这类仓库本地 companion skills 不会安装到目标项目；目标项目已有 companion skills 会保留。
 - 目标项目 `.github` 下不属于同步目录的文件不会被删除。
+- `.github/aicodingflow-tests/` 是 AICodingFlow 上游托管的 workflow/script 测试目录，目标项目自己的 `.github` 相关测试应优先放在 `.github/tests/`。
 - AICodingFlow 源仓库自己的 `test_install_script.py` 不会安装到目标项目。
 
 ## 预览与后续初始化
@@ -43,3 +44,4 @@ AICodingFlow 提供仓库级安装脚本 `install.sh`，用于把 workflow autom
 
 - [项目安装脚本](../concepts/project-installer.md)
 - [Issue triage 初始化配置](../concepts/issue-triage-bootstrap.md)
+- [Agent 目录布局](../concepts/agent-directory-layout.md)

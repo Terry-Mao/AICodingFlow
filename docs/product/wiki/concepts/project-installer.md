@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-02
-review_due: 2026-08-31
+last_reviewed: 2026-06-03
+review_due: 2026-09-01
 sources:
   - docs/product/raw/project-installer.md
 ---
@@ -24,9 +24,10 @@ sources:
 
 ## 同步边界
 
-- 同步范围包括 `.agents/skills/`、`.github/scripts/`、`.github/tests/` 和 `.github/workflows/`。
+- 同步范围包括 `.agents/skills/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和 `.github/workflows/`。
 - `.agents/skills/*-repo/SKILL.md` 不由安装脚本安装；目标项目已有 repo-local companion skills 会保留。
 - 目标项目 `.github` 下不属于同步目录的文件不会被删除。
+- `.github/aicodingflow-tests/` 是上游托管测试目录，目标项目自己的 `.github` 相关测试应优先放在 `.github/tests/`。
 - 安装脚本不初始化 issue triage 配置；首次接入时可后续手动运行 `$bootstrap-issue-config`。
 
 ## Supporting Summaries
@@ -38,3 +39,4 @@ sources:
 - [Issue triage 初始化配置](issue-triage-bootstrap.md)
 - [Repo-specific duplicate guidance](repo-specific-duplicate-guidance.md)
 - [Agent 与外层 workflow 职责边界](agent-workflow-boundaries.md)
+- [Agent 目录布局](agent-directory-layout.md)
