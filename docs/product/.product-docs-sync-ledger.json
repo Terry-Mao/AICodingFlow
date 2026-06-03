@@ -1265,6 +1265,26 @@
       "proposed_patch": "No product docs patch is needed because the existing product-change-report documentation already covers the durable workflow behavior; the HTTP method used by the helper script is an implementation detail.",
       "reason": "The merged diff only changes the product-change-report context helper to call the GitHub search API with an explicit GET method and updates matching tests. This is CI/workflow plumbing and does not change long-term product concepts, user workflows, lifecycle rules, or public product behavior.",
       "recorded_at": "2026-06-03T20:43:53Z"
+    },
+    {
+      "pr": 168,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/168",
+      "title": "fix(ci): prevent empty product report PRs",
+      "merged_at": "2026-05-27T01:41:32Z",
+      "merge_commit": "dd29382fe38c3e7ab1a48593bd7e9764c92894ac",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #168",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "Updated the authoritative raw product change reports doc to cover UTC historical ranges, range report paths, reported versus scanned_no_update ledger statuses, empty/no-change report handling, and PR #168 as a source.",
+      "reason": "PR #168 changes long-term product behavior for product change reports: manual historical backfill inputs, range-based report naming, and ledger handling for empty or no-change outputs. Existing product docs described only single-day reports and did not document scanned_no_update semantics.",
+      "recorded_at": "2026-06-03T22:55:40Z"
     }
   ]
 }
