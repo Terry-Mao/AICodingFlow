@@ -26,6 +26,7 @@ TEMP_REVIEW_PATHS = (
     Path("pr_description.txt"),
     Path("pr_diff.txt"),
     Path("spec_context.md"),
+    Path("review_discussion_context.json"),
     Path("review.json"),
     Path(".local_review_baseline.status"),
 )
