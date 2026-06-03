@@ -155,6 +155,16 @@ spec-only PR 不进入 non-member blocking 或 reviewer request flow。
 其他场景默认发布 `COMMENT`，避免 Bot 对成员 PR 或 spec-only PR 产生过强的
 merge gate 影响。
 
+当 `non-member code PR + verdict = APPROVE` 时，发布流程会尝试 dismiss 旧的
+bot-authored `REQUEST_CHANGES` review，避免早先的机器阻塞评审在后续通过后继续作为
+stale gate 存在。该清理只处理配置的 review bot 作者留下的
+`CHANGES_REQUESTED` review，不处理 human review 或其他 bot 的 review。
+
+review bot 作者默认是 `github-actions[bot]`。如果仓库改用 GitHub App token、PAT
+或其他 bot 身份发布 PR review，应把 Actions variable `REVIEW_BOT_LOGIN` 设置为实际
+发布 review 的 bot login；否则后续 `APPROVE` 只能清理默认 bot 作者留下的旧
+`REQUEST_CHANGES`。
+
 ## Human reviewer 选择
 
 当 `non-member code PR + verdict = APPROVE` 时，workflow 尝试请求 1 个 human
@@ -182,5 +192,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，PR #154，PR #155，Issue #115，Issue #152，`specs/issue-51/product.md`，
+PR #116，PR #154，PR #155，PR #162，Issue #115，Issue #151，Issue #152，`specs/issue-51/product.md`，
 `specs/issue-77/product.md`，`specs/issue-85/product.md`，`specs/issue-115/product.md`。

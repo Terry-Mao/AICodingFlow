@@ -1167,6 +1167,25 @@
       "proposed_patch": "Updated raw product docs to describe real top-level .claude/.codex/.cursor directories with inner symlinks to shared .agents content, and to document the pending/failure AI PR Review status behavior when CI has not passed.",
       "reason": "PR #161 changed durable product behavior for tool entry directories and the AI PR Review status lifecycle. Existing raw product docs described the previous top-level symlink layout and did not state that the reference CI marks AI PR Review as failed when CI blocks review.",
       "recorded_at": "2026-06-02T23:23:56Z"
+    },
+    {
+      "pr": 162,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/162",
+      "title": "fix(review): dismiss stale bot request changes",
+      "merged_at": "2026-05-23T15:05:21Z",
+      "merge_commit": "8ec1e5f69dde4cb7650cb0101085532eedc13d69",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #162",
+        "Issue #151",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated docs/product/raw/pr-review-verdict.md to document stale bot REQUEST_CHANGES dismissal on later APPROVE, the configured bot-author boundary, the REVIEW_BOT_LOGIN default, and source references.",
+      "reason": "PR #162 changed long-term AI PR Review behavior: later APPROVE verdicts for non-member code PRs now attempt to dismiss stale bot-authored REQUEST_CHANGES reviews. It also introduced REVIEW_BOT_LOGIN as durable configuration for custom review bot identities, so the existing PR review verdict docs needed an authoritative update.",
+      "recorded_at": "2026-06-03T02:14:53Z"
     }
   ]
 }
