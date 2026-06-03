@@ -41,9 +41,11 @@ status。Review 运行开始时 status 为 `pending`，运行结束后按 job �
 `success` 或 `failure`，并把 status target URL 指向对应的 GitHub Actions run。
 
 该 commit status 用于让 CI dispatch、comment 或手动触发的 review run 出现在目标 PR 的
-checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 在 dispatch 前会先把
-`AI PR Review` status 写为 `pending`，dispatch 失败时写为 `failure`；review workflow
-运行后再按 review job 结果更新该 status。来自 fork 的 PR 不会写入该 status。
+checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 不再在测试前预写
+`AI PR Review` status；它只在非 draft、同仓库 head PR 的测试成功后 dispatch
+`review-pr.yml`。测试失败、测试被跳过或 dispatch 未发生时，参考 `CI` workflow 不写入
+`AI PR Review` status。review workflow 运行后按 review job 结果更新该 status。来自 fork
+的 PR 不会写入该 status。
 
 ## Review skill 选择
 
@@ -154,6 +156,16 @@ spec-only PR 不进入 non-member blocking 或 reviewer request flow。
 其他场景默认发布 `COMMENT`，避免 Bot 对成员 PR 或 spec-only PR 产生过强的
 merge gate 影响。
 
+当 `non-member code PR + verdict = APPROVE` 时，发布流程会尝试 dismiss 旧的
+bot-authored `REQUEST_CHANGES` review，避免早先的机器阻塞评审在后续通过后继续作为
+stale gate 存在。该清理只处理配置的 review bot 作者留下的
+`CHANGES_REQUESTED` review，不处理 human review 或其他 bot 的 review。
+
+review bot 作者默认是 `github-actions[bot]`。如果仓库改用 GitHub App token、PAT
+或其他 bot 身份发布 PR review，应把 Actions variable `REVIEW_BOT_LOGIN` 设置为实际
+发布 review 的 bot login；否则后续 `APPROVE` 只能清理默认 bot 作者留下的旧
+`REQUEST_CHANGES`。
+
 ## Human reviewer 选择
 
 当 `non-member code PR + verdict = APPROVE` 时，workflow 尝试请求 1 个 human
@@ -181,5 +193,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，PR #154，PR #155，Issue #115，Issue #152，`specs/issue-51/product.md`，
+PR #116，PR #154，PR #155，PR #162，PR #163，Issue #115，Issue #151，Issue #152，`specs/issue-51/product.md`，
 `specs/issue-77/product.md`，`specs/issue-85/product.md`，`specs/issue-115/product.md`。

@@ -1111,6 +1111,100 @@
       "proposed_patch": "Updated the project installer product doc to name `.github/aicodingflow-tests/` as the managed synced test directory, clarify that target-project tests should remain outside that directory, and add PR #158 / Issue #157 as sources.",
       "reason": "PR #158 changed the installer sync contract by moving AICodingFlow-managed workflow tests from `.github/tests/` to `.github/aicodingflow-tests/` and reserving `.github/tests/` for target-project-owned GitHub tests. Existing long-term product docs still described `.github/tests/` as an installed managed directory, so they needed correction.",
       "recorded_at": "2026-06-02T14:41:51Z"
+    },
+    {
+      "pr": 159,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/159",
+      "title": "增加 AGENTS.md、docs 目录",
+      "merged_at": "2026-05-23T06:25:24Z",
+      "merge_commit": "5e5d70e10e6fdf01a751d22b7a70928263f50064",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md"
+      ],
+      "source_context": [
+        "PR #159",
+        "Issue #156",
+        "docs/agent-directories.md"
+      ],
+      "proposed_patch": "Added a narrow authoritative raw product doc describing the shared .agents directory, tool entrypoint symlinks, Claude/Cursor compatibility files, and Windows symlink guidance.",
+      "reason": "PR #159 introduces the shared agent directory layout and tool-specific symlink entrypoints for Claude, Codex, and Cursor, including Windows symlink setup expectations. This is durable product usage behavior that was not covered by existing product raw docs.",
+      "recorded_at": "2026-06-02T18:27:42Z"
+    },
+    {
+      "pr": 160,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/160",
+      "title": "test(install): split delivered test suite",
+      "merged_at": "2026-05-23T07:17:37Z",
+      "merge_commit": "318ff1886ad1f4a21c2d040d9ce386c2c2687cba",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #160",
+        "docs/product/raw/project-installer.md"
+      ],
+      "proposed_patch": "无需修改 docs/product/；现有项目安装脚本文档已经覆盖该行为。",
+      "reason": "PR #160 主要拆分 AICodingFlow 仓库自用测试与随安装交付的测试，并调整 CI 测试入口；长期安装边界已经由现有 docs/product/raw/project-installer.md 准确覆盖。现有文档已说明 .github/tests/ 与 .github/workflows/ci.yml 不会同步到目标项目，.github/aicodingflow-tests/ 是交付测试目录。",
+      "recorded_at": "2026-06-02T21:38:15Z"
+    },
+    {
+      "pr": 161,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/161",
+      "title": "docs(readme): simplify project documentation",
+      "merged_at": "2026-05-23T10:52:52Z",
+      "merge_commit": "1f74251589adca2390621068ce44b68114bed1df",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #161",
+        "product-docs-sync-diff.md",
+        "docs/agent-directories.md",
+        ".github/workflows/ci.yml"
+      ],
+      "proposed_patch": "Updated raw product docs to describe real top-level .claude/.codex/.cursor directories with inner symlinks to shared .agents content, and to document the pending/failure AI PR Review status behavior when CI has not passed.",
+      "reason": "PR #161 changed durable product behavior for tool entry directories and the AI PR Review status lifecycle. Existing raw product docs described the previous top-level symlink layout and did not state that the reference CI marks AI PR Review as failed when CI blocks review.",
+      "recorded_at": "2026-06-02T23:23:56Z"
+    },
+    {
+      "pr": 162,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/162",
+      "title": "fix(review): dismiss stale bot request changes",
+      "merged_at": "2026-05-23T15:05:21Z",
+      "merge_commit": "8ec1e5f69dde4cb7650cb0101085532eedc13d69",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #162",
+        "Issue #151",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated docs/product/raw/pr-review-verdict.md to document stale bot REQUEST_CHANGES dismissal on later APPROVE, the configured bot-author boundary, the REVIEW_BOT_LOGIN default, and source references.",
+      "reason": "PR #162 changed long-term AI PR Review behavior: later APPROVE verdicts for non-member code PRs now attempt to dismiss stale bot-authored REQUEST_CHANGES reviews. It also introduced REVIEW_BOT_LOGIN as durable configuration for custom review bot identities, so the existing PR review verdict docs needed an authoritative update.",
+      "recorded_at": "2026-06-03T02:14:53Z"
+    },
+    {
+      "pr": 163,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/163",
+      "title": "ci(review): dispatch review after tests pass",
+      "merged_at": "2026-05-23T18:00:26Z",
+      "merge_commit": "069dcf7a4a301cbae0a693741a77c00f4dfc9b43",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #163",
+        ".github/workflows/ci.yml",
+        ".github/tests/test_ci_workflow.py"
+      ],
+      "proposed_patch": "Updated the authoritative PR review product doc to state that the reference CI workflow dispatches review only after successful tests and does not write AI PR Review commit statuses when tests fail, are skipped, or dispatch does not occur.",
+      "reason": "PR #163 changed the reference CI workflow's public AI PR Review status behavior: CI no longer pre-writes pending or failure statuses and only dispatches review after tests pass. Existing product docs still described the removed CI status writes, so long-term product docs needed correction.",
+      "recorded_at": "2026-06-03T07:28:12Z"
     }
   ]
 }
