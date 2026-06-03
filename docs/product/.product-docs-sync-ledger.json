@@ -1247,6 +1247,24 @@
       "proposed_patch": "更新 docs/product/raw/product-change-reports.md，补充 product-change-report workflow 的 UTC 日期扫描、docs/updates 报告路径、ledger 去重、Codex 与外层 workflow 的职责边界，并把 PR #165 加入来源。",
       "reason": "PR #165 新增 product-change-report skill 和 GitHub Actions workflow，改变了产品变更报告的生成流程、去重记录和自动化职责边界。现有产品文档只覆盖报告定义和后续校验规则，缺少这次合并后的长期 workflow 语义。",
       "recorded_at": "2026-06-03T17:36:34Z"
+    },
+    {
+      "pr": 166,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/166",
+      "title": "Add product docs sync workflow",
+      "merged_at": "2026-05-26T17:31:53Z",
+      "merge_commit": "fde8890334541a447f113fca4ce1bea822cefd31",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #166",
+        "Issue #87",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the existing product-change-report documentation already covers the durable workflow behavior; the HTTP method used by the helper script is an implementation detail.",
+      "reason": "The merged diff only changes the product-change-report context helper to call the GitHub search API with an explicit GET method and updates matching tests. This is CI/workflow plumbing and does not change long-term product concepts, user workflows, lifecycle rules, or public product behavior.",
+      "recorded_at": "2026-06-03T20:43:53Z"
     }
   ]
 }
