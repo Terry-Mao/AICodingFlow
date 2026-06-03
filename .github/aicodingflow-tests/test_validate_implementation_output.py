@@ -226,6 +226,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 "implementation_summary.md",
                 "pr_description.md",
                 "pr_diff.txt",
+                "review_discussion_context.json",
                 "review.json",
             ):
                 metadata = self.write_json(

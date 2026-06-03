@@ -363,6 +363,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             "pr_description.txt",
             "pr_diff.txt",
             "spec_context.md",
+            "review_discussion_context.json",
             "review.json",
             ".local_review_baseline.status",
             "implementation_summary.md",

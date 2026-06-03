@@ -160,6 +160,16 @@ jobs:
             --changed-files-from-diff pr-worktree/pr_diff.txt \
             --output pr-worktree/spec_context.md
 
+      - name: Snapshot review discussion context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
+        run: |
+          python3 .github/scripts/prepare_review_discussion_context.py \
+            --repo "${{ github.repository }}" \
+            --pr-number "${{ steps.pr.outputs.number }}" \
+            --output pr-worktree/review_discussion_context.json
+
       - name: Prepare review workspace
         run: |
           rm -rf pr-worktree/.agents/skills
@@ -198,6 +208,8 @@ jobs:
             Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.
             Use the existing pr_description.txt and pr_diff.txt snapshots in pr-worktree.
             Use spec_context.md in pr-worktree only when the selected review skill instructs you to.
+            Use review_discussion_context.json in pr-worktree as prior review
+            discussion context for duplicate suppression only.
             review.json must include verdict with value APPROVE or REJECT.
             It may include recommended_reviewers with at most one login when
             a human reviewer recommendation is useful.
@@ -234,6 +246,7 @@ jobs:
             pr-worktree/pr_description.txt
             pr-worktree/pr_diff.txt
             pr-worktree/spec_context.md
+            pr-worktree/review_discussion_context.json
             pr-worktree/review.json
 
       - name: Mark PR review status complete

@@ -25,6 +25,7 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "pr_description.md",
                     "pr_description.txt",
                     "pr_diff.txt",
+                    "review_discussion_context.json",
                     "review.json",
                     "review_comment_ids.json",
                     "resolved_review_comments.json",
