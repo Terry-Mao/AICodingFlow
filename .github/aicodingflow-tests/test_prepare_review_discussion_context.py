@@ -113,6 +113,78 @@ class PrepareReviewDiscussionContextTest(unittest.TestCase):
         self.assertEqual(context["suppressed_review_comments"], [])
         self.assertEqual(context["unresolved_review_comments"][0]["comment_id"], 11)
 
+    def test_authorized_bare_no_need_reply_suppresses(self) -> None:
+        context = prepare.build_review_discussion_context(
+            [
+                {
+                    "id": 11,
+                    "path": "app.py",
+                    "line": 3,
+                    "body": "⚠️ [IMPORTANT] Please handle missing fallback.",
+                    "author_association": "NONE",
+                    "user": {"login": "github-actions[bot]", "type": "Bot"},
+                },
+                {
+                    "id": 12,
+                    "in_reply_to_id": 11,
+                    "body": "No need.",
+                    "author_association": "MEMBER",
+                    "user": {"login": "maintainer", "type": "User"},
+                },
+            ],
+            [
+                {
+                    "id": "thread-11",
+                    "isResolved": False,
+                    "isOutdated": False,
+                    "comments": {"nodes": [{"databaseId": 11}, {"databaseId": 12}]},
+                }
+            ],
+        )
+
+        self.assertEqual(context["suppressed_review_comments"][0]["comment_id"], 11)
+        self.assertEqual(context["suppressed_review_comments"][0]["reason"], "maintainer_dismissed")
+        self.assertEqual(context["unresolved_review_comments"], [])
+
+    def test_intentional_in_negative_or_question_context_does_not_suppress(self) -> None:
+        for reply_body in (
+            "this is not intentional",
+            "is this intentional?",
+            "this is not an intentional change",
+            "is this an intentional change?",
+        ):
+            with self.subTest(reply_body=reply_body):
+                context = prepare.build_review_discussion_context(
+                    [
+                        {
+                            "id": 11,
+                            "path": "app.py",
+                            "line": 3,
+                            "body": "⚠️ [IMPORTANT] Please handle missing fallback.",
+                            "author_association": "NONE",
+                            "user": {"login": "github-actions[bot]", "type": "Bot"},
+                        },
+                        {
+                            "id": 12,
+                            "in_reply_to_id": 11,
+                            "body": reply_body,
+                            "author_association": "MEMBER",
+                            "user": {"login": "maintainer", "type": "User"},
+                        },
+                    ],
+                    [
+                        {
+                            "id": "thread-11",
+                            "isResolved": False,
+                            "isOutdated": False,
+                            "comments": {"nodes": [{"databaseId": 11}, {"databaseId": 12}]},
+                        }
+                    ],
+                )
+
+                self.assertEqual(context["suppressed_review_comments"], [])
+                self.assertEqual(context["unresolved_review_comments"][0]["comment_id"], 11)
+
     def test_other_bot_comments_are_not_treated_as_review_bot_feedback(self) -> None:
         context = prepare.build_review_discussion_context(
             [

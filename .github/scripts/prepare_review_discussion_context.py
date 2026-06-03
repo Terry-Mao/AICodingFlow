@@ -28,8 +28,9 @@ DEFAULT_REVIEW_BOT_LOGIN = "github-actions[bot]"
 DISMISSAL_PATTERNS = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
-        r"\b(no need|not needed|unnecessary|intentional|by design|won't fix|wont fix)\b",
-        r"\b(keep as is|leave as is|works as intended)\b",
+        r"\b(no need|not needed|unnecessary|by design|won't fix|wont fix)\b",
+        r"\b(keep as is|leave as is|works as intended|works as designed|intended behavior|expected behavior)\b",
+        r"\b(this is intentional|this is an intentional change)\b",
         r"不需要改|不用改|无需修改|无需改|不用修改|不必修改|不是问题|按现状|保持现状|预期行为",
     )
 )

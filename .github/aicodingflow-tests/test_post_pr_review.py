@@ -293,7 +293,7 @@ class PostPrReviewTest(unittest.TestCase):
                 "side": "RIGHT",
                 "start_line": 2,
                 "line": 3,
-                "body": "⚠️ [IMPORTANT] issue",
+                "body": "⚠️ [IMPORTANT] issue\\n\\nDetails",
             }
         ]
 
@@ -306,9 +306,17 @@ class PostPrReviewTest(unittest.TestCase):
                     "side": "RIGHT",
                     "start_line": 2,
                     "start_side": "RIGHT",
-                    "body": "⚠️ [IMPORTANT] issue",
+                    "body": "⚠️ [IMPORTANT] issue\n\nDetails",
                 }
             ],
+        )
+
+    def test_normalize_markdown_body_skips_fenced_code_blocks(self) -> None:
+        body = 'Intro\\n\\n```suggestion\nreturn body.replace("\\\\n", "\\n")\n```\nDone'
+
+        self.assertEqual(
+            post_pr_review.normalize_markdown_body(body),
+            'Intro\n\n```suggestion\nreturn body.replace("\\\\n", "\\n")\n```\nDone',
         )
 
     def test_normalize_comments_rejects_missing_position(self) -> None:
@@ -393,7 +401,10 @@ class PostPrReviewTest(unittest.TestCase):
     def test_main_posts_body_only_review_without_diff_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             review_path = Path(directory) / "review.json"
-            review_path.write_text('{"verdict": "APPROVE", "body": "summary", "comments": []}', encoding="utf-8")
+            review_path.write_text(
+                '{"verdict": "APPROVE", "body": "Found: 0 critical, 1 important, 0 suggestions.\\\\n\\\\nIssue.", "comments": []}',
+                encoding="utf-8",
+            )
 
             with (
                 mock.patch.dict(
@@ -425,7 +436,7 @@ class PostPrReviewTest(unittest.TestCase):
             {
                 "event": "COMMENT",
                 "commit_id": "abc123",
-                "body": "summary",
+                "body": "Found: 0 critical, 1 important, 0 suggestions.\n\nIssue.",
                 "comments": [],
             },
         )

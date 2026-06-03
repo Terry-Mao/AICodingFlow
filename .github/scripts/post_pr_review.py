@@ -15,6 +15,7 @@ from typing import Any, NamedTuple
 
 FILE_RE = re.compile(r"^FILE\s+(.+?)\s*$")
 LINE_RE = re.compile(r"^(LEFT|RIGHT|BOTH)\s+(\d+)\s+\|")
+FENCE_RE = re.compile(r"^\s*```")
 ORG_MEMBER_ASSOCIATIONS = {"COLLABORATOR", "MEMBER", "OWNER"}
 NON_MEMBER_ASSOCIATIONS = {"CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "NONE"}
 DEFAULT_REVIEW_BOT_LOGIN = "github-actions[bot]"
@@ -78,6 +79,41 @@ def github_api_response(
 def request_json(url: str, token: str, payload: dict[str, Any]) -> dict[str, Any]:
     response = github_api_json(url, token, method="POST", payload=payload)
     return response if isinstance(response, dict) else {}
+
+
+def normalize_markdown_body(body: str) -> str:
+    normalized: list[str] = []
+    in_fence = False
+    index = 0
+    while index < len(body):
+        next_separator: tuple[int, str] | None = None
+        for separator in ("\r\n", "\n", "\r", "\\r\\n", "\\n"):
+            separator_index = body.find(separator, index)
+            if separator_index >= 0 and (next_separator is None or separator_index < next_separator[0]):
+                next_separator = (separator_index, separator)
+
+        if next_separator is None:
+            normalized.append(body[index:])
+            break
+
+        separator_index, separator = next_separator
+        line = body[index:separator_index]
+        fence_line = FENCE_RE.match(line) is not None
+        was_in_fence = in_fence
+        if fence_line and was_in_fence:
+            in_fence = False
+
+        normalized.append(line)
+        if separator in ("\\r\\n", "\\n") and not in_fence:
+            normalized.append("\n")
+        else:
+            normalized.append(separator)
+
+        if fence_line and not was_in_fence:
+            in_fence = True
+        index = separator_index + len(separator)
+
+    return "".join(normalized)
 
 
 def changed_files_from_diff(path: Path) -> list[str]:
@@ -190,13 +226,13 @@ def normalize_comments(
                 "side": comment["side"],
                 "start_line": comment["start_line"],
                 "start_side": comment["side"],
-                "body": comment["body"],
+                "body": normalize_markdown_body(comment["body"]),
             }
         else:
             normalized_comment = {
                 "path": comment["path"],
                 "position": position,
-                "body": comment["body"],
+                "body": normalize_markdown_body(comment["body"]),
             }
         normalized.append(normalized_comment)
     return normalized
@@ -438,7 +474,7 @@ def main() -> None:
     changed_files = changed_files_from_diff(diff_path)
     verdict = review.get("verdict", "APPROVE")
 
-    body = review.get("body") or ""
+    body = normalize_markdown_body(review.get("body") or "")
     raw_comments = review.get("comments") or []
     comments = []
     if raw_comments:
