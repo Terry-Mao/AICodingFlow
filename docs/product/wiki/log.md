@@ -1,5 +1,21 @@
 # Compile Log
 
+## 2026-06-03
+
+根据 `docs/product/raw/` 重新编译 wiki，补齐新增或此前未覆盖的 raw source，并修正与 raw source 不一致的事实：
+
+- 新增 [Agent 目录布局摘要](summaries/agent-directory-layout.md) 与 [Agent 目录布局](concepts/agent-directory-layout.md)，记录 `.agents/` 共享入口、Claude/Codex/Cursor 本地入口和 Windows symlink 规则。
+- 更新 [index.md](index.md)，链接新增 summary 与 concept。
+- 校准 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)：安装同步目录包含 `.github/aicodingflow-tests/`，目标项目自有 `.github` 测试应优先放在 `.github/tests/`。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-02
 
 根据 `docs/product/raw/` 重新编译 wiki，补齐此前未覆盖的 raw source，并校准与 raw source 不一致的旧事实：

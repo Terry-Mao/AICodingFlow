@@ -19,3 +19,7 @@
 - 不确定或冲突信息必须标记为 `待确认` 或 `开放问题`，并进入暂存评审。
 
 更多细节见 [page-types.md](page-types.md)、[linking.md](linking.md)、[query.md](query.md) 与 [staging.md](staging.md)。
+
+## 待确认 / 开放问题
+
+- 当前无本 schema 总览自身的待确认项。
