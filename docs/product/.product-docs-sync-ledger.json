@@ -1186,6 +1186,25 @@
       "proposed_patch": "Updated docs/product/raw/pr-review-verdict.md to document stale bot REQUEST_CHANGES dismissal on later APPROVE, the configured bot-author boundary, the REVIEW_BOT_LOGIN default, and source references.",
       "reason": "PR #162 changed long-term AI PR Review behavior: later APPROVE verdicts for non-member code PRs now attempt to dismiss stale bot-authored REQUEST_CHANGES reviews. It also introduced REVIEW_BOT_LOGIN as durable configuration for custom review bot identities, so the existing PR review verdict docs needed an authoritative update.",
       "recorded_at": "2026-06-03T02:14:53Z"
+    },
+    {
+      "pr": 163,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/163",
+      "title": "ci(review): dispatch review after tests pass",
+      "merged_at": "2026-05-23T18:00:26Z",
+      "merge_commit": "069dcf7a4a301cbae0a693741a77c00f4dfc9b43",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #163",
+        ".github/workflows/ci.yml",
+        ".github/tests/test_ci_workflow.py"
+      ],
+      "proposed_patch": "Updated the authoritative PR review product doc to state that the reference CI workflow dispatches review only after successful tests and does not write AI PR Review commit statuses when tests fail, are skipped, or dispatch does not occur.",
+      "reason": "PR #163 changed the reference CI workflow's public AI PR Review status behavior: CI no longer pre-writes pending or failure statuses and only dispatches review after tests pass. Existing product docs still described the removed CI status writes, so long-term product docs needed correction.",
+      "recorded_at": "2026-06-03T07:28:12Z"
     }
   ]
 }
