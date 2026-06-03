@@ -1205,6 +1205,27 @@
       "proposed_patch": "Updated the authoritative PR review product doc to state that the reference CI workflow dispatches review only after successful tests and does not write AI PR Review commit statuses when tests fail, are skipped, or dispatch does not occur.",
       "reason": "PR #163 changed the reference CI workflow's public AI PR Review status behavior: CI no longer pre-writes pending or failure statuses and only dispatches review after tests pass. Existing product docs still described the removed CI status writes, so long-term product docs needed correction.",
       "recorded_at": "2026-06-03T07:28:12Z"
+    },
+    {
+      "pr": 164,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/164",
+      "title": "feat(skills): add create-issue skill",
+      "merged_at": "2026-05-24T05:38:54Z",
+      "merge_commit": "09f9e5bc8ceb3d603a0acadd03504e6e040ea6ef",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/create-issue-skill.md"
+      ],
+      "source_context": [
+        "PR #164",
+        "Issue #147",
+        ".agents/skills/create-issue/SKILL.md",
+        "docs/local-development-flow.md",
+        "docs/github-collaboration-flow.md"
+      ],
+      "proposed_patch": "新增 docs/product/raw/create-issue-skill.md，记录 create-issue 的适用入口、模板选择、issue 内容生成、metadata 边界、GitHub CLI 创建行为和安全报告私密披露规则。",
+      "reason": "PR #164 新增 create-issue skill，改变了本地开发流的 issue 创建入口、模板选择、metadata 处理和安全报告公开边界。现有 docs/product/raw/ 中没有该能力的权威长期产品说明，因此需要新增产品文档。",
+      "recorded_at": "2026-06-03T12:27:29Z"
     }
   ]
 }
