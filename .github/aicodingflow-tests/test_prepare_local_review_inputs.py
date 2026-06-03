@@ -93,7 +93,13 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def test_prepares_code_review_inputs_and_removes_stale_files(self) -> None:
         def scenario(directory: Path) -> None:
-            for name in ("pr_description.txt", "pr_diff.txt", "spec_context.md", "review.json"):
+            for name in (
+                "pr_description.txt",
+                "pr_diff.txt",
+                "spec_context.md",
+                "review_discussion_context.json",
+                "review.json",
+            ):
                 Path(name).write_text("stale", encoding="utf-8")
 
             with ExitStack() as stack:
@@ -112,6 +118,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             self.assertIn("Title: feat: local review", Path("pr_description.txt").read_text(encoding="utf-8"))
             self.assertIn("FILE core/foo.py", Path("pr_diff.txt").read_text(encoding="utf-8"))
             self.assertFalse(Path("spec_context.md").exists())
+            self.assertFalse(Path("review_discussion_context.json").exists())
             self.assertFalse(Path("review.json").exists())
             resolve_spec_context.assert_called_once()
 
@@ -363,6 +370,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             "pr_description.txt",
             "pr_diff.txt",
             "spec_context.md",
+            "review_discussion_context.json",
             "review.json",
             ".local_review_baseline.status",
             "implementation_summary.md",
