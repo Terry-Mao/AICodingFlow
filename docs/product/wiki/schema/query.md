@@ -16,3 +16,7 @@
 - 如果答案是长期产品知识且 raw source 已支持，更新相关 summary/concept。
 - 如果答案有价值但 raw source 不足，按 [staging.md](staging.md) 进入暂存评审。
 - 临时排查、一次性命令输出、未合并实现细节不写入 wiki。
+
+## 待确认 / 开放问题
+
+- 当前无本查询流程说明自身的待确认项。

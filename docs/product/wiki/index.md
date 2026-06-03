@@ -9,6 +9,7 @@
 
 ## Workflow 概念
 
+- [Agent 目录布局](concepts/agent-directory-layout.md)
 - [Issue triage workflow](concepts/issue-triage-workflow.md)
 - [Issue triage 结果契约](concepts/issue-triage-result-contract.md)
 - [Issue triage 初始化配置](concepts/issue-triage-bootstrap.md)
@@ -51,6 +52,7 @@
 
 ## Source Summaries
 
+- [Agent 目录布局摘要](summaries/agent-directory-layout.md)
 - [Issue triage workflow 摘要](summaries/issue-triage-workflow.md)
 - [Issue triage 初始化配置 skill 摘要](summaries/bootstrap-issue-config-skill.md)
 - [Repo-specific dedupe guidance companion 摘要](summaries/dedupe-guidance-companion.md)

@@ -62,3 +62,7 @@ concept 应包含：
 - `source_status`: `verified`、`partial` 或 `conflict`，表示来源链路是否完整、部分缺失或存在冲突。
 - `owner`: 当前页面的长期维护责任方。
 - `last_reviewed` / `review_due`: 使用 `YYYY-MM-DD`，用于识别长期未复核页面。
+
+## 待确认 / 开放问题
+
+- 当前无本页面类型说明自身的待确认项。
