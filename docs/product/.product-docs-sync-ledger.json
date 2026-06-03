@@ -1226,6 +1226,27 @@
       "proposed_patch": "新增 docs/product/raw/create-issue-skill.md，记录 create-issue 的适用入口、模板选择、issue 内容生成、metadata 边界、GitHub CLI 创建行为和安全报告私密披露规则。",
       "reason": "PR #164 新增 create-issue skill，改变了本地开发流的 issue 创建入口、模板选择、metadata 处理和安全报告公开边界。现有 docs/product/raw/ 中没有该能力的权威长期产品说明，因此需要新增产品文档。",
       "recorded_at": "2026-06-03T12:27:29Z"
+    },
+    {
+      "pr": 165,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/165",
+      "title": "docs(skill): add product change report workflow",
+      "merged_at": "2026-05-26T16:57:33Z",
+      "merge_commit": "a32bc785fa9145d8e78e65a014a4628c71f53ec7",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #165",
+        "Issue #87",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md",
+        "product-docs-existing.md"
+      ],
+      "proposed_patch": "更新 docs/product/raw/product-change-reports.md，补充 product-change-report workflow 的 UTC 日期扫描、docs/updates 报告路径、ledger 去重、Codex 与外层 workflow 的职责边界，并把 PR #165 加入来源。",
+      "reason": "PR #165 新增 product-change-report skill 和 GitHub Actions workflow，改变了产品变更报告的生成流程、去重记录和自动化职责边界。现有产品文档只覆盖报告定义和后续校验规则，缺少这次合并后的长期 workflow 语义。",
+      "recorded_at": "2026-06-03T17:36:34Z"
     }
   ]
 }
