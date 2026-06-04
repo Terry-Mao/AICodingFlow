@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import re
 import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -29,6 +33,80 @@ def run_git_diff(base: str, head: str, context: int) -> list[str]:
         stdout=subprocess.PIPE,
     )
     return result.stdout.splitlines()
+
+
+def github_request(repo: str, pr_number: str, token: str, accept: str) -> bytes:
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/pulls/{pr_number}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": accept,
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request) as response:
+            return response.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            payload = json.loads(detail)
+            message = payload.get("message")
+            if isinstance(message, str) and message:
+                detail = message
+        except json.JSONDecodeError:
+            pass
+        raise SystemExit(f"GitHub PR diff request failed: {exc.code} {detail}") from exc
+
+
+def fetch_github_pr_metadata(repo: str, pr_number: str, token: str) -> dict[str, object]:
+    raw = github_request(repo, pr_number, token, "application/vnd.github+json")
+    metadata = json.loads(raw.decode("utf-8"))
+    if not isinstance(metadata, dict):
+        raise SystemExit("GitHub PR metadata response was not an object")
+    return metadata
+
+
+def nested_sha(metadata: dict[str, object], key: str) -> str:
+    value = metadata.get(key)
+    if not isinstance(value, dict):
+        return ""
+    sha = value.get("sha")
+    return sha if isinstance(sha, str) else ""
+
+
+def validate_github_pr_snapshot(
+    metadata: dict[str, object],
+    expected_head_sha: str,
+    expected_base_sha: str,
+) -> None:
+    current_head_sha = nested_sha(metadata, "head")
+    current_base_sha = nested_sha(metadata, "base")
+    if current_head_sha != expected_head_sha:
+        raise SystemExit(
+            "GitHub PR head changed while preparing review diff: "
+            f"expected {expected_head_sha}, got {current_head_sha or '<missing>'}"
+        )
+    if current_base_sha != expected_base_sha:
+        raise SystemExit(
+            "GitHub PR base changed while preparing review diff: "
+            f"expected {expected_base_sha}, got {current_base_sha or '<missing>'}"
+        )
+
+
+def fetch_github_pr_diff(
+    repo: str,
+    pr_number: str,
+    token: str,
+    expected_head_sha: str,
+    expected_base_sha: str,
+) -> list[str]:
+    metadata = fetch_github_pr_metadata(repo, pr_number, token)
+    validate_github_pr_snapshot(metadata, expected_head_sha, expected_base_sha)
+    diff_lines = github_request(repo, pr_number, token, "application/vnd.github.diff").decode("utf-8").splitlines()
+    metadata = fetch_github_pr_metadata(repo, pr_number, token)
+    validate_github_pr_snapshot(metadata, expected_head_sha, expected_base_sha)
+    return diff_lines
 
 
 def clean_path(path: str) -> str:
@@ -135,13 +213,33 @@ def convert(lines: list[str]) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base", required=True)
-    parser.add_argument("--head", required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--base")
+    source.add_argument("--repo")
+    parser.add_argument("--head")
+    parser.add_argument("--head-sha")
+    parser.add_argument("--base-sha")
+    parser.add_argument("--pr-number")
     parser.add_argument("--output", default="pr_diff.txt")
     parser.add_argument("--context", type=int, default=3)
+    parser.add_argument("--token-env", default="GITHUB_TOKEN")
     args = parser.parse_args()
 
-    diff_lines = run_git_diff(args.base, args.head, args.context)
+    if args.repo:
+        if not args.pr_number:
+            raise SystemExit("--pr-number is required with --repo")
+        if not args.head_sha:
+            raise SystemExit("--head-sha is required with --repo")
+        if not args.base_sha:
+            raise SystemExit("--base-sha is required with --repo")
+        token = os.environ.get(args.token_env)
+        if not token:
+            raise SystemExit(f"{args.token_env} is not set")
+        diff_lines = fetch_github_pr_diff(args.repo, args.pr_number, token, args.head_sha, args.base_sha)
+    else:
+        if not args.head:
+            raise SystemExit("--head is required with --base")
+        diff_lines = run_git_diff(args.base, args.head, args.context)
     Path(args.output).write_text(convert(diff_lines), encoding="utf-8")
 
 
