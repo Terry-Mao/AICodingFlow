@@ -1383,6 +1383,24 @@
       "proposed_patch": "No product docs patch is needed.",
       "reason": "PR #174 only adds a dated product change report and its docs/updates ledger entry. This is a time-series update artifact, and the existing product docs already define product change reports as non-authoritative docs/updates output rather than long-term product truth.",
       "recorded_at": "2026-06-04T17:36:46Z"
+    },
+    {
+      "pr": 176,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/176",
+      "title": "docs: 精简仓库代理说明",
+      "merged_at": "2026-05-27T17:25:03Z",
+      "merge_commit": "92bca0af7ea893783f8bb1befc37b83e8d8623d6",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "source_context": [
+        "PR #176",
+        "AGENTS.md"
+      ],
+      "proposed_patch": "Updated the authoritative agent language policy doc to include commit-message summaries, workflow metadata examples such as pr_title, pr_summary, and implementation_summary.md, and PR #176 as a source.",
+      "reason": "PR #176 merged a durable repository convention change: agent-authored prose now explicitly includes commit-message summaries and human-readable workflow metadata fields in the default Chinese language policy. Existing product docs covered the general policy but did not capture those added output categories and examples.",
+      "recorded_at": "2026-06-04T19:49:56Z"
     }
   ]
 }
