@@ -1366,6 +1366,23 @@
       "proposed_patch": "Updated the authoritative raw product docs to describe root AGENTS.md as the shared guidance entrypoint, root CLAUDE.md as the Claude Code symlink to AGENTS.md, the remaining shared skills symlinks, and the PR #175 source reference.",
       "reason": "PR #175 changed the long-term agent entrypoint layout by moving repository guidance to root AGENTS.md, adding root CLAUDE.md as the Claude Code symlink, and removing the old .claude/.codex guidance symlinks. Existing product docs still described .agents/AGENTS.md and the removed symlinks as authoritative, so they needed correction.",
       "recorded_at": "2026-06-04T14:23:26Z"
+    },
+    {
+      "pr": 174,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/174",
+      "title": "Add product change report for 2026-05-26",
+      "merged_at": "2026-05-27T13:27:14Z",
+      "merge_commit": "ed00834f0f5ef22ef846bbbd295066469b4e9fef",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #174",
+        "docs/updates/auto-update-2026-05-26.md",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #174 only adds a dated product change report and its docs/updates ledger entry. This is a time-series update artifact, and the existing product docs already define product change reports as non-authoritative docs/updates output rather than long-term product truth.",
+      "recorded_at": "2026-06-04T17:36:46Z"
     }
   ]
 }
