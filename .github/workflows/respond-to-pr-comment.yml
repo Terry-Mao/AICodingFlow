@@ -141,28 +141,12 @@ jobs:
       - name: Snapshot PR diff
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         env:
-          BASE_SHA: ${{ steps.context.outputs.base_sha }}
-          HEAD_SHA: ${{ steps.context.outputs.head_sha }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
         working-directory: pr-worktree
         run: |
-          git_config="$(mktemp)"
-          trap 'rm -f "$git_config"' EXIT
-          chmod 600 "$git_config"
-          {
-            printf '[http "https://github.com/"]\n'
-            printf '\textraheader = AUTHORIZATION: basic '
-            printf '%s' "x-access-token:${GITHUB_TOKEN}" | base64 | tr -d '\n'
-            printf '\n'
-          } > "$git_config"
-          GIT_CONFIG_GLOBAL="$git_config" GIT_TERMINAL_PROMPT=0 \
-            git fetch --no-tags --depth=1 \
-            "https://github.com/${GITHUB_REPOSITORY}.git" \
-            "$BASE_SHA"
           python3 ../.github/scripts/build_pr_diff.py \
-            --base "$BASE_SHA" \
-            --head "$HEAD_SHA" \
+            --repo "${{ github.repository }}" \
+            --pr-number "${{ steps.context.outputs.pr_number }}" \
             --output pr_diff.txt
 
       - name: Snapshot spec context
