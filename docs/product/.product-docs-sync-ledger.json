@@ -1305,6 +1305,25 @@
       "proposed_patch": "Updated the authoritative product change report source doc with durable report language selection rules and added PR #171 to the source references.",
       "reason": "PR #171 changes the long-term behavior of the product change report workflow by adding automatic natural-language selection for generated or updated reports. Existing product docs covered report generation and write boundaries, but did not document how report language is chosen.",
       "recorded_at": "2026-06-04T02:13:24Z"
+    },
+    {
+      "pr": 172,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/172",
+      "title": "docs: 集中管理 agent 语言偏好",
+      "merged_at": "2026-05-27T10:40:21Z",
+      "merge_commit": "8358ecdda794e4fd23e0d06744385a6daf445a5a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "source_context": [
+        "PR #172",
+        "Issue #170",
+        ".agents/AGENTS.md"
+      ],
+      "proposed_patch": "新增 raw 产品文档，说明集中管理的 agent 输出语言策略、上下文跟随规则、技术 token 保持原样的边界，以及 .agents/AGENTS.md 作为仓库级权威 guidance 的角色。",
+      "reason": "PR #172 引入了仓库级 agent 人类可读输出语言规则，并从具体 skills 和 workflows 中移除了重复的语言选择规则。现有产品文档只说明了共享 agent 目录布局，尚未记录这一长期 agent 行为约定。",
+      "recorded_at": "2026-06-04T07:13:06Z"
     }
   ]
 }
