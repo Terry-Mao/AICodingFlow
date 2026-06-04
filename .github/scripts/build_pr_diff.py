@@ -103,7 +103,10 @@ def fetch_github_pr_diff(
 ) -> list[str]:
     metadata = fetch_github_pr_metadata(repo, pr_number, token)
     validate_github_pr_snapshot(metadata, expected_head_sha, expected_base_sha)
-    return github_request(repo, pr_number, token, "application/vnd.github.diff").decode("utf-8").splitlines()
+    diff_lines = github_request(repo, pr_number, token, "application/vnd.github.diff").decode("utf-8").splitlines()
+    metadata = fetch_github_pr_metadata(repo, pr_number, token)
+    validate_github_pr_snapshot(metadata, expected_head_sha, expected_base_sha)
+    return diff_lines
 
 
 def clean_path(path: str) -> str:

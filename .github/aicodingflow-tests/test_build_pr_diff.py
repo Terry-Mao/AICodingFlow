@@ -39,7 +39,9 @@ class BuildPrDiffTest(unittest.TestCase):
             )
             if len(captured) == 1:
                 return Response(b'{"head":{"sha":"head-sha"},"base":{"sha":"base-sha"}}')
-            return Response(b"diff --git a/core/foo.py b/core/foo.py\n")
+            if len(captured) == 2:
+                return Response(b"diff --git a/core/foo.py b/core/foo.py\n")
+            return Response(b'{"head":{"sha":"head-sha"},"base":{"sha":"base-sha"}}')
 
         with patch.object(build_pr_diff.urllib.request, "urlopen", fake_urlopen):
             self.assertEqual(
@@ -47,11 +49,27 @@ class BuildPrDiffTest(unittest.TestCase):
                 ["diff --git a/core/foo.py b/core/foo.py"],
             )
 
-        self.assertEqual([call["full_url"] for call in captured], ["https://api.github.com/repos/owner/repo/pulls/42"] * 2)
-        self.assertEqual([call["authorization"] for call in captured], ["Bearer token"] * 2)
+        self.assertEqual([call["full_url"] for call in captured], ["https://api.github.com/repos/owner/repo/pulls/42"] * 3)
+        self.assertEqual([call["authorization"] for call in captured], ["Bearer token"] * 3)
         self.assertEqual(captured[0]["accept"], "application/vnd.github+json")
         self.assertEqual(captured[1]["accept"], "application/vnd.github.diff")
-        self.assertEqual([call["api_version"] for call in captured], ["2022-11-28"] * 2)
+        self.assertEqual(captured[2]["accept"], "application/vnd.github+json")
+        self.assertEqual([call["api_version"] for call in captured], ["2022-11-28"] * 3)
+
+    def test_fetch_github_pr_diff_fails_when_head_changes_after_diff_fetch(self) -> None:
+        metadata = [
+            {"head": {"sha": "head-sha"}, "base": {"sha": "base-sha"}},
+            {"head": {"sha": "new-head"}, "base": {"sha": "base-sha"}},
+        ]
+
+        def fake_metadata(repo: str, pr_number: str, token: str) -> dict[str, object]:
+            self.assertEqual((repo, pr_number, token), ("owner/repo", "42", "token"))
+            return metadata.pop(0)
+
+        with patch.object(build_pr_diff, "fetch_github_pr_metadata", fake_metadata):
+            with patch.object(build_pr_diff, "github_request", return_value=b"diff --git a/core/foo.py b/core/foo.py\n"):
+                with self.assertRaisesRegex(SystemExit, "head changed"):
+                    build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
 
     def test_fetch_github_pr_diff_fails_when_head_changed(self) -> None:
         def fake_metadata(repo: str, pr_number: str, token: str) -> dict[str, object]:
