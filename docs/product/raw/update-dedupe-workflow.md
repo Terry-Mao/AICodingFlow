@@ -39,8 +39,9 @@ threshold、输出 schema、候选来源或 precision-over-recall 原则。
 ## PR 行为
 
 有 guidance diff 时，runner 使用固定分支 `feat/update-dedupe` 创建或更新 PR，并在 PR body
-中包含 evidence summary。没有 guidance diff 时，不创建 PR。若 implementation 分支包含
+中包含 evidence summary。创建或更新 PR 时，workflow 只复用同一 head branch 上的 open PR；
+不会把 closed PR 当作可更新目标。没有 guidance diff 时，不创建 PR。若 implementation 分支包含
 `.github/workflows/update-dedupe.yml` 这类 workflow 文件变更，仓库需要配置
 `WORKFLOW_UPDATE_TOKEN` 以允许外层 workflow 推送该类文件。
 
-来源：PR #129，Issue #125，`specs/issue-125/product.md`。
+来源：PR #129，Issue #125，`specs/issue-125/product.md`；PR #173。

@@ -1324,6 +1324,27 @@
       "proposed_patch": "新增 raw 产品文档，说明集中管理的 agent 输出语言策略、上下文跟随规则、技术 token 保持原样的边界，以及 .agents/AGENTS.md 作为仓库级权威 guidance 的角色。",
       "reason": "PR #172 引入了仓库级 agent 人类可读输出语言规则，并从具体 skills 和 workflows 中移除了重复的语言选择规则。现有产品文档只说明了共享 agent 目录布局，尚未记录这一长期 agent 行为约定。",
       "recorded_at": "2026-06-04T07:13:06Z"
+    },
+    {
+      "pr": 173,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/173",
+      "title": "fix(ci): ignore closed PRs when updating workflow PRs",
+      "merged_at": "2026-05-27T12:41:16Z",
+      "merge_commit": "152a8cd9bf0758f3687708decd4e13b3d8940a97",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md",
+        "docs/product/raw/update-dedupe-workflow.md",
+        "docs/product/raw/update-pr-review-workflow.md"
+      ],
+      "source_context": [
+        "PR #173",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated the product change report and update-dedupe raw docs to state that workflow PR publishing only reuses open PRs on the same head branch, and added an authoritative raw update-pr-review workflow page with the same PR behavior plus its durable learning and write-boundary semantics.",
+      "reason": "PR #173 changed the long-term PR reuse semantics for workflow-created update PRs: product change reports, update-dedupe guidance, and update-pr-review guidance now only reuse open PRs on the same head branch. Existing product docs either lacked that open-PR rule for the affected workflows or lacked an authoritative raw doc for update-pr-review.",
+      "recorded_at": "2026-06-04T10:54:01Z"
     }
   ]
 }

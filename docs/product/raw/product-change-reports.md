@@ -55,6 +55,9 @@ compiled wiki、source specs、workflow 文件或 ledger state。
 如果生成结果是空文件或完整的“无变化”占位报告，workflow 会把未跟踪的报告文件移除，并只按
 `scanned_no_update` 更新 ledger。已跟踪的既有报告不能被空文件或“无变化”占位报告替换。
 
+创建或更新产品变更报告 PR 时，workflow 只复用同一 head branch 上的 open PR；不会把 closed
+PR 当作可更新目标。
+
 ## 来源引用
 
 当引用有助于追踪来源时，报告条目可以引用已合并 PR、GitHub issue URL 或已批准
@@ -72,4 +75,4 @@ issue URL，校验也会拒绝该报告。
 即使 PR 编号与 linked issue 编号相同，PR 引用仍然有效。在这种情况下，类似
 `PR #87` 的来源引用不会被当作 related issue 引用处理。
 
-来源：PR #165，https://github.com/Terry-Mao/AICodingFlow/pull/165；PR #168，https://github.com/Terry-Mao/AICodingFlow/pull/168；PR #171，https://github.com/Terry-Mao/AICodingFlow/pull/171；PR #181，https://github.com/Terry-Mao/AICodingFlow/pull/181
+来源：PR #165，https://github.com/Terry-Mao/AICodingFlow/pull/165；PR #168，https://github.com/Terry-Mao/AICodingFlow/pull/168；PR #171，https://github.com/Terry-Mao/AICodingFlow/pull/171；PR #173，https://github.com/Terry-Mao/AICodingFlow/pull/173；PR #181，https://github.com/Terry-Mao/AICodingFlow/pull/181
