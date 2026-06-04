@@ -10,8 +10,8 @@ skills。
 安装脚本支持两种入口：
 
 - 从 AICodingFlow 仓库 clone 后运行 `./install.sh --target /path/to/target-repo`。
-- 通过远程一行命令下载脚本并执行；远程执行时，脚本会 clone AICodingFlow 源仓库后再运行
-  真实安装流程，避免误把当前工作目录当作安装源。
+- 通过远程一行命令下载脚本并执行；当脚本不是从有效 AICodingFlow 源 checkout 运行时，
+  脚本会 clone AICodingFlow 源仓库后再运行真实安装流程，避免误把当前工作目录当作安装源。
 
 `--target` 指定目标仓库目录，未提供时使用当前目录。目标路径必须已经是目录。脚本依赖
 `bash`、`git` 和 `rsync`；远程一行安装还需要 `curl`。
@@ -57,4 +57,4 @@ AICodingFlow 源仓库的安装脚本行为。
 issues 和 contributors，并可能创建 GitHub labels 或更新 `.github/CODEOWNERS`。它不是
 安装脚本的一部分，也不需要定期运行。
 
-来源：PR #148，Issue #146；PR #154，Issue #152；PR #158，Issue #157。
+来源：PR #148，Issue #146；PR #154，Issue #152；PR #158，Issue #157；PR #180。
