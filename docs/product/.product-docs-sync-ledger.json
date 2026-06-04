@@ -1285,6 +1285,26 @@
       "proposed_patch": "Updated the authoritative raw product change reports doc to cover UTC historical ranges, range report paths, reported versus scanned_no_update ledger statuses, empty/no-change report handling, and PR #168 as a source.",
       "reason": "PR #168 changes long-term product behavior for product change reports: manual historical backfill inputs, range-based report naming, and ledger handling for empty or no-change outputs. Existing product docs described only single-day reports and did not document scanned_no_update semantics.",
       "recorded_at": "2026-06-03T22:55:40Z"
+    },
+    {
+      "pr": 171,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/171",
+      "title": "fix(updates): auto-select report language",
+      "merged_at": "2026-05-27T07:13:13Z",
+      "merge_commit": "9cbec29c39cf7ac627c2df2ddd7d03fc78ab62cb",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #171",
+        ".agents/skills/product-change-report/SKILL.md",
+        ".github/workflows/product-change-report.yml",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "Updated the authoritative product change report source doc with durable report language selection rules and added PR #171 to the source references.",
+      "reason": "PR #171 changes the long-term behavior of the product change report workflow by adding automatic natural-language selection for generated or updated reports. Existing product docs covered report generation and write boundaries, but did not document how report language is chosen.",
+      "recorded_at": "2026-06-04T02:13:24Z"
     }
   ]
 }

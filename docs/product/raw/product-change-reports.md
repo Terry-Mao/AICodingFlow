@@ -20,6 +20,18 @@ PR，并按 mergedAt 升序、PR 编号升序处理。
 已存在的 product docs 和相关 specs。报告应只把已合并、可验证的变化写成时间序列摘要；
 可能需要长期产品文档同步的内容只能作为候选项记录，不能由该 skill 直接改写 `docs/product/`。
 
+## 报告语言
+
+生成或更新产品变更报告时，`product-change-report` 会自动选择报告的主要自然语言。
+更新既有报告时，报告会保留该报告已经使用的主要自然语言。创建新报告时，如果已经存在
+`docs/updates/auto-update-*.md` 报告，则优先使用最近报告中的主导自然语言。
+
+如果没有既有报告可参考，报告语言会从可报告 PR 的标题、PR body、linked issue、已提交
+spec 和相关 product docs 推断。主要为中文的来源上下文生成中文报告，主要为英文的来源上下文
+生成英文报告；如果来源上下文混合或不清晰，则优先采用 maintainer-authored docs 和 specs 中的
+主导语言，仍不清晰时默认英文。代码标识符、文件路径、标签、分支名、API 名称、PR 编号、URL
+和引用的命令输出保持原样。
+
 ## 去重记录
 
 外层 workflow 维护 `docs/updates/.product-change-report-ledger.json`，用于记录已经写入报告的
@@ -60,4 +72,4 @@ issue URL，校验也会拒绝该报告。
 即使 PR 编号与 linked issue 编号相同，PR 引用仍然有效。在这种情况下，类似
 `PR #87` 的来源引用不会被当作 related issue 引用处理。
 
-来源：PR #165，https://github.com/Terry-Mao/AICodingFlow/pull/165；PR #168，https://github.com/Terry-Mao/AICodingFlow/pull/168；PR #181，https://github.com/Terry-Mao/AICodingFlow/pull/181
+来源：PR #165，https://github.com/Terry-Mao/AICodingFlow/pull/165；PR #168，https://github.com/Terry-Mao/AICodingFlow/pull/168；PR #171，https://github.com/Terry-Mao/AICodingFlow/pull/171；PR #181，https://github.com/Terry-Mao/AICodingFlow/pull/181
