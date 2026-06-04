@@ -1345,6 +1345,27 @@
       "proposed_patch": "Updated the product change report and update-dedupe raw docs to state that workflow PR publishing only reuses open PRs on the same head branch, and added an authoritative raw update-pr-review workflow page with the same PR behavior plus its durable learning and write-boundary semantics.",
       "reason": "PR #173 changed the long-term PR reuse semantics for workflow-created update PRs: product change reports, update-dedupe guidance, and update-pr-review guidance now only reuse open PRs on the same head branch. Existing product docs either lacked that open-PR rule for the affected workflows or lacked an authoritative raw doc for update-pr-review.",
       "recorded_at": "2026-06-04T10:54:01Z"
+    },
+    {
+      "pr": 175,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/175",
+      "title": "chore: 移动 agent 指令到仓库根目录",
+      "merged_at": "2026-05-27T13:13:31Z",
+      "merge_commit": "bd0600c9aa54b80c01894df6fb2e25b00d2c852b",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "source_context": [
+        "PR #175",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "proposed_patch": "Updated the authoritative raw product docs to describe root AGENTS.md as the shared guidance entrypoint, root CLAUDE.md as the Claude Code symlink to AGENTS.md, the remaining shared skills symlinks, and the PR #175 source reference.",
+      "reason": "PR #175 changed the long-term agent entrypoint layout by moving repository guidance to root AGENTS.md, adding root CLAUDE.md as the Claude Code symlink, and removing the old .claude/.codex guidance symlinks. Existing product docs still described .agents/AGENTS.md and the removed symlinks as authoritative, so they needed correction.",
+      "recorded_at": "2026-06-04T14:23:26Z"
     }
   ]
 }
