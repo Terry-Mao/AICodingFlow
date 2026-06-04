@@ -127,6 +127,8 @@ jobs:
           python3 ../.github/scripts/build_pr_diff.py \
             --repo "${{ github.repository }}" \
             --pr-number "${{ steps.pr.outputs.number }}" \
+            --head-sha "${{ steps.pr.outputs.head_sha }}" \
+            --base-sha "${{ steps.pr.outputs.base_sha }}" \
             --output pr_diff.txt
 
       - name: Select review skill

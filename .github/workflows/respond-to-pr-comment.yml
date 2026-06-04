@@ -147,6 +147,8 @@ jobs:
           python3 ../.github/scripts/build_pr_diff.py \
             --repo "${{ github.repository }}" \
             --pr-number "${{ steps.context.outputs.pr_number }}" \
+            --head-sha "${{ steps.context.outputs.head_sha }}" \
+            --base-sha "${{ steps.context.outputs.base_sha }}" \
             --output pr_diff.txt
 
       - name: Snapshot spec context
