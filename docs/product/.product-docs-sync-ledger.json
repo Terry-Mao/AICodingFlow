@@ -1226,6 +1226,104 @@
       "proposed_patch": "新增 docs/product/raw/create-issue-skill.md，记录 create-issue 的适用入口、模板选择、issue 内容生成、metadata 边界、GitHub CLI 创建行为和安全报告私密披露规则。",
       "reason": "PR #164 新增 create-issue skill，改变了本地开发流的 issue 创建入口、模板选择、metadata 处理和安全报告公开边界。现有 docs/product/raw/ 中没有该能力的权威长期产品说明，因此需要新增产品文档。",
       "recorded_at": "2026-06-03T12:27:29Z"
+    },
+    {
+      "pr": 165,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/165",
+      "title": "docs(skill): add product change report workflow",
+      "merged_at": "2026-05-26T16:57:33Z",
+      "merge_commit": "a32bc785fa9145d8e78e65a014a4628c71f53ec7",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #165",
+        "Issue #87",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md",
+        "product-docs-existing.md"
+      ],
+      "proposed_patch": "更新 docs/product/raw/product-change-reports.md，补充 product-change-report workflow 的 UTC 日期扫描、docs/updates 报告路径、ledger 去重、Codex 与外层 workflow 的职责边界，并把 PR #165 加入来源。",
+      "reason": "PR #165 新增 product-change-report skill 和 GitHub Actions workflow，改变了产品变更报告的生成流程、去重记录和自动化职责边界。现有产品文档只覆盖报告定义和后续校验规则，缺少这次合并后的长期 workflow 语义。",
+      "recorded_at": "2026-06-03T17:36:34Z"
+    },
+    {
+      "pr": 166,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/166",
+      "title": "Add product docs sync workflow",
+      "merged_at": "2026-05-26T17:31:53Z",
+      "merge_commit": "fde8890334541a447f113fca4ce1bea822cefd31",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #166",
+        "Issue #87",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the existing product-change-report documentation already covers the durable workflow behavior; the HTTP method used by the helper script is an implementation detail.",
+      "reason": "The merged diff only changes the product-change-report context helper to call the GitHub search API with an explicit GET method and updates matching tests. This is CI/workflow plumbing and does not change long-term product concepts, user workflows, lifecycle rules, or public product behavior.",
+      "recorded_at": "2026-06-03T20:43:53Z"
+    },
+    {
+      "pr": 168,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/168",
+      "title": "fix(ci): prevent empty product report PRs",
+      "merged_at": "2026-05-27T01:41:32Z",
+      "merge_commit": "dd29382fe38c3e7ab1a48593bd7e9764c92894ac",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #168",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "Updated the authoritative raw product change reports doc to cover UTC historical ranges, range report paths, reported versus scanned_no_update ledger statuses, empty/no-change report handling, and PR #168 as a source.",
+      "reason": "PR #168 changes long-term product behavior for product change reports: manual historical backfill inputs, range-based report naming, and ledger handling for empty or no-change outputs. Existing product docs described only single-day reports and did not document scanned_no_update semantics.",
+      "recorded_at": "2026-06-03T22:55:40Z"
+    },
+    {
+      "pr": 171,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/171",
+      "title": "fix(updates): auto-select report language",
+      "merged_at": "2026-05-27T07:13:13Z",
+      "merge_commit": "9cbec29c39cf7ac627c2df2ddd7d03fc78ab62cb",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #171",
+        ".agents/skills/product-change-report/SKILL.md",
+        ".github/workflows/product-change-report.yml",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "Updated the authoritative product change report source doc with durable report language selection rules and added PR #171 to the source references.",
+      "reason": "PR #171 changes the long-term behavior of the product change report workflow by adding automatic natural-language selection for generated or updated reports. Existing product docs covered report generation and write boundaries, but did not document how report language is chosen.",
+      "recorded_at": "2026-06-04T02:13:24Z"
+    },
+    {
+      "pr": 172,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/172",
+      "title": "docs: 集中管理 agent 语言偏好",
+      "merged_at": "2026-05-27T10:40:21Z",
+      "merge_commit": "8358ecdda794e4fd23e0d06744385a6daf445a5a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "source_context": [
+        "PR #172",
+        "Issue #170",
+        ".agents/AGENTS.md"
+      ],
+      "proposed_patch": "新增 raw 产品文档，说明集中管理的 agent 输出语言策略、上下文跟随规则、技术 token 保持原样的边界，以及 .agents/AGENTS.md 作为仓库级权威 guidance 的角色。",
+      "reason": "PR #172 引入了仓库级 agent 人类可读输出语言规则，并从具体 skills 和 workflows 中移除了重复的语言选择规则。现有产品文档只说明了共享 agent 目录布局，尚未记录这一长期 agent 行为约定。",
+      "recorded_at": "2026-06-04T07:13:06Z"
     }
   ]
 }
