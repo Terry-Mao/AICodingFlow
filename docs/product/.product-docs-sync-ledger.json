@@ -1457,6 +1457,22 @@
       "proposed_patch": "新增 docs/product/raw/product-docs-sync-workflow.md，记录 product-docs-sync 的触发条件、上下文输入、docs_update 决策合同、写入范围、同步 PR 行为和权威性边界。",
       "reason": "PR #179 新增了 merged implementation PR 后自动判断并同步长期产品文档的 workflow、skill 合同、写入边界和同步 PR 行为，属于长期产品工作流变化。现有 docs/product/raw/ 中没有覆盖该产品文档同步流程，因此需要新增权威产品文档。",
       "recorded_at": "2026-06-05T05:06:45Z"
+    },
+    {
+      "pr": 181,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/181",
+      "title": "fix(updates): 强化产品变更报告引用校验",
+      "merged_at": "2026-05-28T02:05:25Z",
+      "merge_commit": "cb9e5df6a6784cbc9c34ecd44df3bdb015b8a1eb",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #181",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the existing authoritative product-change report documentation already reflects the merged behavior.",
+      "reason": "PR #181 changes the product-change-report workflow's source-reference rules, but the current long-term product docs already cover the merged behavior. docs/product/raw/product-change-reports.md states that generated reports must not contain commit IDs, related issue references must use linked issue GitHub URLs, and PR references are not misclassified when PR and issue numbers match.",
+      "recorded_at": "2026-06-05T12:28:43Z"
     }
   ]
 }
