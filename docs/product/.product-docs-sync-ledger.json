@@ -1345,6 +1345,118 @@
       "proposed_patch": "Updated the product change report and update-dedupe raw docs to state that workflow PR publishing only reuses open PRs on the same head branch, and added an authoritative raw update-pr-review workflow page with the same PR behavior plus its durable learning and write-boundary semantics.",
       "reason": "PR #173 changed the long-term PR reuse semantics for workflow-created update PRs: product change reports, update-dedupe guidance, and update-pr-review guidance now only reuse open PRs on the same head branch. Existing product docs either lacked that open-PR rule for the affected workflows or lacked an authoritative raw doc for update-pr-review.",
       "recorded_at": "2026-06-04T10:54:01Z"
+    },
+    {
+      "pr": 175,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/175",
+      "title": "chore: 移动 agent 指令到仓库根目录",
+      "merged_at": "2026-05-27T13:13:31Z",
+      "merge_commit": "bd0600c9aa54b80c01894df6fb2e25b00d2c852b",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "source_context": [
+        "PR #175",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "proposed_patch": "Updated the authoritative raw product docs to describe root AGENTS.md as the shared guidance entrypoint, root CLAUDE.md as the Claude Code symlink to AGENTS.md, the remaining shared skills symlinks, and the PR #175 source reference.",
+      "reason": "PR #175 changed the long-term agent entrypoint layout by moving repository guidance to root AGENTS.md, adding root CLAUDE.md as the Claude Code symlink, and removing the old .claude/.codex guidance symlinks. Existing product docs still described .agents/AGENTS.md and the removed symlinks as authoritative, so they needed correction.",
+      "recorded_at": "2026-06-04T14:23:26Z"
+    },
+    {
+      "pr": 174,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/174",
+      "title": "Add product change report for 2026-05-26",
+      "merged_at": "2026-05-27T13:27:14Z",
+      "merge_commit": "ed00834f0f5ef22ef846bbbd295066469b4e9fef",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #174",
+        "docs/updates/auto-update-2026-05-26.md",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch is needed.",
+      "reason": "PR #174 only adds a dated product change report and its docs/updates ledger entry. This is a time-series update artifact, and the existing product docs already define product change reports as non-authoritative docs/updates output rather than long-term product truth.",
+      "recorded_at": "2026-06-04T17:36:46Z"
+    },
+    {
+      "pr": 176,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/176",
+      "title": "docs: 精简仓库代理说明",
+      "merged_at": "2026-05-27T17:25:03Z",
+      "merge_commit": "92bca0af7ea893783f8bb1befc37b83e8d8623d6",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-language-policy.md"
+      ],
+      "source_context": [
+        "PR #176",
+        "AGENTS.md"
+      ],
+      "proposed_patch": "Updated the authoritative agent language policy doc to include commit-message summaries, workflow metadata examples such as pr_title, pr_summary, and implementation_summary.md, and PR #176 as a source.",
+      "reason": "PR #176 merged a durable repository convention change: agent-authored prose now explicitly includes commit-message summaries and human-readable workflow metadata fields in the default Chinese language policy. Existing product docs covered the general policy but did not capture those added output categories and examples.",
+      "recorded_at": "2026-06-04T19:49:56Z"
+    },
+    {
+      "pr": 177,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/177",
+      "title": "Add product change report for 2026-05-26-to-2026-05-27",
+      "merged_at": "2026-05-27T17:41:31Z",
+      "merge_commit": "f81ffd351a11d5545b9528f146bfb77eac14b635",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #177",
+        "docs/updates/.product-change-report-ledger.json",
+        "docs/updates/auto-update-2026-05-26-to-2026-05-27.md"
+      ],
+      "proposed_patch": "No docs/product patch is needed.",
+      "reason": "PR #177 only adds a generated time-series product change report under docs/updates and updates that report ledger. It does not introduce or change authoritative product behavior, workflow semantics, configuration, permissions, or public contracts; any product details in the report are historical update content rather than long-term product docs.",
+      "recorded_at": "2026-06-04T22:13:14Z"
+    },
+    {
+      "pr": 180,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/180",
+      "title": "修复 install.sh 源码树检测",
+      "merged_at": "2026-05-27T18:31:41Z",
+      "merge_commit": "a6d92f5caa1d96653fcf7ee4a7b2e1ce071b7f5f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/project-installer.md"
+      ],
+      "source_context": [
+        "PR #180",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/project-installer.md",
+        "docs/product/raw/agent-directory-layout.md"
+      ],
+      "proposed_patch": "Updated docs/product/raw/project-installer.md to state that remote execution clones the AICodingFlow source repository only when the script is not already running from a valid AICodingFlow source checkout, and added PR #180 to the source references.",
+      "reason": "PR #180 changes install.sh source checkout detection to use root AGENTS.md, restoring the intended installer behavior after the agent guidance layout moved. The existing installer doc described remote execution as cloning unconditionally, so it needed a durable clarification for the valid-checkout case.",
+      "recorded_at": "2026-06-04T23:51:34Z"
+    },
+    {
+      "pr": 179,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/179",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-28T01:59:55Z",
+      "merge_commit": "cee37ff8ef5fa779d45cb8ae0bdd2e9760593a9a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #179",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "新增 docs/product/raw/product-docs-sync-workflow.md，记录 product-docs-sync 的触发条件、上下文输入、docs_update 决策合同、写入范围、同步 PR 行为和权威性边界。",
+      "reason": "PR #179 新增了 merged implementation PR 后自动判断并同步长期产品文档的 workflow、skill 合同、写入边界和同步 PR 行为，属于长期产品工作流变化。现有 docs/product/raw/ 中没有覆盖该产品文档同步流程，因此需要新增权威产品文档。",
+      "recorded_at": "2026-06-05T05:06:45Z"
     }
   ]
 }
