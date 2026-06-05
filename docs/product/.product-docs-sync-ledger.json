@@ -1438,6 +1438,25 @@
       "proposed_patch": "Updated docs/product/raw/project-installer.md to state that remote execution clones the AICodingFlow source repository only when the script is not already running from a valid AICodingFlow source checkout, and added PR #180 to the source references.",
       "reason": "PR #180 changes install.sh source checkout detection to use root AGENTS.md, restoring the intended installer behavior after the agent guidance layout moved. The existing installer doc described remote execution as cloning unconditionally, so it needed a durable clarification for the valid-checkout case.",
       "recorded_at": "2026-06-04T23:51:34Z"
+    },
+    {
+      "pr": 179,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/179",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-28T01:59:55Z",
+      "merge_commit": "cee37ff8ef5fa779d45cb8ae0bdd2e9760593a9a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #179",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "新增 docs/product/raw/product-docs-sync-workflow.md，记录 product-docs-sync 的触发条件、上下文输入、docs_update 决策合同、写入范围、同步 PR 行为和权威性边界。",
+      "reason": "PR #179 新增了 merged implementation PR 后自动判断并同步长期产品文档的 workflow、skill 合同、写入边界和同步 PR 行为，属于长期产品工作流变化。现有 docs/product/raw/ 中没有覆盖该产品文档同步流程，因此需要新增权威产品文档。",
+      "recorded_at": "2026-06-05T05:06:45Z"
     }
   ]
 }
