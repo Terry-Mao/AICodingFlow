@@ -1509,6 +1509,25 @@
       "proposed_patch": "Updated the authoritative product docs sync workflow source to document scheduled and manual scan modes, UTC scan windows, unprocessed PR selection, empty-scan stopping behavior, ledger recording, and ledger-only PR creation for not-needed decisions.",
       "reason": "PR #184 changed the long-term behavior of the product docs sync workflow from merged-PR event handling to scheduled/manual merged-PR scanning with ledger-based skip and recording semantics. Existing product docs still described the old trigger and not-needed handling, so the workflow documentation needed to be updated.",
       "recorded_at": "2026-06-05T17:34:38Z"
+    },
+    {
+      "pr": 187,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/187",
+      "title": "fix(product): 累积处理 product docs sync PR",
+      "merged_at": "2026-05-28T11:19:40Z",
+      "merge_commit": "2db0fa6e6a428ce7ab0c8a0f087164d3c6936bb6",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #187",
+        "Issue #186",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "Updated the product docs sync workflow documentation to describe skipping self-generated docs sync PRs, the fixed docs/product-docs-sync branch, cumulative open PR behavior, new PR titles and draft handling, expanded ledger fields, and accumulated decision display in the PR body.",
+      "reason": "PR #187 changes long-term product behavior for the product-docs-sync workflow: generated docs sync PRs now use a fixed cumulative branch, skip self-generated sync PRs during scans, and show accumulated ledger decisions in the PR body. The existing product docs described the older per-source-PR behavior and ledger contents, so the authoritative workflow documentation needed updating.",
+      "recorded_at": "2026-06-05T19:25:30Z"
     }
   ]
 }
