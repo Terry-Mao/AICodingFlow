@@ -1547,6 +1547,24 @@
       "proposed_patch": "Updated the product docs sync workflow documentation to describe linked issue extraction from closingIssuesReferences plus PR title/body issue-reference keywords, including deduplication order and PR-reference exclusion.",
       "reason": "PR #188 changes the product-docs-sync context contract by treating issue references in PR titles and descriptions as linked issues, while preserving GitHub closing reference priority and excluding PR references. Existing product docs described linked issues generically but did not document this source and parsing behavior.",
       "recorded_at": "2026-06-05T21:13:55Z"
+    },
+    {
+      "pr": 191,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/191",
+      "title": "fix(create-pr): ignore merged branch prs",
+      "merged_at": "2026-05-28T18:10:26Z",
+      "merge_commit": "ef0600303fda5fe6df613cb983a3e84ec2db74c4",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/create-pr-skill.md"
+      ],
+      "source_context": [
+        "PR #191",
+        "Issue #178"
+      ],
+      "proposed_patch": "新增 `docs/product/raw/create-pr-skill.md`，记录 `create-pr` skill 的职责、open PR 复用规则、merged/closed PR 不可复用规则，以及更新既有 open PR 时保留人工内容的要求。",
+      "reason": "PR #191 改变了 `create-pr` skill 的长期 PR 创建/更新语义：只复用当前分支上的 open PR，merged 或 closed 的同名分支历史 PR 不再阻止新建 PR。现有产品文档没有覆盖 `create-pr` skill 的这一权威行为，因此需要新增 raw 产品文档。",
+      "recorded_at": "2026-06-05T22:49:09Z"
     }
   ]
 }
