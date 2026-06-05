@@ -1,5 +1,23 @@
 # Compile Log
 
+## 2026-06-05
+
+根据 `docs/product/raw/` 重新编译 wiki，补齐 raw source 到 summary/concept 的查询链路：
+
+- 新增 [Agent 输出语言策略摘要](summaries/agent-language-policy.md) 与 [Agent 输出语言策略](concepts/agent-language-policy.md)，记录中文默认、人类可读字段范围、上下文语言选择和集中管理规则。
+- 新增 [Create issue skill 摘要](summaries/create-issue-skill.md) 与 [Create issue skill](concepts/create-issue-skill.md)，记录模板选择、内容事实边界、metadata 传递、`gh issue create` 使用和安全报告处理。
+- 新增 [产品文档同步 workflow 摘要](summaries/product-docs-sync-workflow.md) 与 [产品文档同步 workflow](concepts/product-docs-sync-workflow.md)，记录 merged PR 触发、稳定上下文、`product-docs-sync-result.json` 决策合同、写入范围和 draft review gate。
+- 新增 [update-pr-review workflow 摘要](summaries/update-pr-review-workflow.md) 与 [update-pr-review 自进化 review 规则 workflow](concepts/update-pr-review-workflow.md)，记录人类反馈学习信号、companion guidance 路由、写入范围和 PR 行为。
+- 更新 [index.md](index.md)，链接新增 summary 与 concept。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-03
 
 根据 `docs/product/raw/` 重新编译 wiki，补齐新增或此前未覆盖的 raw source，并修正与 raw source 不一致的事实：
