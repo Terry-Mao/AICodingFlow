@@ -31,6 +31,12 @@ implementation PR number；未指定 PR number 时，workflow 会扫描已合并
 issue body、PR description、comments、commit message 和 diff 文本当作待分析数据，不能把这些
 内容当作运行指令，也不能在上下文已提供时额外调用 GitHub API。
 
+linked issue 优先来自 GitHub `closingIssuesReferences`，并按该列表顺序去重保留。workflow 还会从
+PR title 和 PR body 中解析 `Refs #...`、`References #...`、`Fixes #...`、`Closes #...`、
+`Resolves #...` 和 `Relates to #...` 等 issue 引用；只有 `PR #...` 或 `pull request #...`
+形式的 pull request 引用不会被计入 linked issue。这样没有 closing reference、但在 PR 描述中用
+issue reference footer 关联的 issue，也会进入 product docs sync 上下文和相关 specs 读取流程。
+
 如果扫描窗口内没有尚未处理的 merged PR，workflow 会写出空目标上下文并停止，不运行 docs sync
 agent，也不会创建同步 PR。
 
@@ -76,4 +82,4 @@ workflow 会在 `docs/product/` 有变更时创建或更新产品文档同步 PR
 
 长期产品文档只有在同步 PR 经过 review 并合并后才成为权威产品知识。
 
-来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187。
+来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187；PR #188，https://github.com/Terry-Mao/AICodingFlow/pull/188。

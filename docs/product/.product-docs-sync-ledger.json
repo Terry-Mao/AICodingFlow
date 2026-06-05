@@ -1528,6 +1528,25 @@
       "proposed_patch": "Updated the product docs sync workflow documentation to describe skipping self-generated docs sync PRs, the fixed docs/product-docs-sync branch, cumulative open PR behavior, new PR titles and draft handling, expanded ledger fields, and accumulated decision display in the PR body.",
       "reason": "PR #187 changes long-term product behavior for the product-docs-sync workflow: generated docs sync PRs now use a fixed cumulative branch, skip self-generated sync PRs during scans, and show accumulated ledger decisions in the PR body. The existing product docs described the older per-source-PR behavior and ledger contents, so the authoritative workflow documentation needed updating.",
       "recorded_at": "2026-06-05T19:25:30Z"
+    },
+    {
+      "pr": 188,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/188",
+      "title": "fix(product): 处理 PR 描述中的 referenced issues",
+      "merged_at": "2026-05-28T11:31:20Z",
+      "merge_commit": "f0703f44861ccb89841652c3d5eea44d7b05e49f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #188",
+        "Issue #186",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "Updated the product docs sync workflow documentation to describe linked issue extraction from closingIssuesReferences plus PR title/body issue-reference keywords, including deduplication order and PR-reference exclusion.",
+      "reason": "PR #188 changes the product-docs-sync context contract by treating issue references in PR titles and descriptions as linked issues, while preserving GitHub closing reference priority and excluding PR references. Existing product docs described linked issues generically but did not document this source and parsing behavior.",
+      "recorded_at": "2026-06-05T21:13:55Z"
     }
   ]
 }
