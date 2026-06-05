@@ -1491,6 +1491,24 @@
       "proposed_patch": "No product docs patch needed; the merged PR is a time-series update artifact already covered by existing product change report documentation.",
       "reason": "PR #183 only adds a time-series product change report under docs/updates/ and updates that report ledger. Existing product docs already describe product change reports as docs/updates artifacts rather than authoritative long-term product knowledge, so no docs/product update is warranted.",
       "recorded_at": "2026-06-05T15:41:29Z"
+    },
+    {
+      "pr": 184,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/184",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-28T09:23:46Z",
+      "merge_commit": "056357717b3bc062a72e1f4d9e9ae0e7de6885ff",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #184",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "Updated the authoritative product docs sync workflow source to document scheduled and manual scan modes, UTC scan windows, unprocessed PR selection, empty-scan stopping behavior, ledger recording, and ledger-only PR creation for not-needed decisions.",
+      "reason": "PR #184 changed the long-term behavior of the product docs sync workflow from merged-PR event handling to scheduled/manual merged-PR scanning with ledger-based skip and recording semantics. Existing product docs still described the old trigger and not-needed handling, so the workflow documentation needed to be updated.",
+      "recorded_at": "2026-06-05T17:34:38Z"
     }
   ]
 }
