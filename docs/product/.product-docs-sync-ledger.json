@@ -1473,6 +1473,24 @@
       "proposed_patch": "No product docs patch is needed because the existing authoritative product-change report documentation already reflects the merged behavior.",
       "reason": "PR #181 changes the product-change-report workflow's source-reference rules, but the current long-term product docs already cover the merged behavior. docs/product/raw/product-change-reports.md states that generated reports must not contain commit IDs, related issue references must use linked issue GitHub URLs, and PR references are not misclassified when PR and issue numbers match.",
       "recorded_at": "2026-06-05T12:28:43Z"
+    },
+    {
+      "pr": 183,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/183",
+      "title": "Add product change report for 2026-05-27",
+      "merged_at": "2026-05-28T09:10:57Z",
+      "merge_commit": "43752c52df76bd28078d158f4f4d2d50703d5743",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #183",
+        "docs/updates/auto-update-2026-05-27.md",
+        "docs/updates/.product-change-report-ledger.json",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch needed; the merged PR is a time-series update artifact already covered by existing product change report documentation.",
+      "reason": "PR #183 only adds a time-series product change report under docs/updates/ and updates that report ledger. Existing product docs already describe product change reports as docs/updates artifacts rather than authoritative long-term product knowledge, so no docs/product update is warranted.",
+      "recorded_at": "2026-06-05T15:41:29Z"
     }
   ]
 }
