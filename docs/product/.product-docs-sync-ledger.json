@@ -1602,6 +1602,23 @@
       "proposed_patch": "No product docs patch is needed; leave `docs/product/` unchanged because the merged PR updated compiled wiki output only.",
       "reason": "PR #195 only compiled existing authoritative `docs/product/raw/` content into `docs/product/wiki/` query artifacts. The existing raw product docs already describe the product wiki compile workflow and state that raw docs remain the source of truth, so no long-term authoritative product documentation change is warranted.",
       "recorded_at": "2026-06-06T05:42:31Z"
+    },
+    {
+      "pr": 196,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/196",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-29T03:10:18Z",
+      "merge_commit": "40efcc02f99300650cdbda8cfebcd7d96339df68",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #196",
+        "docs/product/wiki/log.md",
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "proposed_patch": "不需要修改 `docs/product/`；该变更仅属于已覆盖的 wiki 编译日志更新。",
+      "reason": "PR #196 只更新了 `docs/product/wiki/log.md` 中一次 product wiki 编译日志的措辞，没有改变长期产品行为、workflow 契约、权限、状态或用户可见规则。现有 `docs/product/raw/product-wiki-compile-workflow.md` 已覆盖 raw 文档是权威来源、wiki 是查询层以及 log 记录编译变更的产品事实。",
+      "recorded_at": "2026-06-06T08:13:58Z"
     }
   ]
 }
