@@ -1619,6 +1619,26 @@
       "proposed_patch": "不需要修改 `docs/product/`；该变更仅属于已覆盖的 wiki 编译日志更新。",
       "reason": "PR #196 只更新了 `docs/product/wiki/log.md` 中一次 product wiki 编译日志的措辞，没有改变长期产品行为、workflow 契约、权限、状态或用户可见规则。现有 `docs/product/raw/product-wiki-compile-workflow.md` 已覆盖 raw 文档是权威来源、wiki 是查询层以及 log 记录编译变更的产品事实。",
       "recorded_at": "2026-06-06T08:13:58Z"
+    },
+    {
+      "pr": 194,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/194",
+      "title": "feat: 每小时运行 Product Docs Sync",
+      "merged_at": "2026-05-29T03:11:01Z",
+      "merge_commit": "787032e13497c4b6bd0e1d257519be8ada1d72ac",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #194",
+        "Issue #192",
+        "specs/issue-192/product.md",
+        "specs/issue-192/tech.md"
+      ],
+      "proposed_patch": "Updated docs/product/raw/product-docs-sync-workflow.md to state that scheduled runs trigger every hour at UTC minute 45 and added PR #194 to the source references.",
+      "reason": "PR #194 changed the Product Docs Sync scheduled cadence from daily to hourly. That is durable workflow behavior already documented in the Product Docs Sync product doc, so the authoritative raw doc needed a small update.",
+      "recorded_at": "2026-06-06T10:35:14Z"
     }
   ]
 }

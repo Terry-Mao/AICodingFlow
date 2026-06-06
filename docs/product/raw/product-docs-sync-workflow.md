@@ -6,9 +6,9 @@
 
 ## 触发与上下文
 
-workflow 可以按计划运行，也可以通过 `workflow_dispatch` 手动触发。手动触发可指定已合并的
-implementation PR number；未指定 PR number 时，workflow 会扫描已合并 PR 并选择尚未处理的
-目标。未合并的 PR 不进入同步判断。
+workflow 可以按计划运行，也可以通过 `workflow_dispatch` 手动触发。计划运行在每小时 UTC 第
+45 分钟触发一次。手动触发可指定已合并的 implementation PR number；未指定 PR number 时，
+workflow 会扫描已合并 PR 并选择尚未处理的目标。未合并的 PR 不进入同步判断。
 
 扫描模式使用 UTC 时间窗口。默认窗口是最近 14 天；手动触发时可以用 `scan_days` 覆盖默认天数，
 也可以同时提供 `start_date` 与 `end_date` 指定显式 UTC 日期区间，其中 `start_date` 为包含边界，
@@ -82,4 +82,4 @@ workflow 会在 `docs/product/` 有变更时创建或更新产品文档同步 PR
 
 长期产品文档只有在同步 PR 经过 review 并合并后才成为权威产品知识。
 
-来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187；PR #188，https://github.com/Terry-Mao/AICodingFlow/pull/188。
+来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187；PR #188，https://github.com/Terry-Mao/AICodingFlow/pull/188；PR #194，https://github.com/Terry-Mao/AICodingFlow/pull/194。
