@@ -1657,6 +1657,25 @@
       "proposed_patch": "No product docs patch is needed; docs/product/ remains unchanged.",
       "reason": "PR #197 only adds the dated product change report for 2026-05-28 and updates the product change report ledger under docs/updates/. This is a time-series reporting artifact, not a change to long-term product behavior, workflow contracts, permissions, lifecycle, API semantics, or configuration.",
       "recorded_at": "2026-06-06T12:03:17Z"
+    },
+    {
+      "pr": 201,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/201",
+      "title": "feat(product): expand product wiki contract",
+      "merged_at": "2026-05-29T09:52:06Z",
+      "merge_commit": "07850736acd84ff0cdedb3176c17e7572ec0ecc7",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "source_context": [
+        "PR #201",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated the product wiki raw documentation to reflect the product-wiki skill rename, expanded wiki maintenance contract, query workflow, staged review rules, required schema pages, and strengthened frontmatter and health validation.",
+      "reason": "PR #201 changes the long-term Product LLM Wiki contract by renaming the skill to product-wiki, adding query and staged review schema requirements, and strengthening summary/concept metadata validation. Existing raw product docs still described the older compile-only contract, so the authoritative product docs needed an update.",
+      "recorded_at": "2026-06-06T14:22:39Z"
     }
   ]
 }
