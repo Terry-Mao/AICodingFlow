@@ -1639,6 +1639,24 @@
       "proposed_patch": "Updated docs/product/raw/product-docs-sync-workflow.md to state that scheduled runs trigger every hour at UTC minute 45 and added PR #194 to the source references.",
       "reason": "PR #194 changed the Product Docs Sync scheduled cadence from daily to hourly. That is durable workflow behavior already documented in the Product Docs Sync product doc, so the authoritative raw doc needed a small update.",
       "recorded_at": "2026-06-06T10:35:14Z"
+    },
+    {
+      "pr": 197,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/197",
+      "title": "Add product change report for 2026-05-28",
+      "merged_at": "2026-05-29T06:38:50Z",
+      "merge_commit": "697f15ca48023ee6b54080b43d12ae60581b678a",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #197",
+        "docs/updates/auto-update-2026-05-28.md",
+        "docs/updates/.product-change-report-ledger.json",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; docs/product/ remains unchanged.",
+      "reason": "PR #197 only adds the dated product change report for 2026-05-28 and updates the product change report ledger under docs/updates/. This is a time-series reporting artifact, not a change to long-term product behavior, workflow contracts, permissions, lifecycle, API semantics, or configuration.",
+      "recorded_at": "2026-06-06T12:03:17Z"
     }
   ]
 }
