@@ -1716,6 +1716,23 @@
       "proposed_patch": "记录 `.github/agents/` 是随模板交付的 GitHub Copilot custom agent 目录，补充 Product Wiki Query agent 的查询与回答边界，并把安装同步范围更新为包含 `.github/agents/`。",
       "reason": "PR #204 新增用于 Product LLM Wiki 查询的 GitHub Copilot custom agent，并让安装脚本向目标仓库交付 `.github/agents/`。这是长期产品入口和安装同步范围的变化，现有产品文档尚未完整覆盖。",
       "recorded_at": "2026-06-06T17:50:47Z"
+    },
+    {
+      "pr": 208,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/208",
+      "title": "Add product change report for 2026-05-29",
+      "merged_at": "2026-05-31T16:25:08Z",
+      "merge_commit": "e6114959823373e61abf6fac61f4fe15a73d2326",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #208",
+        "docs/updates/auto-update-2026-05-29.md",
+        "docs/updates/.product-change-report-ledger.json"
+      ],
+      "proposed_patch": "无需产品文档补丁；按 not-needed 决策不修改 docs/product/。",
+      "reason": "PR #208 只新增 2026-05-29 的产品变更报告并更新 docs/updates ledger，属于时间序列更新产物。它没有改变长期产品概念、工作流、权限、生命周期、配置语义或公开契约，因此不需要修改 docs/product/。",
+      "recorded_at": "2026-06-06T20:00:19Z"
     }
   ]
 }
