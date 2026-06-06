@@ -1565,6 +1565,27 @@
       "proposed_patch": "新增 `docs/product/raw/create-pr-skill.md`，记录 `create-pr` skill 的职责、open PR 复用规则、merged/closed PR 不可复用规则，以及更新既有 open PR 时保留人工内容的要求。",
       "reason": "PR #191 改变了 `create-pr` skill 的长期 PR 创建/更新语义：只复用当前分支上的 open PR，merged 或 closed 的同名分支历史 PR 不再阻止新建 PR。现有产品文档没有覆盖 `create-pr` skill 的这一权威行为，因此需要新增 raw 产品文档。",
       "recorded_at": "2026-06-05T22:49:09Z"
+    },
+    {
+      "pr": 193,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/193",
+      "title": "feat(product): add product wiki compile workflow",
+      "merged_at": "2026-05-29T02:56:10Z",
+      "merge_commit": "abb0b88272ee91240ef7d6d0cf31a9f385529387",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "source_context": [
+        "PR #193",
+        ".agents/skills/product-wiki-compile/SKILL.md",
+        ".github/workflows/product-wiki-compile.yml",
+        ".github/scripts/validate_product_wiki_compile.py",
+        ".github/scripts/write_product_wiki_compile_pr_body.py"
+      ],
+      "proposed_patch": "新增 docs/product/raw/product-wiki-compile-workflow.md，记录 product wiki 编译 workflow 的触发方式、编译输入输出、写入边界、校验规则和 PR 行为。",
+      "reason": "PR #193 新增了长期产品能力：定时或手动把 docs/product/raw/ 编译为 docs/product/wiki/ 的 LLM Wiki，并定义输入输出、写入边界、校验规则和固定 PR 行为。现有 raw 产品文档没有覆盖该 workflow，因此需要新增权威产品文档。",
+      "recorded_at": "2026-06-06T01:35:39Z"
     }
   ]
 }
