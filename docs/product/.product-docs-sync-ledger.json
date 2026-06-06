@@ -1473,6 +1473,172 @@
       "proposed_patch": "No product docs patch is needed because the existing authoritative product-change report documentation already reflects the merged behavior.",
       "reason": "PR #181 changes the product-change-report workflow's source-reference rules, but the current long-term product docs already cover the merged behavior. docs/product/raw/product-change-reports.md states that generated reports must not contain commit IDs, related issue references must use linked issue GitHub URLs, and PR references are not misclassified when PR and issue numbers match.",
       "recorded_at": "2026-06-05T12:28:43Z"
+    },
+    {
+      "pr": 183,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/183",
+      "title": "Add product change report for 2026-05-27",
+      "merged_at": "2026-05-28T09:10:57Z",
+      "merge_commit": "43752c52df76bd28078d158f4f4d2d50703d5743",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #183",
+        "docs/updates/auto-update-2026-05-27.md",
+        "docs/updates/.product-change-report-ledger.json",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch needed; the merged PR is a time-series update artifact already covered by existing product change report documentation.",
+      "reason": "PR #183 only adds a time-series product change report under docs/updates/ and updates that report ledger. Existing product docs already describe product change reports as docs/updates artifacts rather than authoritative long-term product knowledge, so no docs/product update is warranted.",
+      "recorded_at": "2026-06-05T15:41:29Z"
+    },
+    {
+      "pr": 184,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/184",
+      "title": "Feat/feature docs 87",
+      "merged_at": "2026-05-28T09:23:46Z",
+      "merge_commit": "056357717b3bc062a72e1f4d9e9ae0e7de6885ff",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #184",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "Updated the authoritative product docs sync workflow source to document scheduled and manual scan modes, UTC scan windows, unprocessed PR selection, empty-scan stopping behavior, ledger recording, and ledger-only PR creation for not-needed decisions.",
+      "reason": "PR #184 changed the long-term behavior of the product docs sync workflow from merged-PR event handling to scheduled/manual merged-PR scanning with ledger-based skip and recording semantics. Existing product docs still described the old trigger and not-needed handling, so the workflow documentation needed to be updated.",
+      "recorded_at": "2026-06-05T17:34:38Z"
+    },
+    {
+      "pr": 187,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/187",
+      "title": "fix(product): 累积处理 product docs sync PR",
+      "merged_at": "2026-05-28T11:19:40Z",
+      "merge_commit": "2db0fa6e6a428ce7ab0c8a0f087164d3c6936bb6",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #187",
+        "Issue #186",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "Updated the product docs sync workflow documentation to describe skipping self-generated docs sync PRs, the fixed docs/product-docs-sync branch, cumulative open PR behavior, new PR titles and draft handling, expanded ledger fields, and accumulated decision display in the PR body.",
+      "reason": "PR #187 changes long-term product behavior for the product-docs-sync workflow: generated docs sync PRs now use a fixed cumulative branch, skip self-generated sync PRs during scans, and show accumulated ledger decisions in the PR body. The existing product docs described the older per-source-PR behavior and ledger contents, so the authoritative workflow documentation needed updating.",
+      "recorded_at": "2026-06-05T19:25:30Z"
+    },
+    {
+      "pr": 188,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/188",
+      "title": "fix(product): 处理 PR 描述中的 referenced issues",
+      "merged_at": "2026-05-28T11:31:20Z",
+      "merge_commit": "f0703f44861ccb89841652c3d5eea44d7b05e49f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #188",
+        "Issue #186",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "Updated the product docs sync workflow documentation to describe linked issue extraction from closingIssuesReferences plus PR title/body issue-reference keywords, including deduplication order and PR-reference exclusion.",
+      "reason": "PR #188 changes the product-docs-sync context contract by treating issue references in PR titles and descriptions as linked issues, while preserving GitHub closing reference priority and excluding PR references. Existing product docs described linked issues generically but did not document this source and parsing behavior.",
+      "recorded_at": "2026-06-05T21:13:55Z"
+    },
+    {
+      "pr": 191,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/191",
+      "title": "fix(create-pr): ignore merged branch prs",
+      "merged_at": "2026-05-28T18:10:26Z",
+      "merge_commit": "ef0600303fda5fe6df613cb983a3e84ec2db74c4",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/create-pr-skill.md"
+      ],
+      "source_context": [
+        "PR #191",
+        "Issue #178"
+      ],
+      "proposed_patch": "新增 `docs/product/raw/create-pr-skill.md`，记录 `create-pr` skill 的职责、open PR 复用规则、merged/closed PR 不可复用规则，以及更新既有 open PR 时保留人工内容的要求。",
+      "reason": "PR #191 改变了 `create-pr` skill 的长期 PR 创建/更新语义：只复用当前分支上的 open PR，merged 或 closed 的同名分支历史 PR 不再阻止新建 PR。现有产品文档没有覆盖 `create-pr` skill 的这一权威行为，因此需要新增 raw 产品文档。",
+      "recorded_at": "2026-06-05T22:49:09Z"
+    },
+    {
+      "pr": 193,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/193",
+      "title": "feat(product): add product wiki compile workflow",
+      "merged_at": "2026-05-29T02:56:10Z",
+      "merge_commit": "abb0b88272ee91240ef7d6d0cf31a9f385529387",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "source_context": [
+        "PR #193",
+        ".agents/skills/product-wiki-compile/SKILL.md",
+        ".github/workflows/product-wiki-compile.yml",
+        ".github/scripts/validate_product_wiki_compile.py",
+        ".github/scripts/write_product_wiki_compile_pr_body.py"
+      ],
+      "proposed_patch": "新增 docs/product/raw/product-wiki-compile-workflow.md，记录 product wiki 编译 workflow 的触发方式、编译输入输出、写入边界、校验规则和 PR 行为。",
+      "reason": "PR #193 新增了长期产品能力：定时或手动把 docs/product/raw/ 编译为 docs/product/wiki/ 的 LLM Wiki，并定义输入输出、写入边界、校验规则和固定 PR 行为。现有 raw 产品文档没有覆盖该 workflow，因此需要新增权威产品文档。",
+      "recorded_at": "2026-06-06T01:35:39Z"
+    },
+    {
+      "pr": 195,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/195",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-29T03:06:36Z",
+      "merge_commit": "016d54092d7aea134777726da100f5d169c135be",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #195",
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; leave `docs/product/` unchanged because the merged PR updated compiled wiki output only.",
+      "reason": "PR #195 only compiled existing authoritative `docs/product/raw/` content into `docs/product/wiki/` query artifacts. The existing raw product docs already describe the product wiki compile workflow and state that raw docs remain the source of truth, so no long-term authoritative product documentation change is warranted.",
+      "recorded_at": "2026-06-06T05:42:31Z"
+    },
+    {
+      "pr": 196,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/196",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-29T03:10:18Z",
+      "merge_commit": "40efcc02f99300650cdbda8cfebcd7d96339df68",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #196",
+        "docs/product/wiki/log.md",
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "proposed_patch": "不需要修改 `docs/product/`；该变更仅属于已覆盖的 wiki 编译日志更新。",
+      "reason": "PR #196 只更新了 `docs/product/wiki/log.md` 中一次 product wiki 编译日志的措辞，没有改变长期产品行为、workflow 契约、权限、状态或用户可见规则。现有 `docs/product/raw/product-wiki-compile-workflow.md` 已覆盖 raw 文档是权威来源、wiki 是查询层以及 log 记录编译变更的产品事实。",
+      "recorded_at": "2026-06-06T08:13:58Z"
+    },
+    {
+      "pr": 194,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/194",
+      "title": "feat: 每小时运行 Product Docs Sync",
+      "merged_at": "2026-05-29T03:11:01Z",
+      "merge_commit": "787032e13497c4b6bd0e1d257519be8ada1d72ac",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #194",
+        "Issue #192",
+        "specs/issue-192/product.md",
+        "specs/issue-192/tech.md"
+      ],
+      "proposed_patch": "Updated docs/product/raw/product-docs-sync-workflow.md to state that scheduled runs trigger every hour at UTC minute 45 and added PR #194 to the source references.",
+      "reason": "PR #194 changed the Product Docs Sync scheduled cadence from daily to hourly. That is durable workflow behavior already documented in the Product Docs Sync product doc, so the authoritative raw doc needed a small update.",
+      "recorded_at": "2026-06-06T10:35:14Z"
     }
   ]
 }
