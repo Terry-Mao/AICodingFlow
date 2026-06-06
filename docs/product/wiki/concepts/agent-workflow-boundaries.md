@@ -5,8 +5,8 @@ status: needs-review
 confidence: medium
 source_status: partial
 owner: product-docs
-last_reviewed: 2026-06-01
-review_due: 2026-08-30
+last_reviewed: 2026-06-06
+review_due: 2026-09-04
 sources:
   - docs/product/raw/spec-workflow.md
   - docs/product/raw/implementation-workflow.md
@@ -16,6 +16,9 @@ sources:
   - docs/product/raw/merge-conflict-resolution-skill.md
   - docs/product/raw/project-installer.md
   - docs/product/raw/update-dedupe-workflow.md
+  - docs/product/raw/update-pr-review-workflow.md
+  - docs/product/raw/product-change-reports.md
+  - docs/product/raw/product-docs-sync-workflow.md
 ---
 
 # Agent 与外层 workflow 职责边界
@@ -39,6 +42,9 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - Merge conflict resolution skill 是本地冲突处理辅助能力，不负责提交、推送、创建 PR 或修改 GitHub issue/PR。
 - 项目安装脚本同步 AICodingFlow 管理文件，但不初始化目标项目 issue triage 配置，也不覆盖目标项目自己的 repo-local companion skills。
 - `update-dedupe` skill 只写 `update-dedupe-output/` 交接目录；持久应用、提交、推送和 PR 创建由外层 runner 负责。
+- `update-pr-review` skill 只写 `update-pr-review-output/` 交接目录；持久应用、提交、推送和 PR 创建由外层 runner 负责。
+- `product-change-report` skill 只生成目标 `docs/updates/` 报告文件，不修改长期产品文档、compiled wiki、source specs、workflow 文件或 ledger state；ledger 与报告 PR 由外层 workflow 维护。
+- `product-docs-sync` agent 必须写出 `product-docs-sync-result.json`，并且只有在 `required` 或 `uncertain` 时才能修改 `docs/product/`；外层 workflow 负责 checksum、写入范围和同步 PR gate。
 
 ## 待确认
 
@@ -54,6 +60,9 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - [Merge conflict resolution skill 摘要](../summaries/merge-conflict-resolution-skill.md)
 - [项目安装脚本摘要](../summaries/project-installer.md)
 - [update-dedupe workflow 摘要](../summaries/update-dedupe-workflow.md)
+- [update-pr-review workflow 摘要](../summaries/update-pr-review-workflow.md)
+- [产品变更报告摘要](../summaries/product-change-reports.md)
+- [产品文档同步 workflow 摘要](../summaries/product-docs-sync-workflow.md)
 
 ## Related Concepts
 
@@ -66,3 +75,6 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - [Merge conflict resolution](merge-conflict-resolution.md)
 - [项目安装脚本](project-installer.md)
 - [update-dedupe 自进化规则 workflow](update-dedupe-workflow.md)
+- [update-pr-review 自进化 review 规则 workflow](update-pr-review-workflow.md)
+- [产品变更报告](product-change-reports.md)
+- [产品文档同步 workflow](product-docs-sync-workflow.md)
