@@ -1,5 +1,22 @@
 # Compile Log
 
+## 2026-06-06
+
+根据 `docs/product/raw/` 重新核对 wiki，修正与 raw source 不一致或覆盖不足的页面：
+
+- 校准 [Agent 目录布局摘要](summaries/agent-directory-layout.md) 与 [Agent 目录布局](concepts/agent-directory-layout.md)：仓库级 guidance 权威入口是根目录 `AGENTS.md`，`CLAUDE.md -> AGENTS.md`，Claude/Codex skills 入口指向 `.agents/skills/`。
+- 补充 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)：AICodingFlow 源仓库的 `.github/workflows/ci.yml` 是参考最小 CI，不会同步到目标项目。
+- 扩展 [产品变更报告摘要](summaries/product-change-reports.md) 与 [产品变更报告](concepts/product-change-reports.md)：记录 UTC 扫描、单日/区间路径、语言选择、ledger 状态、写入边界和 no-update 行为。
+- 更新 [Agent 与外层 workflow 职责边界](concepts/agent-workflow-boundaries.md)，补齐 `update-pr-review`、`product-change-report` 和 `product-docs-sync` 的来源链路与边界。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-05
 
 根据 `docs/product/raw/` 重新编译 wiki，补齐 raw source 到 summary/concept 的查询链路：
