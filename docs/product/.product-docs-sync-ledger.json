@@ -1676,6 +1676,24 @@
       "proposed_patch": "Updated the product wiki raw documentation to reflect the product-wiki skill rename, expanded wiki maintenance contract, query workflow, staged review rules, required schema pages, and strengthened frontmatter and health validation.",
       "reason": "PR #201 changes the long-term Product LLM Wiki contract by renaming the skill to product-wiki, adding query and staged review schema requirements, and strengthening summary/concept metadata validation. Existing raw product docs still described the older compile-only contract, so the authoritative product docs needed an update.",
       "recorded_at": "2026-06-06T14:22:39Z"
+    },
+    {
+      "pr": 200,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/200",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-29T10:04:51Z",
+      "merge_commit": "de4114e428369d6a2be1f485f1ca3be87c4a5f40",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #200",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md",
+        "product-docs-existing.md"
+      ],
+      "proposed_patch": "无需补丁；不修改 `docs/product/`。",
+      "reason": "PR #200 仅将既有 `docs/product/raw/` 权威来源编译为 `docs/product/wiki/` 派生知识层，没有引入实现、spec 或产品源文档变更。长期产品知识仍由现有 raw 文档覆盖，因此不需要修改 `docs/product/`。",
+      "recorded_at": "2026-06-06T15:57:57Z"
     }
   ]
 }
