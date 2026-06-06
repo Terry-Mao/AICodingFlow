@@ -1586,6 +1586,22 @@
       "proposed_patch": "新增 docs/product/raw/product-wiki-compile-workflow.md，记录 product wiki 编译 workflow 的触发方式、编译输入输出、写入边界、校验规则和 PR 行为。",
       "reason": "PR #193 新增了长期产品能力：定时或手动把 docs/product/raw/ 编译为 docs/product/wiki/ 的 LLM Wiki，并定义输入输出、写入边界、校验规则和固定 PR 行为。现有 raw 产品文档没有覆盖该 workflow，因此需要新增权威产品文档。",
       "recorded_at": "2026-06-06T01:35:39Z"
+    },
+    {
+      "pr": 195,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/195",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-29T03:06:36Z",
+      "merge_commit": "016d54092d7aea134777726da100f5d169c135be",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #195",
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; leave `docs/product/` unchanged because the merged PR updated compiled wiki output only.",
+      "reason": "PR #195 only compiled existing authoritative `docs/product/raw/` content into `docs/product/wiki/` query artifacts. The existing raw product docs already describe the product wiki compile workflow and state that raw docs remain the source of truth, so no long-term authoritative product documentation change is warranted.",
+      "recorded_at": "2026-06-06T05:42:31Z"
     }
   ]
 }
