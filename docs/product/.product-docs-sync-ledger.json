@@ -1733,6 +1733,24 @@
       "proposed_patch": "无需产品文档补丁；按 not-needed 决策不修改 docs/product/。",
       "reason": "PR #208 只新增 2026-05-29 的产品变更报告并更新 docs/updates ledger，属于时间序列更新产物。它没有改变长期产品概念、工作流、权限、生命周期、配置语义或公开契约，因此不需要修改 docs/product/。",
       "recorded_at": "2026-06-06T20:00:19Z"
+    },
+    {
+      "pr": 209,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/209",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-31T16:27:20Z",
+      "merge_commit": "ad6c47c29df4d299ddd357ebc2f83004dcaa868b",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #209",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "proposed_patch": "无需修改长期产品文档；本次只写入 docs sync 决策结果。",
+      "reason": "PR #209 只更新了 `docs/product/wiki/` 下的 Product LLM Wiki 编译产物，没有修改产品行为、workflow 契约或权威 raw source。现有 `docs/product/raw/product-wiki-compile-workflow.md` 已说明 wiki 是从 `docs/product/raw/` 生成的查询层，raw 文档仍是产品事实的权威来源。",
+      "recorded_at": "2026-06-06T21:45:59Z"
     }
   ]
 }
