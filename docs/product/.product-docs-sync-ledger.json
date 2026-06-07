@@ -1787,6 +1787,26 @@
       "proposed_patch": "无需产品文档补丁；不修改 `docs/product/`。",
       "reason": "PR #213 仅重新编译 `docs/product/raw/` 到 `docs/product/wiki/`，变更范围是派生 wiki 页面和编译日志。现有产品文档已声明 `docs/product/raw/` 是权威来源，且本次没有 raw 文档、spec、产品代码或 workflow 行为变更。",
       "recorded_at": "2026-06-07T01:56:26Z"
+    },
+    {
+      "pr": 215,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/215",
+      "title": "fix: 跳过 product docs sync 中缺失的 issue 引用",
+      "merged_at": "2026-06-01T09:27:21Z",
+      "merge_commit": "67e940c61555249a233118e706984585e95a95c1",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #215",
+        "Issue #214",
+        "specs/issue-214/product.md",
+        "specs/issue-214/tech.md"
+      ],
+      "proposed_patch": "更新 Product Docs Sync workflow 权威文档，说明 unreadable linked issue 会被跳过，linked_issues 和相关 specs 只包含成功读取的 issue，且该情况不会让可处理的 merged PR 变为 should_run=false。",
+      "reason": "PR #215 改变了 Product Docs Sync 的长期 workflow 行为：单个 linked issue 读取失败时不再中断上下文准备，而是跳过该 issue 并继续处理 merged PR。现有产品文档只描述了 issue 引用进入上下文和 specs 读取流程，未覆盖缺失或不可读取 issue 的过滤规则。",
+      "recorded_at": "2026-06-07T06:52:58Z"
     }
   ]
 }
