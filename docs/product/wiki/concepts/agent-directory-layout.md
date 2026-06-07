@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-06
-review_due: 2026-09-04
+last_reviewed: 2026-06-07
+review_due: 2026-09-05
 sources:
   - docs/product/raw/agent-directory-layout.md
 ---
@@ -25,6 +25,13 @@ Agent 目录布局定义 AICodingFlow 如何用根目录 `AGENTS.md` 作为共�
 - Cursor 使用 `.cursor/rules/agents.mdc` 作为专用规则文件。
 - 该布局让 Claude、Codex 和 Cursor 读取同一组仓库规则与 workflow skills，而不是维护独立副本。
 
+## GitHub Copilot custom agents
+
+- `.github/agents/` 存放随 AICodingFlow 模板交付的 GitHub Copilot custom agent profile。
+- Custom agent profile 用于把已有产品知识或 workflow 能力暴露为 GitHub Copilot 可调用入口。
+- GitHub Copilot custom agents 不替代 `.agents/skills/` 中的共享 skill 定义。
+- `Product Wiki Query` agent 是面向产品知识库问答的 custom agent；查询应从 Product LLM Wiki index 进入相关 concept、summary 和 raw source。
+
 ## Windows symlink 规则
 
 - `CLAUDE.md` 以及 `.claude`、`.codex` 和 `.cursor` 中的共享技能入口被记录在 Git 中。
@@ -41,3 +48,4 @@ Agent 目录布局定义 AICodingFlow 如何用根目录 `AGENTS.md` 作为共�
 
 - [项目安装脚本](project-installer.md)
 - [Agent 与外层 workflow 职责边界](agent-workflow-boundaries.md)
+- [Product Wiki Query agent](product-wiki-query-agent.md)

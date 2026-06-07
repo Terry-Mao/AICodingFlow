@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-06
-review_due: 2026-09-04
+last_reviewed: 2026-06-07
+review_due: 2026-09-05
 sources:
   - docs/product/raw/project-installer.md
 ---
@@ -26,7 +26,7 @@ AICodingFlow 提供仓库级安装脚本 `install.sh`，用于把 workflow autom
 
 ## 同步范围
 
-- 安装同步 `.agents/skills/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和 `.github/workflows/`。
+- 安装同步 `.agents/skills/`、`.github/agents/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和 `.github/workflows/`。
 - 普通 skills 可以复制或更新。
 - `.agents/skills/*-repo/SKILL.md` 这类仓库本地 companion skills 不会安装到目标项目；目标项目已有 companion skills 会保留。
 - 目标项目 `.github` 下不属于同步目录的文件不会被删除。
@@ -46,3 +46,4 @@ AICodingFlow 提供仓库级安装脚本 `install.sh`，用于把 workflow autom
 - [项目安装脚本](../concepts/project-installer.md)
 - [Issue triage 初始化配置](../concepts/issue-triage-bootstrap.md)
 - [Agent 目录布局](../concepts/agent-directory-layout.md)
+- [Product Wiki Query agent](../concepts/product-wiki-query-agent.md)
