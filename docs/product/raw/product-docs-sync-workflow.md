@@ -85,6 +85,12 @@ workflow 会在 `docs/product/` 有变更时创建或更新产品文档同步 PR
 `not-needed` 不修改权威 markdown 文档，但 ledger 更新仍会创建或更新一个只记录同步决策的 PR。
 同一个同步 PR 可以持续累积多个产品文档同步决策，直到经过 review 并合并。
 
+每次 workflow 创建或更新产品文档同步 PR 后，都会在该同步 PR 的 conversation 中追加一条新的
+PR comment，记录本次 run 的 source PR、`docs_update` 决策、原因、受影响文档和 patch summary。
+该 comment 只描述本次 run，不复制完整 ledger 历史；累计的已处理决策仍由 PR body 承载。
+如果最新决策是 `uncertain`，追加 comment 也应明确提示需要维护者确认。workflow 不会编辑旧的
+bot comment 来替代追加记录。
+
 长期产品文档只有在同步 PR 经过 review 并合并后才成为权威产品知识。
 
-来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187；PR #188，https://github.com/Terry-Mao/AICodingFlow/pull/188；PR #194，https://github.com/Terry-Mao/AICodingFlow/pull/194；PR #215，Issue #214。
+来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187；PR #188，https://github.com/Terry-Mao/AICodingFlow/pull/188；PR #194，https://github.com/Terry-Mao/AICodingFlow/pull/194；PR #215，Issue #214；PR #217，Issue #216。

@@ -1807,6 +1807,26 @@
       "proposed_patch": "更新 Product Docs Sync workflow 权威文档，说明 unreadable linked issue 会被跳过，linked_issues 和相关 specs 只包含成功读取的 issue，且该情况不会让可处理的 merged PR 变为 should_run=false。",
       "reason": "PR #215 改变了 Product Docs Sync 的长期 workflow 行为：单个 linked issue 读取失败时不再中断上下文准备，而是跳过该 issue 并继续处理 merged PR。现有产品文档只描述了 issue 引用进入上下文和 specs 读取流程，未覆盖缺失或不可读取 issue 的过滤规则。",
       "recorded_at": "2026-06-07T06:52:58Z"
+    },
+    {
+      "pr": 217,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/217",
+      "title": "fix: append product docs sync PR comments",
+      "merged_at": "2026-06-01T18:50:22Z",
+      "merge_commit": "6a86f6434ec9e30750b1bb14cbb2da449f65a44f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #217",
+        "Issue #216",
+        "specs/issue-216/product.md",
+        "specs/issue-216/tech.md"
+      ],
+      "proposed_patch": "Updated the Product Docs Sync workflow raw product doc to describe appended per-run PR comments on the docs sync PR, including fields, uncertain confirmation visibility, and the rule that old bot comments are not edited.",
+      "reason": "PR #217 changed the long-term Product Docs Sync workflow behavior: every create or update of the docs sync PR now appends a per-run PR comment with the current decision details. Existing product docs described the fixed-branch PR body and ledger behavior but did not cover the new conversation comment record.",
+      "recorded_at": "2026-06-07T10:18:48Z"
     }
   ]
 }
