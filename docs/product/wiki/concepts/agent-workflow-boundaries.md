@@ -5,10 +5,11 @@ status: needs-review
 confidence: medium
 source_status: partial
 owner: product-docs
-last_reviewed: 2026-06-06
-review_due: 2026-09-04
+last_reviewed: 2026-06-07
+review_due: 2026-09-05
 sources:
   - docs/product/raw/spec-workflow.md
+  - docs/product/raw/create-pr-skill.md
   - docs/product/raw/implementation-workflow.md
   - docs/product/raw/issue-triage-workflow.md
   - docs/product/raw/pr-comment-response-workflow.md
@@ -19,6 +20,8 @@ sources:
   - docs/product/raw/update-pr-review-workflow.md
   - docs/product/raw/product-change-reports.md
   - docs/product/raw/product-docs-sync-workflow.md
+  - docs/product/raw/product-wiki-compile-workflow.md
+  - docs/product/raw/product-wiki-query-agent.md
 ---
 
 # Agent 与外层 workflow 职责边界
@@ -28,6 +31,7 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 ## 已确认边界
 
 - Spec workflow 由外层 GitHub Actions 创建或更新 spec PR。
+- `create-pr` skill 准备 PR 标题、正文、base/head 信息和 issue 关联；不负责实现代码、提交、推送分支或修改 GitHub issue。
 - Implementation workflow 由外层 GitHub Actions 创建或更新 implementation PR。
 - Implementation agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并写出 `implementation_summary.md` 与 `pr-metadata.json`。
 - Implementation agent 不直接 commit、push、创建 PR、更新 PR 或编辑 issue。
@@ -45,6 +49,8 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - `update-pr-review` skill 只写 `update-pr-review-output/` 交接目录；持久应用、提交、推送和 PR 创建由外层 runner 负责。
 - `product-change-report` skill 只生成目标 `docs/updates/` 报告文件，不修改长期产品文档、compiled wiki、source specs、workflow 文件或 ledger state；ledger 与报告 PR 由外层 workflow 维护。
 - `product-docs-sync` agent 必须写出 `product-docs-sync-result.json`，并且只有在 `required` 或 `uncertain` 时才能修改 `docs/product/`；外层 workflow 负责 checksum、写入范围和同步 PR gate。
+- `product-wiki-compile` 的 Codex 维护步骤只能修改 `docs/product/wiki/` 下的 Markdown；GitHub 提交、推送和 PR 创建由外层 workflow 负责。
+- `Product Wiki Query` agent 默认只回答产品知识问题；除非用户明确要求维护类工作，否则不维护或重新编译 wiki。
 
 ## 待确认
 
@@ -53,6 +59,7 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 ## Supporting Summaries
 
 - [自动 spec workflow 摘要](../summaries/spec-workflow.md)
+- [Create PR skill 摘要](../summaries/create-pr-skill.md)
 - [自动实现 workflow 摘要](../summaries/implementation-workflow.md)
 - [Issue triage workflow 摘要](../summaries/issue-triage-workflow.md)
 - [PR comment response workflow 摘要](../summaries/pr-comment-response-workflow.md)
@@ -63,10 +70,13 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - [update-pr-review workflow 摘要](../summaries/update-pr-review-workflow.md)
 - [产品变更报告摘要](../summaries/product-change-reports.md)
 - [产品文档同步 workflow 摘要](../summaries/product-docs-sync-workflow.md)
+- [Product wiki workflow 摘要](../summaries/product-wiki-compile-workflow.md)
+- [Product Wiki Query agent 摘要](../summaries/product-wiki-query-agent.md)
 
 ## Related Concepts
 
 - [自动 spec workflow](automated-spec-workflow.md)
+- [Create PR skill](create-pr-skill.md)
 - [自动 implementation workflow](automated-implementation-workflow.md)
 - [Spec context 与目标分支选择](spec-context-and-target-branch.md)
 - [Issue triage workflow](issue-triage-workflow.md)
@@ -78,3 +88,5 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - [update-pr-review 自进化 review 规则 workflow](update-pr-review-workflow.md)
 - [产品变更报告](product-change-reports.md)
 - [产品文档同步 workflow](product-docs-sync-workflow.md)
+- [Product wiki workflow](product-wiki-workflow.md)
+- [Product Wiki Query agent](product-wiki-query-agent.md)

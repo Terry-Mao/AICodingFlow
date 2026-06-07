@@ -12,6 +12,7 @@
 - [Agent 目录布局](concepts/agent-directory-layout.md)
 - [Agent 输出语言策略](concepts/agent-language-policy.md)
 - [Create issue skill](concepts/create-issue-skill.md)
+- [Create PR skill](concepts/create-pr-skill.md)
 - [Issue triage workflow](concepts/issue-triage-workflow.md)
 - [Issue triage 结果契约](concepts/issue-triage-result-contract.md)
 - [Issue triage 初始化配置](concepts/issue-triage-bootstrap.md)
@@ -24,6 +25,11 @@
 - [Spec context 与目标分支选择](concepts/spec-context-and-target-branch.md)
 - [Agent 与外层 workflow 职责边界](concepts/agent-workflow-boundaries.md)
 - [项目安装脚本](concepts/project-installer.md)
+
+## Product Wiki 概念
+
+- [Product wiki workflow](concepts/product-wiki-workflow.md)
+- [Product Wiki Query agent](concepts/product-wiki-query-agent.md)
 
 ## PR Comment 概念
 
@@ -59,6 +65,7 @@
 - [Agent 目录布局摘要](summaries/agent-directory-layout.md)
 - [Agent 输出语言策略摘要](summaries/agent-language-policy.md)
 - [Create issue skill 摘要](summaries/create-issue-skill.md)
+- [Create PR skill 摘要](summaries/create-pr-skill.md)
 - [Issue triage workflow 摘要](summaries/issue-triage-workflow.md)
 - [Issue triage 初始化配置 skill 摘要](summaries/bootstrap-issue-config-skill.md)
 - [Repo-specific dedupe guidance companion 摘要](summaries/dedupe-guidance-companion.md)
@@ -71,6 +78,8 @@
 - [CI failure diagnosis skill 摘要](summaries/ci-failure-diagnosis-skill.md)
 - [产品变更报告摘要](summaries/product-change-reports.md)
 - [产品文档同步 workflow 摘要](summaries/product-docs-sync-workflow.md)
+- [Product wiki workflow 摘要](summaries/product-wiki-compile-workflow.md)
+- [Product Wiki Query agent 摘要](summaries/product-wiki-query-agent.md)
 - [项目安装脚本摘要](summaries/project-installer.md)
 - [update-dedupe workflow 摘要](summaries/update-dedupe-workflow.md)
 - [update-pr-review workflow 摘要](summaries/update-pr-review-workflow.md)
