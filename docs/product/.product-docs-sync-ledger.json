@@ -1639,6 +1639,154 @@
       "proposed_patch": "Updated docs/product/raw/product-docs-sync-workflow.md to state that scheduled runs trigger every hour at UTC minute 45 and added PR #194 to the source references.",
       "reason": "PR #194 changed the Product Docs Sync scheduled cadence from daily to hourly. That is durable workflow behavior already documented in the Product Docs Sync product doc, so the authoritative raw doc needed a small update.",
       "recorded_at": "2026-06-06T10:35:14Z"
+    },
+    {
+      "pr": 197,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/197",
+      "title": "Add product change report for 2026-05-28",
+      "merged_at": "2026-05-29T06:38:50Z",
+      "merge_commit": "697f15ca48023ee6b54080b43d12ae60581b678a",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #197",
+        "docs/updates/auto-update-2026-05-28.md",
+        "docs/updates/.product-change-report-ledger.json",
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; docs/product/ remains unchanged.",
+      "reason": "PR #197 only adds the dated product change report for 2026-05-28 and updates the product change report ledger under docs/updates/. This is a time-series reporting artifact, not a change to long-term product behavior, workflow contracts, permissions, lifecycle, API semantics, or configuration.",
+      "recorded_at": "2026-06-06T12:03:17Z"
+    },
+    {
+      "pr": 201,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/201",
+      "title": "feat(product): expand product wiki contract",
+      "merged_at": "2026-05-29T09:52:06Z",
+      "merge_commit": "07850736acd84ff0cdedb3176c17e7572ec0ecc7",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "source_context": [
+        "PR #201",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "Updated the product wiki raw documentation to reflect the product-wiki skill rename, expanded wiki maintenance contract, query workflow, staged review rules, required schema pages, and strengthened frontmatter and health validation.",
+      "reason": "PR #201 changes the long-term Product LLM Wiki contract by renaming the skill to product-wiki, adding query and staged review schema requirements, and strengthening summary/concept metadata validation. Existing raw product docs still described the older compile-only contract, so the authoritative product docs needed an update.",
+      "recorded_at": "2026-06-06T14:22:39Z"
+    },
+    {
+      "pr": 200,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/200",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-29T10:04:51Z",
+      "merge_commit": "de4114e428369d6a2be1f485f1ca3be87c4a5f40",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #200",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md",
+        "product-docs-existing.md"
+      ],
+      "proposed_patch": "无需补丁；不修改 `docs/product/`。",
+      "reason": "PR #200 仅将既有 `docs/product/raw/` 权威来源编译为 `docs/product/wiki/` 派生知识层，没有引入实现、spec 或产品源文档变更。长期产品知识仍由现有 raw 文档覆盖，因此不需要修改 `docs/product/`。",
+      "recorded_at": "2026-06-06T15:57:57Z"
+    },
+    {
+      "pr": 204,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/204",
+      "title": "feat(product): add product wiki query agent",
+      "merged_at": "2026-05-29T10:10:32Z",
+      "merge_commit": "3b90918958e0a309d86719f2c603c89618f3b15a",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/project-installer.md",
+        "docs/product/raw/product-wiki-query-agent.md"
+      ],
+      "source_context": [
+        "PR #204",
+        "Issue #202",
+        ".github/agents/product-wiki-query.md",
+        "install.sh"
+      ],
+      "proposed_patch": "记录 `.github/agents/` 是随模板交付的 GitHub Copilot custom agent 目录，补充 Product Wiki Query agent 的查询与回答边界，并把安装同步范围更新为包含 `.github/agents/`。",
+      "reason": "PR #204 新增用于 Product LLM Wiki 查询的 GitHub Copilot custom agent，并让安装脚本向目标仓库交付 `.github/agents/`。这是长期产品入口和安装同步范围的变化，现有产品文档尚未完整覆盖。",
+      "recorded_at": "2026-06-06T17:50:47Z"
+    },
+    {
+      "pr": 208,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/208",
+      "title": "Add product change report for 2026-05-29",
+      "merged_at": "2026-05-31T16:25:08Z",
+      "merge_commit": "e6114959823373e61abf6fac61f4fe15a73d2326",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #208",
+        "docs/updates/auto-update-2026-05-29.md",
+        "docs/updates/.product-change-report-ledger.json"
+      ],
+      "proposed_patch": "无需产品文档补丁；按 not-needed 决策不修改 docs/product/。",
+      "reason": "PR #208 只新增 2026-05-29 的产品变更报告并更新 docs/updates ledger，属于时间序列更新产物。它没有改变长期产品概念、工作流、权限、生命周期、配置语义或公开契约，因此不需要修改 docs/product/。",
+      "recorded_at": "2026-06-06T20:00:19Z"
+    },
+    {
+      "pr": 209,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/209",
+      "title": "Compile product wiki",
+      "merged_at": "2026-05-31T16:27:20Z",
+      "merge_commit": "ad6c47c29df4d299ddd357ebc2f83004dcaa868b",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #209",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/product-wiki-compile-workflow.md"
+      ],
+      "proposed_patch": "无需修改长期产品文档；本次只写入 docs sync 决策结果。",
+      "reason": "PR #209 只更新了 `docs/product/wiki/` 下的 Product LLM Wiki 编译产物，没有修改产品行为、workflow 契约或权威 raw source。现有 `docs/product/raw/product-wiki-compile-workflow.md` 已说明 wiki 是从 `docs/product/raw/` 生成的查询层，raw 文档仍是产品事实的权威来源。",
+      "recorded_at": "2026-06-06T21:45:59Z"
+    },
+    {
+      "pr": 212,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/212",
+      "title": "Add product change report for 2026-05-31",
+      "merged_at": "2026-06-01T09:16:30Z",
+      "merge_commit": "27aa51e350c3dbd3d0554b8816c227ca27e53e91",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #212",
+        "docs/updates/auto-update-2026-05-31.md",
+        "docs/updates/.product-change-report-ledger.json"
+      ],
+      "proposed_patch": "No product docs patch is needed because this update belongs only to the time-series product change report artifacts.",
+      "reason": "PR #212 only adds a time-series product change report and its updates ledger under docs/updates/. It does not introduce or change long-term product behavior, workflows, API contracts, configuration semantics, or authoritative product documentation.",
+      "recorded_at": "2026-06-06T22:47:00Z"
+    },
+    {
+      "pr": 213,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/213",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-01T09:17:02Z",
+      "merge_commit": "3c96aceaf1bb1409d7438dc18d546370aa6e5dfa",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #213",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/product-wiki-compile-workflow.md",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "无需产品文档补丁；不修改 `docs/product/`。",
+      "reason": "PR #213 仅重新编译 `docs/product/raw/` 到 `docs/product/wiki/`，变更范围是派生 wiki 页面和编译日志。现有产品文档已声明 `docs/product/raw/` 是权威来源，且本次没有 raw 文档、spec、产品代码或 workflow 行为变更。",
+      "recorded_at": "2026-06-07T01:56:26Z"
     }
   ]
 }
