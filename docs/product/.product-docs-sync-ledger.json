@@ -1844,6 +1844,23 @@
       "proposed_patch": "No docs/product changes are needed.",
       "reason": "PR #222 only compiled the generated docs/product/wiki knowledge layer from existing docs/product/raw sources. It did not introduce new product behavior, and the authoritative raw product docs already include the relevant source documents.",
       "recorded_at": "2026-06-07T12:13:55Z"
+    },
+    {
+      "pr": 226,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/226",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-03T09:27:59Z",
+      "merge_commit": "7467fb7a8aeec33f29e8786f989559d15de3cdb9",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #226",
+        "docs/product/raw/",
+        "docs/product/wiki/"
+      ],
+      "proposed_patch": "无需修改 docs/product/；本次只记录 not-needed 决策。",
+      "reason": "PR #226 只是将现有 docs/product/raw/ 内容重新编译为 docs/product/wiki/ 知识层，没有引入新的权威产品行为、workflow、配置语义或公开契约。变更属于派生 wiki 内容同步，长期产品事实仍已由现有 raw 文档覆盖。",
+      "recorded_at": "2026-06-07T14:33:32Z"
     }
   ]
 }
