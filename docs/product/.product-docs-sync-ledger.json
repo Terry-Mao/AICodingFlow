@@ -1861,6 +1861,28 @@
       "proposed_patch": "无需修改 docs/product/；本次只记录 not-needed 决策。",
       "reason": "PR #226 只是将现有 docs/product/raw/ 内容重新编译为 docs/product/wiki/ 知识层，没有引入新的权威产品行为、workflow、配置语义或公开契约。变更属于派生 wiki 内容同步，长期产品事实仍已由现有 raw 文档覆盖。",
       "recorded_at": "2026-06-07T14:33:32Z"
+    },
+    {
+      "pr": 227,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/227",
+      "title": "fix(review): suppress repeated bot review comments",
+      "merged_at": "2026-06-03T09:53:38Z",
+      "merge_commit": "47bfdde64f96ffee7fd9f5f50386ad2c5418498c",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #227",
+        "Issue #225",
+        ".agents/skills/review-pr/SKILL.md",
+        ".agents/skills/review-spec/SKILL.md",
+        ".github/scripts/prepare_review_discussion_context.py",
+        ".github/workflows/review-pr.yml"
+      ],
+      "proposed_patch": "Updated docs/product/raw/pr-review-verdict.md to document review_discussion_context.json generation, duplicate-suppression rules, maintainer dismissal handling, unresolved-thread handling, and REVIEW_BOT_LOGIN source attribution.",
+      "reason": "PR #227 changes long-term AI PR Review behavior by adding prior review discussion snapshots and duplicate suppression for resolved, maintainer-dismissed, and still-unresolved bot inline comments. Existing product docs covered review workflow behavior but did not document this discussion context or its instruction-safety boundary.",
+      "recorded_at": "2026-06-07T16:00:13Z"
     }
   ]
 }
