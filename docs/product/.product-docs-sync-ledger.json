@@ -1941,6 +1941,25 @@
       "proposed_patch": "No product docs patch is needed because the merged PR updated only the generated wiki query layer from existing raw sources.",
       "reason": "PR #234 only compiled existing authoritative docs/product/raw/ content into docs/product/wiki/. It did not change implementation behavior, specs, raw product docs, or any long-term product rule that is not already represented by the existing product documentation.",
       "recorded_at": "2026-06-08T21:29:18Z"
+    },
+    {
+      "pr": 238,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/238",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-06T11:17:02Z",
+      "merge_commit": "3f3250161df1490bf03bdc2048d8e48a3c172c71",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #238",
+        "docs/product/raw/product-wiki-compile-workflow.md",
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/product-change-reports.md",
+        "docs/product/raw/project-installer.md"
+      ],
+      "proposed_patch": "No docs/product changes needed; the merged PR is a compiled wiki refresh from existing authoritative raw product docs.",
+      "reason": "PR #238 only updates compiled Product LLM Wiki pages under docs/product/wiki/ from existing docs/product/raw/ sources. The authoritative long-term product facts are already covered by raw docs, so no additional product docs patch is warranted.",
+      "recorded_at": "2026-06-08T23:05:57Z"
     }
   ]
 }
