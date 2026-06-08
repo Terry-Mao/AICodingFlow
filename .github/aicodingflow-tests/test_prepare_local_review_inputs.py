@@ -349,7 +349,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
         with (
             mock.patch.object(prepare_local, "current_branch", return_value="fix/github-pr"),
-            mock.patch.object(prepare_local, "run", side_effect=fake_run),
+            mock.patch.object(prepare_local, "run_command", side_effect=fake_run),
         ):
             event = prepare_local.github_pr_event_for_current_branch("owner/repo")
 
@@ -360,7 +360,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
     def test_github_pr_event_for_current_branch_returns_none_when_fetch_fails(self) -> None:
         with (
             mock.patch.object(prepare_local, "current_branch", return_value="fix/github-pr"),
-            mock.patch.object(prepare_local, "run", side_effect=subprocess.CalledProcessError(1, ["gh"])),
+            mock.patch.object(prepare_local, "run_command", side_effect=subprocess.CalledProcessError(1, ["gh"])),
         ):
             self.assertIsNone(prepare_local.github_pr_event_for_current_branch("owner/repo"))
 

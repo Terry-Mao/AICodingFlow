@@ -9,6 +9,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import write_github_output
+from github_api import flatten_gh_pages as flatten_pages
+
 PAGE_SIZE = 100
 PAGE_INFO = "pageInfo { hasNextPage endCursor }"
 
@@ -44,14 +47,6 @@ def load_json(path: Path, *, required: bool = True) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise SystemExit(f"{path} must contain a JSON object")
     return value
-
-
-def flatten_pages(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list) and value and all(isinstance(page, list) for page in value):
-        return [item for page in value for item in page]
-    if isinstance(value, list):
-        return value
-    raise SystemExit("unexpected GitHub API response")
 
 
 def open_pr_for_branch(repo: str, branch_name: str) -> dict[str, Any] | None:
@@ -235,14 +230,6 @@ def apply_result(repo: str, context: dict[str, Any], metadata: dict[str, Any], r
         if warning:
             warnings.append(f"{comment_id}: {warning}")
     return {"pr_url": pr_url, "resolve_warnings": "\n".join(warnings)}
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
 
 
 def main() -> None:

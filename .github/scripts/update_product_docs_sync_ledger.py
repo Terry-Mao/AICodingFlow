@@ -4,40 +4,24 @@
 from __future__ import annotations
 
 import argparse
-import datetime as dt
-import json
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import load_json
+from ledger_contracts import (
+    entries_by_pr,
+    load_ledger as load_pr_ledger,
+    merge_commit_oid,
+    now_iso,
+    set_sorted_entries,
+    write_ledger,
+)
 
-UTC = dt.timezone.utc
 DEFAULT_LEDGER_PATH = "docs/product/.product-docs-sync-ledger.json"
 
 
-def now_iso() -> str:
-    return dt.datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
 def load_ledger(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"version": 1, "entries": []}
-    data = load_json(path)
-    if not isinstance(data, dict):
-        raise SystemExit(f"invalid product docs sync ledger: {path}")
-    data.setdefault("version", 1)
-    data.setdefault("entries", [])
-    if not isinstance(data["entries"], list):
-        raise SystemExit(f"invalid product docs sync ledger entries: {path}")
-    return data
-
-
-def merge_commit_oid(pr: dict[str, Any]) -> str:
-    merge_commit = pr.get("mergeCommit") or {}
-    return merge_commit.get("oid") or ""
+    return load_pr_ledger(path, ledger_name="product docs sync")
 
 
 def build_entry(context: dict[str, Any], result: dict[str, Any], recorded_at: str) -> dict[str, Any]:
@@ -63,12 +47,7 @@ def update_ledger(
     result: dict[str, Any],
     recorded_at: str,
 ) -> dict[str, Any]:
-    by_pr: dict[int, dict[str, Any]] = {}
-    for entry in ledger.get("entries") or []:
-        try:
-            by_pr[int(entry.get("pr"))] = entry
-        except (TypeError, ValueError):
-            continue
+    by_pr = entries_by_pr(ledger)
 
     pr = context.get("pr") or {}
     pr_number = int(pr["number"])
@@ -76,9 +55,7 @@ def update_ledger(
     entry_recorded_at = str(existing.get("recorded_at") or recorded_at)
     by_pr[pr_number] = build_entry(context, result, entry_recorded_at)
 
-    ledger["version"] = 1
-    ledger["entries"] = sorted(by_pr.values(), key=lambda item: (item.get("merged_at") or "", int(item.get("pr") or 0)))
-    return ledger
+    return set_sorted_entries(ledger, list(by_pr.values()))
 
 
 def main() -> int:
@@ -93,7 +70,7 @@ def main() -> int:
     ledger_path = Path(args.ledger or context.get("ledger_path") or DEFAULT_LEDGER_PATH)
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     ledger = update_ledger(load_ledger(ledger_path), context, result, now_iso())
-    ledger_path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_ledger(ledger_path, ledger)
     return 0
 
 

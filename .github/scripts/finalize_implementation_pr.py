@@ -9,18 +9,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def flatten_pages(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list) and value and all(isinstance(page, list) for page in value):
-        return [item for page in value for item in page]
-    if isinstance(value, list):
-        return value
-    raise SystemExit("unexpected GitHub API response")
+from artifact_contracts import write_github_output
+from github_api import flatten_gh_pages as flatten_pages
+from github_api import run_gh_json
 
 
 def open_pr_for_branch(repo: str, branch_name: str) -> dict[str, Any] | None:
@@ -95,14 +86,6 @@ def finalize(repo: str, context: dict[str, Any], metadata: dict[str, Any]) -> st
         return edit_pr(repo, str(existing["number"]), title, body)
 
     return create_pr(repo, str(context["default_branch"]), branch_name, title, body)
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
 
 
 def main() -> None:

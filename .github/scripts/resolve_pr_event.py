@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import write_github_output
+
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -136,14 +138,6 @@ def review_state(event: dict[str, Any], repo: str, event_name: str = "") -> dict
         "reviewable": str(reviewable).lower(),
         "skip_reason": skip_reason,
     }
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
 
 
 def main() -> None:

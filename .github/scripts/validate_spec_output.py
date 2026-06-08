@@ -4,45 +4,34 @@
 from __future__ import annotations
 
 import argparse
-import json
-import re
 import subprocess
+import sys
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
 
-REQUIRED_METADATA_FIELDS = {"branch_name", "pr_title", "pr_summary"}
-CONVENTIONAL_TITLE_RE = re.compile(r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([a-z0-9._-]+\))?: .+")
+from pr_metadata_contracts import BASE_METADATA_FIELDS, load_json_object, validate_base_metadata  # noqa: E402
+
+
+REQUIRED_METADATA_FIELDS = BASE_METADATA_FIELDS
 
 
 def load_context(path: Path) -> dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return load_json_object(path)
 
 
 def validate_metadata(path: Path, branch_name: str, issue_number: int | None = None) -> dict[str, str]:
     if not path.exists():
         raise SystemExit("pr-metadata.json was not created")
-    try:
-        metadata = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"pr-metadata.json is invalid JSON: {exc}") from exc
-    if not isinstance(metadata, dict):
-        raise SystemExit("pr-metadata.json must contain a JSON object")
-    missing = sorted(REQUIRED_METADATA_FIELDS - set(metadata))
-    if missing:
-        raise SystemExit(f"pr-metadata.json is missing fields: {', '.join(missing)}")
-    for field in REQUIRED_METADATA_FIELDS:
-        if not isinstance(metadata.get(field), str) or not metadata[field].strip():
-            raise SystemExit(f"pr-metadata.json field {field} must be a non-empty string")
+    metadata = load_json_object(path, display_name="pr-metadata.json")
+    validate_base_metadata(metadata, required_fields=REQUIRED_METADATA_FIELDS)
     if metadata["branch_name"] != branch_name:
         raise SystemExit(
             f"pr-metadata.json branch_name must be {branch_name!r}, got {metadata['branch_name']!r}"
         )
-    if not CONVENTIONAL_TITLE_RE.match(metadata["pr_title"]):
-        raise SystemExit("pr-metadata.json pr_title must use conventional commit style")
     if issue_number is not None and f"Refs #{issue_number}" not in metadata["pr_summary"]:
         raise SystemExit(f"pr-metadata.json pr_summary must include Refs #{issue_number}")
-    if "\n" not in metadata["pr_summary"]:
-        raise SystemExit("pr-metadata.json pr_summary must be a complete markdown body, not a one-line note")
     return metadata
 
 

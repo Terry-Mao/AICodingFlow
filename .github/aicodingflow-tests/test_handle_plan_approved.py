@@ -71,6 +71,14 @@ class HandlePlanApprovedTest(unittest.TestCase):
             57,
         )
 
+    def test_bare_hash_and_gh_refs_do_not_override_spec_branch_fallback(self) -> None:
+        self.assertEqual(
+            handle_plan_approved.resolve_linked_issue_number(
+                pr(body="See #99 for background", title="GH-88", head_ref="spec/issue-57")
+            ),
+            57,
+        )
+
     def test_does_not_resolve_unqualified_numbers(self) -> None:
         self.assertIsNone(
             handle_plan_approved.resolve_linked_issue_number(

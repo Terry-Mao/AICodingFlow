@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import sys
 from pathlib import Path
@@ -14,62 +13,30 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from commit_implementation_branch import implementation_paths, status_paths  # noqa: E402
-from implementation_file_filters import TEMP_WORKFLOW_PATHS, is_generated_path  # noqa: E402
+from pr_metadata_contracts import (  # noqa: E402
+    BASE_METADATA_FIELDS,
+    load_json_object,
+    validate_base_metadata,
+    validate_intended_files,
+)
 
 
-REQUIRED_METADATA_FIELDS = {"branch_name", "pr_title", "pr_summary", "intended_files"}
-STRING_METADATA_FIELDS = {"branch_name", "pr_title", "pr_summary"}
-CONVENTIONAL_TITLE_RE = re.compile(r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([a-z0-9._-]+\))?: .+")
+REQUIRED_METADATA_FIELDS = {*BASE_METADATA_FIELDS, "intended_files"}
 SENTENCE_END_RE = re.compile(r"[.!?](?:\s+|$)")
 
 
 def load_json(path: Path, *, required: bool = True) -> dict[str, Any]:
-    if not path.exists():
-        if required:
-            raise SystemExit(f"{path} was not created")
-        return {}
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"{path} is invalid JSON: {exc}") from exc
-    if not isinstance(value, dict):
-        raise SystemExit(f"{path} must contain a JSON object")
-    return value
-
-
-def validate_intended_path(path: object, index: int) -> str:
-    if not isinstance(path, str) or not path.strip():
-        raise SystemExit(f"pr-metadata.json intended_files[{index}] must be a non-empty string")
-    normalized = path.strip()
-    if Path(normalized).is_absolute() or ".." in Path(normalized).parts:
-        raise SystemExit(f"pr-metadata.json intended_files[{index}] must be a repository-relative path")
-    if normalized in TEMP_WORKFLOW_PATHS:
-        raise SystemExit(f"pr-metadata.json intended_files[{index}] must not include workflow handoff files")
-    if is_generated_path(normalized):
-        raise SystemExit(f"pr-metadata.json intended_files[{index}] must not include generated/cache files")
-    return normalized
+    return load_json_object(path, required=required)
 
 
 def validate_metadata(metadata_path: Path, context_path: Path, candidate_paths: list[str] | None = None) -> dict[str, Any]:
     context = load_json(context_path)
     metadata = load_json(metadata_path)
-    missing = sorted(REQUIRED_METADATA_FIELDS - set(metadata))
-    if missing:
-        raise SystemExit(f"pr-metadata.json is missing fields: {', '.join(missing)}")
-    for field in STRING_METADATA_FIELDS:
-        if not isinstance(metadata.get(field), str) or not metadata[field].strip():
-            raise SystemExit(f"pr-metadata.json field {field} must be a non-empty string")
+    validate_base_metadata(metadata, required_fields=REQUIRED_METADATA_FIELDS)
     if metadata["branch_name"].strip() != str(context.get("agent_push_branch") or "").strip():
         raise SystemExit("pr-metadata.json branch_name must equal pr_comment_context.json agent_push_branch")
-    if not CONVENTIONAL_TITLE_RE.match(metadata["pr_title"]):
-        raise SystemExit("pr-metadata.json pr_title must use conventional commit style")
-    if "\n" not in metadata["pr_summary"]:
-        raise SystemExit("pr-metadata.json pr_summary must be a complete markdown body, not a one-line note")
 
-    raw_files = metadata.get("intended_files")
-    if not isinstance(raw_files, list) or not raw_files:
-        raise SystemExit("pr-metadata.json field intended_files must be a non-empty list")
-    intended = sorted(dict.fromkeys(validate_intended_path(path, index) for index, path in enumerate(raw_files)))
+    intended = sorted(dict.fromkeys(validate_intended_files(metadata)))
 
     candidates = implementation_paths(candidate_paths if candidate_paths is not None else status_paths())
     missing_changes = sorted(set(intended) - set(candidates))

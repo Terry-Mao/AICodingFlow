@@ -16,6 +16,7 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+from artifact_contracts import write_github_output  # noqa: E402
 import build_pr_diff  # noqa: E402
 import select_review_skill  # noqa: E402
 import write_pr_description  # noqa: E402
@@ -34,14 +35,14 @@ TEMP_REVIEW_PATH_NAMES = {path.as_posix() for path in TEMP_REVIEW_PATHS}
 StatusRecord = tuple[str, str, str, str]
 
 
-def run(args: list[str], env: dict[str, str] | None = None) -> str:
+def run_command(args: list[str], env: dict[str, str] | None = None) -> str:
     result = subprocess.run(args, check=True, stdout=subprocess.PIPE, text=True, env=env)
     return result.stdout.strip()
 
 
 def optional_git(args: list[str]) -> str:
     try:
-        return run(["git", *args])
+        return run_command(["git", *args])
     except subprocess.CalledProcessError:
         return ""
 
@@ -107,7 +108,7 @@ def filtered_status_records() -> list[StatusRecord]:
 
 
 def resolve_ref(ref: str) -> str:
-    return run(["git", "rev-parse", ref])
+    return run_command(["git", "rev-parse", ref])
 
 
 def default_base() -> str:
@@ -196,7 +197,7 @@ def github_pr_event(repo: str, branch: str) -> dict[str, Any]:
             "headRefOid",
         ]
     )
-    data = json.loads(run(["gh", "pr", "view", branch, "--repo", repo, "--json", fields]))
+    data = json.loads(run_command(["gh", "pr", "view", branch, "--repo", repo, "--json", fields]))
     return {
         "pull_request": {
             "number": data.get("number") or "",
@@ -253,7 +254,7 @@ def sync_event_base(event: dict[str, Any], base: str, base_sha: str) -> None:
 def run_git_with_index(args: list[str], index_path: str) -> str:
     env = os.environ.copy()
     env["GIT_INDEX_FILE"] = index_path
-    return run(["git", *args], env=env)
+    return run_command(["git", *args], env=env)
 
 
 def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
@@ -319,22 +320,16 @@ def write_spec_context_if_needed(repo: str, event: dict[str, Any], pr_diff_text:
         output.unlink()
 
 
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
-
-
-def main() -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default="")
     parser.add_argument("--base", default="")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
+
+def run(args: argparse.Namespace) -> int:
     remove_stale_review_files()
 
     repo = args.repo or default_repo()
@@ -378,6 +373,10 @@ def main() -> int:
     for key, value in values.items():
         print(f"{key}={value}")
     return 0
+
+
+def main() -> int:
+    return run(parse_args())
 
 
 if __name__ == "__main__":

@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import write_github_output
+
 
 VALID_DECISIONS = {"required", "uncertain", "not-needed"}
 LEDGER_FILE = "docs/product/.product-docs-sync-ledger.json"
@@ -85,14 +87,6 @@ def validate_write_surface(decision: str, paths: list[str]) -> list[str]:
     if decision == "not-needed" and product_doc_paths:
         raise SystemExit("docs_update=not-needed must not modify docs/product")
     return product_doc_paths
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
 
 
 def main() -> int:

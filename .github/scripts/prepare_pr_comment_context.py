@@ -14,6 +14,8 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+from artifact_contracts import write_github_output  # noqa: E402
+from github_api import fetch_default_branch, flatten_gh_pages as flatten_pages, run_gh_json  # noqa: E402
 from prepare_issue_implementation_context import collect_coauthor_directives  # noqa: E402
 from resolve_pr_event import comment_has_fix_command  # noqa: E402
 
@@ -23,19 +25,6 @@ AUTHORIZED_PRIVATE_CONTRIBUTOR_PERMISSIONS = {"admin", "maintain", "write"}
 FALLBACK_BRANCH_PREFIX = "spec/respond-pr"
 PAGE_SIZE = 100
 PAGE_INFO = "pageInfo { hasNextPage endCursor }"
-
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def flatten_pages(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list) and value and all(isinstance(page, list) for page in value):
-        return [item for page in value for item in page]
-    if isinstance(value, list):
-        return value
-    raise SystemExit("unexpected GitHub API response")
 
 
 def load_event(path: str | None) -> dict[str, Any]:
@@ -55,14 +44,6 @@ def association(item: dict[str, Any]) -> str:
 
 def fetch_pr(repo: str, number: int) -> dict[str, Any]:
     return run_gh_json(["api", f"repos/{repo}/pulls/{number}"])
-
-
-def fetch_default_branch(repo: str) -> str:
-    repository = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
-    default_branch = (repository.get("defaultBranchRef") or {}).get("name")
-    if not default_branch:
-        raise SystemExit("could not determine default branch")
-    return default_branch
 
 
 def fetch_collaborator_permission(repo: str, login: str) -> str:
@@ -386,36 +367,47 @@ def review_comment_index(comments: list[dict[str, Any]], threads: list[dict[str,
     return {"review_comments": items}
 
 
-def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    trigger = fill_trigger_author_metadata(repo, event_trigger(event_name, event))
-    pr = fetch_pr(repo, trigger["pr_number"])
-    default_branch = fetch_default_branch(repo)
-    has_command = comment_has_fix_command(trigger["body"], agent_login)
-    auth = trigger_authorization(repo, pr, trigger)
+def run_decision(
+    *,
+    agent_login: str,
+    has_command: bool,
+    auth: dict[str, Any],
+    pr_state: str,
+    strategy: dict[str, Any],
+) -> tuple[bool, str]:
     authorized = bool(auth["authorized"])
-    state = str(pr.get("state") or "").lower()
-    strategy = branch_strategy(repo, pr, authorized)
-
-    should_run = has_command and authorized and state == "open" and strategy["branch_strategy"] != "blocked"
+    should_run = has_command and authorized and pr_state == "open" and strategy["branch_strategy"] != "blocked"
     if not agent_login:
-        skip_reason = "agent login is not configured"
-    elif not has_command:
-        skip_reason = "missing valid @AGENT_LOGIN /fix command"
-    elif not authorized:
-        skip_reason = str(auth["skip_reason"])
-    elif state != "open":
-        skip_reason = f"pull request is {state or 'not open'}"
-    elif strategy["branch_strategy"] == "blocked":
-        skip_reason = "no writable branch strategy is available"
-    else:
-        skip_reason = ""
+        return should_run, "agent login is not configured"
+    if not has_command:
+        return should_run, "missing valid @AGENT_LOGIN /fix command"
+    if not authorized:
+        return should_run, str(auth["skip_reason"])
+    if pr_state != "open":
+        return should_run, f"pull request is {pr_state or 'not open'}"
+    if strategy["branch_strategy"] == "blocked":
+        return should_run, "no writable branch strategy is available"
+    return should_run, ""
 
+
+def build_pr_comment_context_payload(
+    repo: str,
+    *,
+    trigger: dict[str, Any],
+    pr: dict[str, Any],
+    default_branch: str,
+    strategy: dict[str, Any],
+    auth: dict[str, Any],
+    has_command: bool,
+    should_run: bool,
+    skip_reason: str,
+) -> dict[str, Any]:
     head = pr.get("head") or {}
     base = pr.get("base") or {}
     head_repo = (head.get("repo") or {}).get("full_name") or ""
     base_repo = (base.get("repo") or {}).get("full_name") or repo
     owner, name = repo.split("/", 1)
-    context = {
+    return {
         "owner": owner,
         "repo": name,
         "repository": repo,
@@ -434,7 +426,7 @@ def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login
         **strategy,
         **{key: value for key, value in trigger.items() if key != "body"},
         "trigger_body": trigger["body"],
-        "trigger_actor_is_authorized": authorized,
+        "trigger_actor_is_authorized": bool(auth["authorized"]),
         "trigger_actor_repository_permission": auth["permission"],
         "base_repo_private": auth["private_repo"],
         "trigger_command_present": has_command,
@@ -449,18 +441,39 @@ def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login
         "should_noop": False,
         "skip_reason": skip_reason,
     }
+
+
+def build_context(repo: str, event_name: str, event: dict[str, Any], agent_login: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    trigger = fill_trigger_author_metadata(repo, event_trigger(event_name, event))
+    pr = fetch_pr(repo, trigger["pr_number"])
+    default_branch = fetch_default_branch(repo)
+    has_command = comment_has_fix_command(trigger["body"], agent_login)
+    auth = trigger_authorization(repo, pr, trigger)
+    authorized = bool(auth["authorized"])
+    state = str(pr.get("state") or "").lower()
+    strategy = branch_strategy(repo, pr, authorized)
+    should_run, skip_reason = run_decision(
+        agent_login=agent_login,
+        has_command=has_command,
+        auth=auth,
+        pr_state=state,
+        strategy=strategy,
+    )
+    context = build_pr_comment_context_payload(
+        repo,
+        trigger=trigger,
+        pr=pr,
+        default_branch=default_branch,
+        strategy=strategy,
+        auth=auth,
+        has_command=has_command,
+        should_run=should_run,
+        skip_reason=skip_reason,
+    )
     return context, pr
 
 
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
-
-
-def main() -> None:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--event-path", default=os.environ.get("GITHUB_EVENT_PATH", ""))
@@ -470,8 +483,10 @@ def main() -> None:
     parser.add_argument("--pr-event-output", default="pr_event.json")
     parser.add_argument("--review-comment-ids-output", default="review_comment_ids.json")
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
+
+def run(args: argparse.Namespace) -> None:
     event = load_event(args.event_path)
     context, pr = build_context(args.repo, args.event_name, event, args.agent_login.strip())
     comments = fetch_review_comments(args.repo, int(context["pr_number"]))
@@ -498,6 +513,10 @@ def main() -> None:
             "pr_number": str(context["pr_number"]),
         },
     )
+
+
+def main() -> None:
+    run(parse_args())
 
 
 if __name__ == "__main__":

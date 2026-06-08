@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import write_github_output
 from implementation_file_filters import TEMP_WORKFLOW_PATHS, is_generated_path, is_github_workflow_path
 
 
@@ -233,14 +234,6 @@ def commit_and_push(context_path: Path, metadata_path: Path, author_name: str, a
     run(["git", "push", "-u", "origin", branch])
     sha = run(["git", "rev-parse", "HEAD"], capture=True)
     return {"changed": "true", "branch": branch, "sha": sha}
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
 
 
 def main() -> None:
