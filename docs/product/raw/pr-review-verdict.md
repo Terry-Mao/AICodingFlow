@@ -33,6 +33,11 @@ review comment 也不是该入口。
 closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传
 review artifact。
 
+GitHub workflow 运行 AI PR Review 时，`pr_diff.txt` 来自 GitHub PR diff API，而不是
+checkout 后对 base/head SHA 执行本地 `git diff`。workflow 会在读取 diff 前后校验 PR
+metadata 中的 head SHA 和 base SHA 仍等于触发时解析出的快照；如果 head 或 base 在准备
+review diff 期间变化，本次 review run 失败而不是基于不一致的 diff 继续发布评审。
+
 ## Comment 与手动触发的 PR 关联
 
 当 AI PR Review 由 PR comment 或 `workflow_dispatch` 触发，且目标 PR 的 head
@@ -219,5 +224,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，PR #228，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
+PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，PR #228，PR #231，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
 `specs/issue-77/product.md`，`specs/issue-85/product.md`，`specs/issue-115/product.md`。

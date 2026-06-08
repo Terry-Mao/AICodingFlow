@@ -1902,6 +1902,28 @@
       "proposed_patch": "更新 docs/product/raw/pr-review-verdict.md，补充 maintainer dismissal 的肯定语义要求、否定或疑问 intentional 回复的处理方式，以及 GitHub review 发布前对 markdown body/comment 中字面量 \\\\n 的换行规范化规则。",
       "reason": "PR #228 改变了 AI PR Review 的长期用户可见行为：维护者 dismissal 识别不再把否定或疑问语境中的 intentional 裸词当作已 dismiss，并且发布 review 前会把 fenced code block 外的字面量 \\\\n 规范化为真实换行。现有产品文档只概括了 dismissed/resolved 去重和 review 输出契约，未覆盖这些精确语义。",
       "recorded_at": "2026-06-08T16:41:46Z"
+    },
+    {
+      "pr": 231,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/231",
+      "title": "fix(review): 使用 GitHub PR diff 快照",
+      "merged_at": "2026-06-04T11:44:26Z",
+      "merge_commit": "92d3d134fda7ef2da570fae7ffcb6e262485832e",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "source_context": [
+        "PR #231",
+        "product-docs-sync-diff.md",
+        ".github/scripts/build_pr_diff.py",
+        ".github/workflows/review-pr.yml",
+        ".github/workflows/respond-to-pr-comment.yml"
+      ],
+      "proposed_patch": "Document that GitHub workflow PR diff snapshots for AI PR Review and /fix now come from the GitHub PR diff API, and that the workflows fail if the PR head or base SHA changes while preparing the diff.",
+      "reason": "PR #231 changed the authoritative PR diff snapshot behavior for GitHub-hosted review and /fix workflows from a local base/head git diff to the GitHub PR diff API with before-and-after SHA validation. This is long-term workflow and public failure-semantics knowledge that was not explicitly covered by the existing product docs.",
+      "recorded_at": "2026-06-08T19:11:23Z"
     }
   ]
 }
