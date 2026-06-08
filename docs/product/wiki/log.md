@@ -79,7 +79,7 @@
 
 - 新增 [Agent 目录布局摘要](summaries/agent-directory-layout.md) 与 [Agent 目录布局](concepts/agent-directory-layout.md)，记录 `.agents/` 共享入口、Claude/Codex/Cursor 本地入口和 Windows symlink 规则。
 - 更新 [index.md](index.md)，链接新增 summary 与 concept。
-- 校准 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)：安装同步目录包含 `.github/aicodingflow-tests/`，目标项目自有 `.github` 测试应优先放在 `.github/tests/`。
+- 校准 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)：默认安装不再同步 `.github/aicodingflow-tests/`；该目录保留为 AICodingFlow 上游测试资产，目标项目自有 `.github` 测试应优先放在 `.github/tests/`。
 
 ## 待确认 / 开放问题
 
