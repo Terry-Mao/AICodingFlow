@@ -122,7 +122,7 @@ sync_skills() {
 sync_github_dirs() {
   local dirname src dest
 
-  for dirname in agents scripts aicodingflow-tests workflows; do
+  for dirname in agents scripts workflows; do
     src="$script_dir/.github/$dirname"
     [ -d "$src" ] || continue
     dest="$target_dir/.github/$dirname"

@@ -30,7 +30,7 @@ cd AICodingFlow
 ./install.sh --target /path/to/target-repo --dry-run
 ```
 
-安装脚本依赖 `bash`、`git`、`rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和受管 workflow，不会同步 AICodingFlow 仓库自用的 `.github/tests/` 与 `.github/workflows/ci.yml`。
+安装脚本依赖 `bash`、`git`、`rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/`、`.agents/contracts/`、`.github/agents/`、`.github/scripts/` 和受管 workflow，不会同步 AICodingFlow 上游测试目录 `.github/aicodingflow-tests/`、仓库自用 `.github/tests/` 与 `.github/workflows/ci.yml`。
 
 安装后，在目标仓库配置：
 
@@ -99,7 +99,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 .github/agents/                  # GitHub Copilot custom agents
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper
-.github/aicodingflow-tests/      # 随安装脚本交付的 workflow/script unittest 和 fixtures
+.github/aicodingflow-tests/      # AICodingFlow 上游 workflow/script unittest 和 fixtures，不随默认安装同步
 .github/tests/                   # AICodingFlow 本仓库自用 unittest
 .github/issue-triage/            # issue triage 配置
 docs/                            # 详细文档

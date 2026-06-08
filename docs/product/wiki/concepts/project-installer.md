@@ -24,10 +24,10 @@ sources:
 
 ## 同步边界
 
-- 同步范围包括 `.agents/skills/`、`.agents/contracts/`、`.github/agents/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和 `.github/workflows/`。
+- 同步范围包括 `.agents/skills/`、`.agents/contracts/`、`.github/agents/`、`.github/scripts/` 和 `.github/workflows/`。
 - `.agents/skills/*-repo/SKILL.md` 不由安装脚本安装；目标项目已有 repo-local companion skills 会保留。
 - 目标项目 `.github` 下不属于同步目录的文件不会被删除。
-- `.github/aicodingflow-tests/` 是上游托管测试目录，目标项目自己的 `.github` 相关测试应优先放在 `.github/tests/`。
+- `.github/aicodingflow-tests/` 是上游托管测试目录，默认不会安装到目标项目；目标项目自己的 `.github` 相关测试应优先放在 `.github/tests/`。
 - AICodingFlow 源仓库中的 `.github/workflows/ci.yml` 是参考最小 CI，不会同步到目标项目；目标项目应保留自己的 CI 编排，并在 CI 成功路径中 dispatch 已安装的 `review-pr.yml`。
 - 安装脚本不初始化 issue triage 配置；首次接入时可后续手动运行 `$bootstrap-issue-config`。
 

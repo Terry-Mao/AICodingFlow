@@ -94,8 +94,7 @@ class InstallScriptTest(unittest.TestCase):
             self.assertTrue((target / ".github/agents/product-wiki-query.md").is_file())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
             self.assertFalse((target / ".github/tests").exists())
-            self.assertTrue((target / ".github/aicodingflow-tests/test_validate_spec_output.py").is_file())
-            self.assertFalse((target / ".github/aicodingflow-tests/test_install_script.py").exists())
+            self.assertFalse((target / ".github/aicodingflow-tests").exists())
             self.assertTrue((target / ".github/workflows/create-spec-from-issue.yml").is_file())
 
     def test_does_not_install_aicodingflow_repository_ci_workflow(self) -> None:
