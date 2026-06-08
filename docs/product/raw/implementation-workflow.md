@@ -37,13 +37,18 @@ workflow 按固定优先级选择实现上下文：
 
 ## Agent 与外层 workflow 职责
 
-agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并写出
-`implementation_summary.md` 与 `pr-metadata.json`。agent 不直接 commit、push、
-创建 PR、更新 PR 或编辑 issue。
+agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并把
+`implementation_summary.md` 与 `pr-metadata.json` 写到 workspace 内
+`.codex-runtime/handoff/`。agent 不直接 commit、push、创建 PR、更新 PR 或编辑
+issue。
 
 在 workflow 提供本地上下文文件时，这些文件是该次运行的权威 GitHub context snapshot。
-agent 应优先使用 workflow-provided files，例如 `issue_context.json`、`issue_comments.txt`、
-`pr_comment_context.json`、`review_comment_ids.json`、`pr_diff.txt` 或 `spec_context.md`。
+agent 应优先使用 workflow-provided file paths。Issue implementation workflow 会在
+workspace 内 `.codex-runtime/handoff/` 准备 `issue_context.json`、
+`issue_comments.txt`、可用的 `spec_context.md`、branch SHA snapshot、validation logs
+以及 agent 输出的 summary/metadata；PR comment response workflow 会在
+`pr-worktree/.codex-runtime/handoff/` 准备 `pr_comment_context.json`、
+`review_comment_ids.json`、`pr_diff.txt`、可用的 `spec_context.md` 和对应输出。
 只有在本地或手动运行缺少完整稳定上下文、且 prompt 明确允许 fetching 时，agent 才能使用
 受控的 GitHub context helper 获取额外 issue 或 PR 内容；若认证不可用或 prompt 禁止调用
 GitHub API，agent 不应 fetch，并应基于稳定本地上下文继续。
@@ -54,7 +59,7 @@ GitHub API，agent 不应 fetch，并应基于稳定本地上下文继续。
 文件；不得包含 workflow handoff 文件、validation logs、生成缓存文件或未变化文件。
 
 当实现需要修改 `.agents` 下的文件，而 Codex sandbox 无法直接写入该目录时，agent 可以把
-完整 replacement 文件写到 `implementation-output/.agents/...` 下，路径必须与目标
+完整 replacement 文件写到 `.codex-runtime/handoff/implementation-output/.agents/...` 下，路径必须与目标
 repository-relative path 一致。外层 workflow 会在 diff detection 前应用这些输出文件，
 但只接受 `.agents/` 前缀且已列入 `pr-metadata.json` 的 `intended_files` 的路径；
 `implementation-output` 本身是运行时交接目录，不会作为实现文件提交。
@@ -63,6 +68,8 @@ repository-relative path 一致。外层 workflow 会在 diff detection 前应�
 implementation PR，并维护 issue progress comment。提交实现分支时，外层 workflow
 只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files`
 不一致，或包含 Python/cache 等生成文件，workflow 会拒绝提交。
+外层 workflow 的变更检查和提交过滤会排除 `.codex-runtime/`，因此这些 handoff 文件不依赖
+仓库根目录 `.gitignore` 来避免污染提交。
 
 当实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，外层 workflow 会先根据
 `pr-metadata.json` 的 `intended_files` 判断是否需要 workflow 写入权限。只有需要更新 workflow

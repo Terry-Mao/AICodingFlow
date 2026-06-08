@@ -80,9 +80,9 @@ Workflow：
 
 流程：
 
-1. 准备 `issue_context.json` 和 `issue_comments.txt`。
+1. 在 workspace 内 `.codex-runtime/handoff/` 准备 `issue_context.json` 和 `issue_comments.txt`，并把具体路径传给 Codex 和后续脚本。
 2. Codex 按顺序使用 `spec-driven-implementation`、`write-product-spec`、`create-product-spec`、`write-tech-spec`、`create-tech-spec`。
-3. 生成 `specs/issue-<N>/product.md`、`specs/issue-<N>/tech.md` 和 `pr-metadata.json`。
+3. 生成 `specs/issue-<N>/product.md`、`specs/issue-<N>/tech.md`，并把 `pr-metadata.json` 写到同一个 `.codex-runtime/handoff/` 目录。
 4. 校验输出后推送 `spec/issue-<N>` 分支并创建或更新 spec PR。
 
 Spec PR 只负责规划，不应该实现功能或修改生产代码。
@@ -113,11 +113,11 @@ Workflow：
 
 流程：
 
-1. 准备 `issue_context.json`、`issue_comments.txt`，有 spec context 时生成 `spec_context.md`。
+1. 在 workspace 内 `.codex-runtime/handoff/` 准备 `issue_context.json`、`issue_comments.txt`，有 spec context 时生成 `spec_context.md`。
 2. 如果存在关联 spec PR，只有带 `plan-approved` label 的 spec PR 会作为批准的 spec context。
 3. 如果发现未批准 spec PR 且默认分支没有 specs，则 workflow noop，并更新 issue progress comment。
 4. Codex 按顺序使用 `implement-specs`、`spec-driven-implementation`、`implement-issue`。
-5. Codex 留下实现 diff，并写出 `implementation_summary.md` 和 `pr-metadata.json`。
+5. Codex 留下实现 diff，并把 `implementation_summary.md` 和 `pr-metadata.json` 写到 `.codex-runtime/handoff/`。
 6. workflow 校验 metadata，提交并推送实现分支，创建或更新 implementation PR。
 
 目标分支规则：
@@ -190,10 +190,10 @@ Workflow：
 
 流程：
 
-1. `prepare_pr_comment_context.py` 生成 `pr_comment_context.json`、`pr_event.json` 和 `review_comment_ids.json`。
-2. workflow checkout PR head，并生成 `pr_diff.txt` 和可选 `spec_context.md`。
+1. `prepare_pr_comment_context.py` 先生成稳定 context，workflow checkout PR head 后把这些 context 放到 `pr-worktree/.codex-runtime/handoff/`。
+2. workflow 在 `pr-worktree/.codex-runtime/handoff/` 生成 `pr_diff.txt` 和可选 `spec_context.md`。
 3. Codex 使用 `implement-specs`、`spec-driven-implementation`、`implement-issue`，按触发 comment 的范围做最小修复。
-4. Codex 写出 `implementation_summary.md`、`pr-metadata.json`，必要时写 `resolved_review_comments.json`。
+4. Codex 把 `implementation_summary.md`、`pr-metadata.json`，以及必要时的 `resolved_review_comments.json` 写到 `pr-worktree/.codex-runtime/handoff/`。
 5. workflow 校验输出，提交并推送到原 PR 分支或 agent response branch。
 6. `apply_pr_comment_result.py` 发布总结，并在有权限和有效 comment id 时处理 resolved review comments。
 
@@ -224,3 +224,5 @@ resolved_review_comments.json
 validation-output.txt
 validation-error.txt
 ```
+
+这些 implementation、spec 和 `/fix` handoff artifact 由 workflow 放在 workspace 内 `.codex-runtime/handoff/` 或 `pr-worktree/.codex-runtime/handoff/` 目录中，artifact 上传仍保留文件名；workflow 的提交和变更检查会排除 `.codex-runtime/`，因此不再依赖仓库根目录 `.gitignore` 来隐藏 scratch 文件。Spec workflow 当前只定义 issue context、comments 和 PR metadata handoff，不定义单独 summary 或 validation-log handoff。

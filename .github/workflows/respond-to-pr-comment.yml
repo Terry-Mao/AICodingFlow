@@ -60,6 +60,14 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Prepare workflow handoff directory
+        id: handoff
+        run: |
+          dir="$RUNNER_TEMP/aicodingflow-pr-comment-preflight"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
       - name: Prepare PR comment context
         id: context
         env:
@@ -70,9 +78,9 @@ jobs:
             --event-name "${{ github.event_name }}" \
             --event-path "$GITHUB_EVENT_PATH" \
             --agent-login "${{ vars.AGENT_LOGIN }}" \
-            --output pr_comment_context.json \
-            --pr-event-output pr_event.json \
-            --review-comment-ids-output review_comment_ids.json \
+            --output "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
+            --pr-event-output "${{ steps.handoff.outputs.dir }}/pr_event.json" \
+            --review-comment-ids-output "${{ steps.handoff.outputs.dir }}/review_comment_ids.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Report skipped PR comment response
@@ -84,9 +92,9 @@ jobs:
         with:
           name: respond-to-pr-comment-preflight-${{ github.run_id }}
           path: |
-            pr_comment_context.json
-            pr_event.json
-            review_comment_ids.json
+            ${{ steps.handoff.outputs.dir }}/pr_comment_context.json
+            ${{ steps.handoff.outputs.dir }}/pr_event.json
+            ${{ steps.handoff.outputs.dir }}/review_comment_ids.json
 
   respond:
     needs: preflight
@@ -106,6 +114,16 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Prepare workflow handoff directory
+        id: handoff
+        run: |
+          temp_dir="$RUNNER_TEMP/aicodingflow-pr-comment-response"
+          dir="$GITHUB_WORKSPACE/pr-worktree/.codex-runtime/handoff"
+          rm -rf "$temp_dir"
+          mkdir -p "$temp_dir"
+          echo "temp_dir=$temp_dir" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
       - name: Prepare PR comment context
         id: context
         env:
@@ -116,9 +134,9 @@ jobs:
             --event-name "${{ github.event_name }}" \
             --event-path "$GITHUB_EVENT_PATH" \
             --agent-login "${{ vars.AGENT_LOGIN }}" \
-            --output pr_comment_context.json \
-            --pr-event-output pr_event.json \
-            --review-comment-ids-output review_comment_ids.json \
+            --output "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" \
+            --pr-event-output "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" \
+            --review-comment-ids-output "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Checkout PR head
@@ -131,12 +149,15 @@ jobs:
           ref: ${{ steps.context.outputs.head_sha }}
           path: pr-worktree
 
-      - name: Copy stable context into PR worktree
+      - name: Prepare implementation workspace
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         run: |
-          cp pr_comment_context.json pr-worktree/pr_comment_context.json
-          cp pr_event.json pr-worktree/pr_event.json
-          cp review_comment_ids.json pr-worktree/review_comment_ids.json
+          rm -rf pr-worktree/.codex-runtime
+          mkdir -p "${{ steps.handoff.outputs.dir }}"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" "${{ steps.handoff.outputs.dir }}/pr_comment_context.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" "${{ steps.handoff.outputs.dir }}/pr_event.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" "${{ steps.handoff.outputs.dir }}/review_comment_ids.json"
+          cp -R .agents/skills pr-worktree/.codex-runtime/skills
 
       - name: Snapshot PR diff
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
@@ -149,25 +170,18 @@ jobs:
             --pr-number "${{ steps.context.outputs.pr_number }}" \
             --head-sha "${{ steps.context.outputs.head_sha }}" \
             --base-sha "${{ steps.context.outputs.base_sha }}" \
-            --output pr_diff.txt
+            --output "${{ steps.handoff.outputs.dir }}/pr_diff.txt"
 
       - name: Snapshot spec context
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         env:
-          PR_EVENT_PATH: pr_event.json
+          PR_EVENT_PATH: ${{ steps.handoff.outputs.dir }}/pr_event.json
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/write_spec_context.py \
-            --changed-files-from-diff pr-worktree/pr_diff.txt \
-            --output pr-worktree/spec_context.md
-
-      - name: Prepare implementation workspace
-        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
-        run: |
-          rm -rf pr-worktree/.codex-runtime
-          mkdir -p pr-worktree/.codex-runtime
-          cp -R .agents/skills pr-worktree/.codex-runtime/skills
+            --changed-files-from-diff "${{ steps.handoff.outputs.dir }}/pr_diff.txt" \
+            --output "${{ steps.handoff.outputs.dir }}/spec_context.md"
 
       - name: Install Codex sandbox prerequisites
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
@@ -202,20 +216,22 @@ jobs:
             First change directory to pr-worktree and do all file inspection from there.
 
             Respond to the PR comment request using these stable local inputs:
-            - pr_comment_context.json
-            - pr_event.json
-            - pr_diff.txt
-            - spec_context.md when it exists
-            - review_comment_ids.json
+            - ${{ steps.handoff.outputs.dir }}/pr_comment_context.json
+            - ${{ steps.handoff.outputs.dir }}/pr_event.json
+            - ${{ steps.handoff.outputs.dir }}/pr_diff.txt
+            - ${{ steps.handoff.outputs.dir }}/spec_context.md when it exists
+            - ${{ steps.handoff.outputs.dir }}/review_comment_ids.json
 
-            Read pr_comment_context.json first. If should_run is not true, do
-            not modify files. In this workflow that case should have been
-            skipped before Codex runs.
-            pr_comment_context.json includes the triggering comment body as
-            trigger_body. pr_event.json includes the pull request title, body,
-            and metadata. review_comment_ids.json includes current inline review
-            comment bodies, resolved and outdated thread state, paths, lines,
-            diff hunks, and URLs.
+            Read ${{ steps.handoff.outputs.dir }}/pr_comment_context.json
+            first. If should_run is not true, do not modify files. In this
+            workflow that case should have been skipped before Codex runs.
+            ${{ steps.handoff.outputs.dir }}/pr_comment_context.json includes
+            the triggering comment body as trigger_body.
+            ${{ steps.handoff.outputs.dir }}/pr_event.json includes the pull
+            request title, body, and metadata.
+            ${{ steps.handoff.outputs.dir }}/review_comment_ids.json includes
+            current inline review comment bodies, resolved and outdated thread
+            state, paths, lines, diff hunks, and URLs.
 
             Read and use these skills in this exact order:
             1. .codex-runtime/skills/implement-specs/SKILL.md
@@ -229,41 +245,46 @@ jobs:
             context or call GitHub APIs.
 
             Locate the triggering comment or review by trigger_kind and
-            trigger_comment_id from pr_comment_context.json. Make the smallest
-            reasonable code, test, documentation, workflow, or spec change that
-            addresses the request and stays aligned with spec_context.md.
+            trigger_comment_id from
+            ${{ steps.handoff.outputs.dir }}/pr_comment_context.json. Make the
+            smallest reasonable code, test, documentation, workflow, or spec
+            change that addresses the request and stays aligned with
+            ${{ steps.handoff.outputs.dir }}/spec_context.md.
             When the triggering request asks to address all inline comments,
             unresolved comments, or a category of inline review comments, inspect
-            review_comment_ids.json and handle every listed inline review
-            comment that falls within the requested scope. For unresolved
-            comment requests, only treat comments with is_resolved set to false
-            as unresolved; do not guess unresolved state from comment text or
-            missing state. is_outdated only means the original diff position is
-            stale; do not skip an unresolved outdated comment solely because it
-            is outdated. Inspect the current code and PR diff to decide whether
-            the underlying issue still exists. Do not limit the response to
-            only the triggering comment when the request clearly asks for
-            multiple comments.
+            ${{ steps.handoff.outputs.dir }}/review_comment_ids.json and handle
+            every listed inline review comment that falls within the requested
+            scope. For unresolved comment requests, only treat comments with
+            is_resolved set to false as unresolved; do not guess unresolved
+            state from comment text or missing state. is_outdated only means
+            the original diff position is stale; do not skip an unresolved
+            outdated comment solely because it is outdated. Inspect the current
+            code and PR diff to decide whether the underlying issue still
+            exists. Do not limit the response to only the triggering comment
+            when the request clearly asks for multiple comments.
 
             Required outputs when you leave implementation changes:
-            - implementation_summary.md
-            - pr-metadata.json
-            - optional resolved_review_comments.json only when this run really
-              resolves inline review comments listed in review_comment_ids.json
+            - ${{ steps.handoff.outputs.dir }}/implementation_summary.md
+            - ${{ steps.handoff.outputs.dir }}/pr-metadata.json
+            - optional ${{ steps.handoff.outputs.dir }}/resolved_review_comments.json
+              only when this run really resolves inline review comments listed
+              in ${{ steps.handoff.outputs.dir }}/review_comment_ids.json
 
-            pr-metadata.json must include branch_name, pr_title, pr_summary,
-            and intended_files. branch_name must equal
-            pr_comment_context.json.agent_push_branch. intended_files must list
-            every intentionally changed repository file and must not include
-            workflow handoff files, validation logs, generated cache files, or
-            unchanged files.
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json must include
+            branch_name, pr_title, pr_summary, and intended_files. branch_name
+            must equal agent_push_branch from
+            ${{ steps.handoff.outputs.dir }}/pr_comment_context.json.
+            intended_files must list every intentionally changed repository
+            file and must not include workflow handoff files, validation logs,
+            generated cache files, or unchanged files.
             When this workflow can push directly to the original PR branch,
             pr_title and pr_summary are used for validation, commit metadata,
             and the response comment summary only; the outer workflow must not
             rewrite the original PR title or body.
 
-            resolved_review_comments.json, when present, must contain only
-            numeric inline review comment ids from review_comment_ids.json and
+            ${{ steps.handoff.outputs.dir }}/resolved_review_comments.json,
+            when present, must contain only numeric inline review comment ids
+            from ${{ steps.handoff.outputs.dir }}/review_comment_ids.json and
             1-3 sentence summaries of how this run addressed each comment.
             If this run resolves multiple inline review comments, include one
             resolved_review_comments entry for each comment actually resolved.
@@ -279,16 +300,6 @@ jobs:
         working-directory: pr-worktree
         run: |
           changed="$(git status --porcelain=v1 --untracked-files=all -- \
-            ':!pr_comment_context.json' \
-            ':!pr_event.json' \
-            ':!review_comment_ids.json' \
-            ':!spec_context.md' \
-            ':!pr_diff.txt' \
-            ':!implementation_summary.md' \
-            ':!pr-metadata.json' \
-            ':!resolved_review_comments.json' \
-            ':!validation-output.txt' \
-            ':!validation-error.txt' \
             ':!.codex-runtime' \
             ':!.codex-runtime/**')"
           if [ -n "$changed" ]; then
@@ -314,12 +325,12 @@ jobs:
         working-directory: pr-worktree
         run: |
           python3 ../.github/scripts/validate_pr_comment_result.py \
-            --context pr_comment_context.json \
-            --metadata pr-metadata.json \
-            --resolved resolved_review_comments.json \
-            --review-comment-ids review_comment_ids.json \
-            > validation-output.txt \
-            2> validation-error.txt
+            --context "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --resolved "${{ steps.handoff.outputs.dir }}/resolved_review_comments.json" \
+            --review-comment-ids "${{ steps.handoff.outputs.dir }}/review_comment_ids.json" \
+            > "${{ steps.handoff.outputs.dir }}/validation-output.txt" \
+            2> "${{ steps.handoff.outputs.dir }}/validation-error.txt"
 
       - name: Check whether workflow update token is required
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
@@ -329,7 +340,7 @@ jobs:
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json
 
-          with open("pr-metadata.json", encoding="utf-8") as handle:
+          with open("${{ steps.handoff.outputs.dir }}/pr-metadata.json", encoding="utf-8") as handle:
               metadata = json.load(handle)
           intended_files = metadata.get("intended_files") or []
           required = any(str(path).startswith(".github/workflows/") for path in intended_files)
@@ -355,8 +366,8 @@ jobs:
           WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           python3 ../.github/scripts/commit_implementation_branch.py \
-            --context pr_comment_context.json \
-            --metadata pr-metadata.json \
+            --context "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Apply PR comment response result
@@ -367,9 +378,9 @@ jobs:
         run: |
           python3 .github/scripts/apply_pr_comment_result.py \
             --repo "${{ github.repository }}" \
-            --context pr-worktree/pr_comment_context.json \
-            --metadata pr-worktree/pr-metadata.json \
-            --resolved pr-worktree/resolved_review_comments.json \
+            --context "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --resolved "${{ steps.handoff.outputs.dir }}/resolved_review_comments.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Report no committable PR comment response diff
@@ -391,16 +402,13 @@ jobs:
         with:
           name: respond-to-pr-comment-${{ github.run_id }}
           path: |
-            pr_comment_context.json
-            pr_event.json
-            review_comment_ids.json
-            pr-worktree/pr_comment_context.json
-            pr-worktree/pr_event.json
-            pr-worktree/review_comment_ids.json
-            pr-worktree/pr_diff.txt
-            pr-worktree/spec_context.md
-            pr-worktree/implementation_summary.md
-            pr-worktree/pr-metadata.json
-            pr-worktree/resolved_review_comments.json
-            pr-worktree/validation-output.txt
-            pr-worktree/validation-error.txt
+            ${{ steps.handoff.outputs.dir }}/pr_comment_context.json
+            ${{ steps.handoff.outputs.dir }}/pr_event.json
+            ${{ steps.handoff.outputs.dir }}/review_comment_ids.json
+            ${{ steps.handoff.outputs.dir }}/pr_diff.txt
+            ${{ steps.handoff.outputs.dir }}/spec_context.md
+            ${{ steps.handoff.outputs.dir }}/implementation_summary.md
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json
+            ${{ steps.handoff.outputs.dir }}/resolved_review_comments.json
+            ${{ steps.handoff.outputs.dir }}/validation-output.txt
+            ${{ steps.handoff.outputs.dir }}/validation-error.txt

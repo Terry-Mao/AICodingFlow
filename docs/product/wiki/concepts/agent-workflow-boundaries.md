@@ -33,14 +33,16 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - Spec workflow 由外层 GitHub Actions 创建或更新 spec PR。
 - `create-pr` skill 准备 PR 标题、正文、base/head 信息和 issue 关联；不负责实现代码、提交、推送分支或修改 GitHub issue。
 - Implementation workflow 由外层 GitHub Actions 创建或更新 implementation PR。
-- Implementation agent 负责读取稳定上下文、产出实现 diff、必要时同步 specs，并写出 `implementation_summary.md` 与 `pr-metadata.json`。
+- Implementation agent 负责读取 workflow 提供的稳定上下文路径、产出实现 diff、必要时同步 specs，并把 `implementation_summary.md` 与 `pr-metadata.json` 写到 workflow 指定的 `.codex-runtime/handoff/` 目录。
 - Implementation agent 不直接 commit、push、创建 PR、更新 PR 或编辑 issue。
 - Implementation 外层 workflow 负责校验 agent metadata，提交并推送目标分支，创建或更新 implementation PR，并维护 issue progress comment。
 - `pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和 `intended_files`。
 - `intended_files` 必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow 文件。
 - 外层 workflow 只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files` 不一致，或包含 Python/cache 等生成文件，workflow 会拒绝提交。
+- Spec workflow 的 `issue_context.json`、`issue_comments.txt` 和 `pr-metadata.json` handoff 位于 workspace 内 `.codex-runtime/handoff/`；spec agent 直接修改目标 spec 文件，当前 spec workflow 不定义单独 summary 或 validation-log handoff。
+- Implementation workflow 的 context、metadata、summary、branch SHA snapshot、validation logs 和 `.agents` replacement output 位于 workspace 内 `.codex-runtime/handoff/`，workflow 提交与变更检查排除 `.codex-runtime/`，不依赖仓库根目录 `.gitignore`。
 - Issue triage agent 只产出 `triage_result.json`；GitHub label/comment 更新由外层 workflow 的写权限 job 执行。
-- PR comment response agent 产出修复 diff、`implementation_summary.md` 和 `pr-metadata.json`；提交、push、原 PR 更新或 follow-up PR 创建由外层 workflow 执行。
+- PR comment response agent 产出修复 diff，并把 `implementation_summary.md`、`pr-metadata.json` 和可选 `resolved_review_comments.json` 写到 `pr-worktree/.codex-runtime/handoff/`；提交、push、原 PR 更新或 follow-up PR 创建由外层 workflow 执行。
 - PR comment response agent 不直接调用 GitHub API、创建 PR、发布评论、resolve thread、commit 或 push。
 - CI failure diagnosis skill 只输出修复计划，不直接修改代码、提交、推送或创建 PR。
 - Merge conflict resolution skill 是本地冲突处理辅助能力，不负责提交、推送、创建 PR 或修改 GitHub issue/PR。

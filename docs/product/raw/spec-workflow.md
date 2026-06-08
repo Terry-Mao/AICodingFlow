@@ -50,5 +50,14 @@ open、draft 与同仓库 head 条件决定。
 创建或更新 PR 时，workflow 只复用同一 head branch 上的 open PR；不会把 closed
 PR 当作可更新目标。
 
+## Agent handoff
+
+Create-spec workflow 在 workspace 内 `.codex-runtime/handoff/` 准备
+`issue_context.json` 和 `issue_comments.txt`，并要求 spec agent 把
+`pr-metadata.json` 写到同一目录。agent 直接修改目标 `product.md` 与 `tech.md`
+spec 文件；当前 spec workflow 不定义单独的 summary handoff，也不上传 validation log
+handoff。外层 workflow 校验 `pr-metadata.json` 后创建或更新 spec PR，并排除
+`.codex-runtime/`，因此这些 handoff 文件不依赖仓库根目录 `.gitignore`。
+
 来源：PR #56，PR #58，PR #65，PR #66，PR #67，PR #74，PR #82，PR #84，
 `specs/issue-77/product.md`。
