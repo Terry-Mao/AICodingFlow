@@ -1,5 +1,23 @@
 # Compile Log
 
+## 2026-06-08
+
+按 `docs/product/raw/` 作为权威来源复核 Product LLM Wiki，保持现有 Ingest、Query 与 Linter 结构：
+
+- 确认 21 个 raw source 均已有对应 source summary，且 summary 与 concept 保持双向查询链路。
+- 确认 [index.md](index.md) 链接 Agent guide、schema、compile log、全部 summary 和全部 concept。
+- 确认 [schema/query.md](schema/query.md) 保留 index -> concept -> summary -> raw source 的查询顺序，宽泛关键词搜索仍仅作为辅助。
+- 确认 [schema/staging.md](schema/staging.md) 保留不确定事实的 staged review gate，避免将来源不足或冲突内容写成 `current` + `verified`。
+- 未发现新增 raw source、缺失 summary、缺失 concept 链接或 raw source 之间的新冲突。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-07
 
 根据 `docs/product/raw/` 重新核对 wiki，补齐新增 raw source 的 source traceability，并校准既有概念覆盖：
