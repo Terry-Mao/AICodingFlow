@@ -49,6 +49,14 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
+      - name: Prepare workflow handoff directory
+        id: handoff
+        run: |
+          dir="$RUNNER_TEMP/aicodingflow-create-implementation"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
       - name: Prepare implementation context
         id: issue
         env:
@@ -62,9 +70,9 @@ jobs:
             --event-name "${{ github.event_name }}" \
             --event-path "$GITHUB_EVENT_PATH" \
             --agent-login "$AGENT_LOGIN" \
-            --output issue_context.json \
-            --comments-output issue_comments.txt \
-            --spec-context-output spec_context.md \
+            --output "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --comments-output "${{ steps.handoff.outputs.dir }}/issue_comments.txt" \
+            --spec-context-output "${{ steps.handoff.outputs.dir }}/spec_context.md" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Stop when issue is not ready
@@ -81,7 +89,7 @@ jobs:
         run: |
           python3 .github/scripts/update_implementation_progress.py \
             --repo "${{ github.repository }}" \
-            --context issue_context.json \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
             --status "blocked" \
             --message "${{ steps.issue.outputs.noop_reason }}"
 
@@ -118,7 +126,7 @@ jobs:
           python3 .github/scripts/read_branch_sha.py \
             --repo "${{ github.repository }}" \
             --branch "$TARGET_BRANCH" \
-            --snapshot-output branch-start-shas.json \
+            --snapshot-output "${{ steps.handoff.outputs.dir }}/branch-start-shas.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Checkout implementation target branch
@@ -141,8 +149,8 @@ jobs:
       - name: Prepare implementation output directory
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         run: |
-          rm -rf implementation-output
-          mkdir -p implementation-output
+          rm -rf "${{ steps.handoff.outputs.dir }}/implementation-output"
+          mkdir -p "${{ steps.handoff.outputs.dir }}/implementation-output"
 
       - name: Implement issue
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
@@ -155,18 +163,18 @@ jobs:
 
             This workflow is the implementation phase of the spec-driven
             workflow, not the spec-writing phase. Do not create a new product
-            or tech spec plan from scratch. Implement against spec_context.md
-            when it exists, and update specs only when the implementation
-            materially changes behavior, edge cases, validation expectations,
-            or technical design.
+            or tech spec plan from scratch. Implement against
+            ${{ steps.handoff.outputs.dir }}/spec_context.md when it exists,
+            and update specs only when the implementation materially changes
+            behavior, edge cases, validation expectations, or technical design.
 
             Inputs:
-            - issue_context.json
-            - issue_comments.txt
-            - spec_context.md when it exists
+            - ${{ steps.handoff.outputs.dir }}/issue_context.json
+            - ${{ steps.handoff.outputs.dir }}/issue_comments.txt
+            - ${{ steps.handoff.outputs.dir }}/spec_context.md when it exists
 
-            Read issue_context.json first. Then read and use these skills in
-            this exact order:
+            Read ${{ steps.handoff.outputs.dir }}/issue_context.json first.
+            Then read and use these skills in this exact order:
             1. .agents/skills/implement-specs/SKILL.md
             2. .agents/skills/spec-driven-implementation/SKILL.md
             3. .agents/skills/implement-issue/SKILL.md
@@ -176,26 +184,29 @@ jobs:
             workflow guidance.
 
             Implement the issue conservatively and keep specs aligned with the
-            actual implementation. If spec_context.md exists, use it as the
-            primary design context. If it does not exist, make the smallest
+            actual implementation. If
+            ${{ steps.handoff.outputs.dir }}/spec_context.md exists, use it as
+            the primary design context. If it does not exist, make the smallest
             reasonable implementation choice from the issue context and document
             assumptions.
 
             Required outputs:
-            - implementation_summary.md
-            - pr-metadata.json
+            - ${{ steps.handoff.outputs.dir }}/implementation_summary.md
+            - ${{ steps.handoff.outputs.dir }}/pr-metadata.json
             - implementation file changes in the working tree if there are changes
 
             If a required implementation file is under .agents and .agents is
             read-only in the Codex sandbox, write the complete replacement file
-            under implementation-output using the same repository-relative path
-            instead. For example, write
-            implementation-output/.agents/skills/example/SKILL.md for target
-            file .agents/skills/example/SKILL.md. The outer workflow will apply
-            those files to the working tree after Codex exits. Do not use
-            implementation-output for files outside .agents.
+            under ${{ steps.handoff.outputs.dir }}/implementation-output using
+            the same repository-relative path instead. For example, write
+            ${{ steps.handoff.outputs.dir }}/implementation-output/.agents/skills/example/SKILL.md
+            for target file .agents/skills/example/SKILL.md. The outer workflow
+            will apply those files to the working tree after Codex exits. Do
+            not use the implementation output directory for files outside
+            .agents.
 
-            pr-metadata.json must be a JSON object with:
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json must be a JSON
+            object with:
             - branch_name: the branch the outer workflow should commit and push
             - pr_title: conventional commit style title based on actual changes
             - pr_summary: complete markdown PR body whose first line is exactly
@@ -210,34 +221,31 @@ jobs:
 
             Do not stage files, commit, push, create branches, or run GitHub
             CLI commands. Leave implementation changes in the working tree.
-            The outer workflow validates pr-metadata.json, commits the
-            implementation files to pr-metadata.json.branch_name, pushes that
-            branch, creates or updates the PR, and posts progress updates.
+            The outer workflow validates
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json, commits the
+            implementation files to that metadata file's branch_name, pushes
+            that branch, creates or updates the PR, and posts progress updates.
 
-            Respect issue_context.json.coauthor_directives when relevant, but
-            do not invent coauthors.
+            Respect coauthor_directives from
+            ${{ steps.handoff.outputs.dir }}/issue_context.json when relevant,
+            but do not invent coauthors.
 
             Do not create or update pull requests, post GitHub comments, or
             edit GitHub issues. The outer workflow handles GitHub API writes
-            after validating pr-metadata.json.
+            after validating ${{ steps.handoff.outputs.dir }}/pr-metadata.json.
 
       - name: Apply implementation output
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
-        run: python3 .github/scripts/apply_implementation_output.py
+        run: |
+          python3 .github/scripts/apply_implementation_output.py \
+            --output-dir "${{ steps.handoff.outputs.dir }}/implementation-output" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
 
       - name: Check implementation worktree changes
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         id: worktree
         run: |
-          changed="$(git status --porcelain=v1 --untracked-files=all -- \
-            ':!issue_context.json' \
-            ':!issue_comments.txt' \
-            ':!spec_context.md' \
-            ':!branch-start-shas.json' \
-            ':!implementation_summary.md' \
-            ':!pr-metadata.json' \
-            ':!validation-output.txt' \
-            ':!validation-error.txt')"
+          changed="$(git status --porcelain=v1 --untracked-files=all)"
           if [ -n "$changed" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
@@ -251,7 +259,7 @@ jobs:
         run: |
           python3 .github/scripts/update_implementation_progress.py \
             --repo "${{ github.repository }}" \
-            --context issue_context.json \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
             --status "no changes" \
             --message "I analyzed this issue but did not produce an implementation diff."
 
@@ -261,10 +269,10 @@ jobs:
         continue-on-error: true
         run: |
           python3 .github/scripts/validate_implementation_output.py \
-            --context issue_context.json \
-            --metadata pr-metadata.json \
-            > validation-output.txt \
-            2> validation-error.txt
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            > "${{ steps.handoff.outputs.dir }}/validation-output.txt" \
+            2> "${{ steps.handoff.outputs.dir }}/validation-error.txt"
 
       - name: Update progress comment for invalid implementation output
         if: steps.validate.outcome == 'failure'
@@ -273,9 +281,9 @@ jobs:
         run: |
           python3 .github/scripts/update_implementation_progress.py \
             --repo "${{ github.repository }}" \
-            --context issue_context.json \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
             --status "failed" \
-            --message-file validation-error.txt
+            --message-file "${{ steps.handoff.outputs.dir }}/validation-error.txt"
 
       - name: Check whether workflow update token is required
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
@@ -284,7 +292,7 @@ jobs:
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json
 
-          with open("pr-metadata.json", encoding="utf-8") as handle:
+          with open("${{ steps.handoff.outputs.dir }}/pr-metadata.json", encoding="utf-8") as handle:
               metadata = json.load(handle)
           intended_files = metadata.get("intended_files") or []
           required = any(str(path).startswith(".github/workflows/") for path in intended_files)
@@ -308,8 +316,8 @@ jobs:
           WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           python3 .github/scripts/commit_implementation_branch.py \
-            --context issue_context.json \
-            --metadata pr-metadata.json \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Stop when implementation produced no committable diff
@@ -319,7 +327,7 @@ jobs:
         run: |
           python3 .github/scripts/update_implementation_progress.py \
             --repo "${{ github.repository }}" \
-            --context issue_context.json \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
             --status "no changes" \
             --message "I analyzed this issue but did not produce a committable implementation diff."
 
@@ -333,8 +341,8 @@ jobs:
           python3 .github/scripts/read_branch_sha.py \
             --repo "${{ github.repository }}" \
             --branch "$TARGET_BRANCH" \
-            --metadata pr-metadata.json \
-            --snapshot branch-start-shas.json \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --snapshot "${{ steps.handoff.outputs.dir }}/branch-start-shas.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Create or update implementation pull request
@@ -345,8 +353,8 @@ jobs:
         run: |
           python3 .github/scripts/finalize_implementation_pr.py \
             --repo "${{ github.repository }}" \
-            --context issue_context.json \
-            --metadata pr-metadata.json \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Update progress comment
@@ -356,7 +364,7 @@ jobs:
         run: |
           python3 .github/scripts/update_implementation_progress.py \
             --repo "${{ github.repository }}" \
-            --context issue_context.json \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
             --status "ready for review" \
             --message "Review the implementation changes in the PR. Complete any manual verification needed before merging." \
             --pr-url "${{ steps.pr.outputs.pr_url }}"
@@ -370,12 +378,12 @@ jobs:
         with:
           name: create-implementation-from-issue-${{ github.run_id }}
           path: |
-            issue_context.json
-            issue_comments.txt
-            spec_context.md
-            branch-start-shas.json
-            implementation_summary.md
-            pr-metadata.json
-            implementation-output
-            validation-output.txt
-            validation-error.txt
+            ${{ steps.handoff.outputs.dir }}/issue_context.json
+            ${{ steps.handoff.outputs.dir }}/issue_comments.txt
+            ${{ steps.handoff.outputs.dir }}/spec_context.md
+            ${{ steps.handoff.outputs.dir }}/branch-start-shas.json
+            ${{ steps.handoff.outputs.dir }}/implementation_summary.md
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json
+            ${{ steps.handoff.outputs.dir }}/implementation-output
+            ${{ steps.handoff.outputs.dir }}/validation-output.txt
+            ${{ steps.handoff.outputs.dir }}/validation-error.txt

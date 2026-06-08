@@ -51,6 +51,14 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
+      - name: Prepare workflow handoff directory
+        id: handoff
+        run: |
+          dir="$RUNNER_TEMP/aicodingflow-create-spec"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
       - name: Prepare issue context
         id: issue
         env:
@@ -64,8 +72,8 @@ jobs:
             --event-name "${{ github.event_name }}" \
             --event-path "$GITHUB_EVENT_PATH" \
             --agent-login "$AGENT_LOGIN" \
-            --output issue_context.json \
-            --comments-output issue_comments.txt \
+            --output "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --comments-output "${{ steps.handoff.outputs.dir }}/issue_comments.txt" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Stop when issue is not ready
@@ -106,11 +114,11 @@ jobs:
             Create GitHub issue specs from the stable local context files.
 
             Inputs:
-            - issue_context.json
-            - issue_comments.txt
+            - ${{ steps.handoff.outputs.dir }}/issue_context.json
+            - ${{ steps.handoff.outputs.dir }}/issue_comments.txt
 
-            Read issue_context.json first. Then read and use these skills in
-            this exact order:
+            Read ${{ steps.handoff.outputs.dir }}/issue_context.json first.
+            Then read and use these skills in this exact order:
             1. .agents/skills/spec-driven-implementation/SKILL.md
                - Overall workflow: decide and organize spec-first work.
             2. .agents/skills/write-product-spec/SKILL.md
@@ -125,20 +133,23 @@ jobs:
             Required outputs:
             - ${{ steps.issue.outputs.product_spec }}
             - ${{ steps.issue.outputs.tech_spec }}
-            - pr-metadata.json
+            - ${{ steps.handoff.outputs.dir }}/pr-metadata.json
 
             This workflow is only for writing specs. Produce product.md,
-            tech.md, and pr-metadata.json only. Do not implement the feature,
-            modify production code, or begin the implement-specs phase.
+            tech.md, and ${{ steps.handoff.outputs.dir }}/pr-metadata.json
+            only. Do not implement the feature, modify production code, or
+            begin the implement-specs phase.
 
-            Write pr-metadata.json as a JSON object with:
-            - branch_name: issue_context.json.target_branch
+            Write ${{ steps.handoff.outputs.dir }}/pr-metadata.json as a JSON
+            object with:
+            - branch_name: target_branch from ${{ steps.handoff.outputs.dir }}/issue_context.json
             - pr_title: concise conventional-commit style PR title, such as
               "docs(spec): create issue ${{ steps.issue.outputs.issue_number }} specs"
             - pr_summary: complete markdown PR body. It must include the exact
               non-closing issue reference "Refs #${{ steps.issue.outputs.issue_number }}".
 
-            Respect issue_context.json.coauthor_directives in generated
+            Respect coauthor_directives from
+            ${{ steps.handoff.outputs.dir }}/issue_context.json in generated
             metadata or specs when relevant, but do not invent coauthors.
 
             Do not modify .agents, .github, tests, README, or production code.
@@ -146,7 +157,10 @@ jobs:
 
       - name: Validate spec output
         if: steps.issue.outputs.should_run == 'true'
-        run: python3 .github/scripts/validate_spec_output.py --context issue_context.json --metadata pr-metadata.json
+        run: |
+          python3 .github/scripts/validate_spec_output.py \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
 
       - name: Check for spec changes
         if: steps.issue.outputs.should_run == 'true'
@@ -165,14 +179,14 @@ jobs:
         run: |
           python3 .github/scripts/finalize_spec_pr.py \
             --repo "${{ github.repository }}" \
-            --context issue_context.json \
-            --metadata pr-metadata.json
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: create-spec-from-issue-${{ github.run_id }}
           path: |
-            issue_context.json
-            issue_comments.txt
-            pr-metadata.json
+            ${{ steps.handoff.outputs.dir }}/issue_context.json
+            ${{ steps.handoff.outputs.dir }}/issue_comments.txt
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json
