@@ -1924,6 +1924,23 @@
       "proposed_patch": "Document that GitHub workflow PR diff snapshots for AI PR Review and /fix now come from the GitHub PR diff API, and that the workflows fail if the PR head or base SHA changes while preparing the diff.",
       "reason": "PR #231 changed the authoritative PR diff snapshot behavior for GitHub-hosted review and /fix workflows from a local base/head git diff to the GitHub PR diff API with before-and-after SHA validation. This is long-term workflow and public failure-semantics knowledge that was not explicitly covered by the existing product docs.",
       "recorded_at": "2026-06-08T19:11:23Z"
+    },
+    {
+      "pr": 234,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/234",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-05T07:50:42Z",
+      "merge_commit": "b862396fe00034dabbdf0b8db6419cdbd91dd483",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #234",
+        "docs/product/raw/",
+        "docs/product/wiki/"
+      ],
+      "proposed_patch": "No product docs patch is needed because the merged PR updated only the generated wiki query layer from existing raw sources.",
+      "reason": "PR #234 only compiled existing authoritative docs/product/raw/ content into docs/product/wiki/. It did not change implementation behavior, specs, raw product docs, or any long-term product rule that is not already represented by the existing product documentation.",
+      "recorded_at": "2026-06-08T21:29:18Z"
     }
   ]
 }
