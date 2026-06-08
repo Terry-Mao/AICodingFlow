@@ -55,6 +55,7 @@
 - 过滤 duplicate 关闭信号，明确交给 `update-dedupe`。
 - 将可学习模式合并进 `.agents/skills/triage-issue-repo/SKILL.md` 的相关 section。
 - 仅在 label taxonomy 本身需要变化时，提出 `.github/issue-triage/config.json` 的完整 replacement。
+- Label config replacement 只应用于新增 label、重命名 label 或澄清 description；除新增 label 的默认或占位色外，不得在没有明确维护者指导时修改已有 color values。
 - 写入 `update-triage-output/status.json`。
 - 当 `status == "changed"` 时，写入一个或两个完整 replacement file：
   - `update-triage-output/triage-issue-repo/SKILL.md`
@@ -96,10 +97,13 @@ Skill 写入 guidance 时应保留 companion frontmatter 和 core-boundary wordi
 - `--days N`，默认 7。
 - `--issue NUMBER`，可选，用于单 issue 调试。
 - `--maintainer-login LOGIN`，可重复；可选，用于限制哪些 actor/comment author 被视为维护者。
+- `--org-member-fallback` 或等价内部检测开关，可选；当 `OWNER`、`MEMBER`、`COLLABORATOR` 不足以识别维护者时，允许用可验证的组织成员身份作为 fallback。
 - `--include-bots`，默认 false；调试时可包含 bot，但学习逻辑仍应避免 agent-only 证据。
 - `--output PATH`，必填或可选；workflow 中写 `triage-feedback.json`。
 
 数据收集建议使用 `gh api graphql`，因为需要 issue timeline 的 label 和 reopened 事件。查询和归一化应尽量封装在脚本内，输出稳定 JSON，避免 Codex action 直接理解 GraphQL shape。
+
+聚合脚本不读取历史 triage artifacts，也不从 triage bot comment 推断候选 issue。第一版候选来源只依赖 GitHub issue API 可见的 issue 状态、labels、events、timeline 和 comments。
 
 建议 GraphQL 获取：
 
@@ -118,6 +122,7 @@ Skill 写入 guidance 时应保留 companion frontmatter 和 core-boundary wordi
 - 默认搜索 `repo:<repo> is:issue label:triaged updated:>=<since>`。
 - `--issue` 指定时只查询该 issue。
 - 脚本可保留 issue 当前 labels，后续 label changes 由 timeline normalization 表示。
+- 即使 issue 有 triage bot comment，只要当前不带 `triaged` label，第一版也不进入候选集合。
 
 建议输出 shape：
 
@@ -170,7 +175,7 @@ Skill 写入 guidance 时应保留 companion frontmatter 和 core-boundary wordi
 
 过滤和归一化规则：
 
-- 只把非 bot actor/comment author 默认视为维护者候选；若实现 collaborator 判断，应通过 GraphQL association 或 CLI 可验证字段完成。
+- 只有 `OWNER`、`MEMBER`、`COLLABORATOR` 关系的非 bot actor/comment author 默认视为维护者信号；当仓库需要覆盖组织维护者时，可通过 GraphQL/CLI 可验证的组织成员身份作为 fallback。`--maintainer-login` 可以进一步收窄允许列表，但不能把 bot 或 reporter-only 信号提升为默认可学习证据。
 - `MarkedAsDuplicateEvent`、`stateReason == DUPLICATE`、duplicate closure 应进入 `skipped` 或 `skipped_signals`，不进入学习候选。
 - 同一 issue 的同一 label event 不应重复计数。
 - 评论正文可截断到合理长度，避免把大段 untrusted content 放进 prompt。
@@ -289,7 +294,7 @@ Codex action prompt 应明确：
 ## 6. Risks and mitigations
 
 - 风险：维护者身份判断不准确，导致 reporter 评论被当作可学习信号。
-  - 缓解：默认排除 bot，优先使用 author association 或 explicit maintainer allowlist；测试 reporter-only 评论不触发学习。
+  - 缓解：默认排除 bot，要求 `OWNER`、`MEMBER`、`COLLABORATOR` 或可验证组织成员 fallback，并允许 explicit maintainer allowlist 收窄范围；测试 reporter-only 评论不触发学习。
 - 风险：从单个 override 过度学习，污染 triage guidance。
   - 缓解：skill 要求重复模式，默认至少两个独立 issue；one-off 输出 `no_change`。
 - 风险：duplicate 信号被重复学习到 triage companion。
@@ -297,7 +302,7 @@ Codex action prompt 应明确：
 - 风险：生成内容修改 core skill 或 workflow。
   - 缓解：Codex action 只写 output directory；apply 脚本和 write-surface guard 只允许 triage companion 和 config。
 - 风险：label config 更新破坏 JSON 或删除现有 labels。
-  - 缓解：apply 脚本解析 JSON；测试确保 existing labels preserved；skill prompt 要求 label config 只做最小 taxonomy 改动。
+  - 缓解：apply 脚本解析 JSON；测试确保 existing labels preserved；skill prompt 要求 label config 只做最小 taxonomy 改动，且除新增 label 的默认或占位色外，不在没有明确维护者指导时改变已有 color values。
 - 风险：维护者评论中包含 prompt injection。
   - 缓解：skill 和 workflow prompt 明确 comments 是 data；输出只保留摘要和 issue numbers。
 - 风险：workflow fixed branch 覆盖未合并人工修改。
@@ -311,10 +316,12 @@ Codex action prompt 应明确：
   - `--repo` parsing 和默认 repo fallback。
   - `--days` search query 使用 `label:triaged updated:>=<since>`。
   - `--issue` 只查询单 issue。
+  - 不读取历史 triage artifacts，也不从 triage bot comment 推断候选 issue。
   - label added / removed events 被归一化。
   - reopened events 被归一化。
   - bot comments 默认排除。
   - reporter-only comments 不进入 maintainer correction list。
+  - `OWNER`、`MEMBER`、`COLLABORATOR` 被识别为维护者信号，组织成员 fallback 只有在可验证时启用。
   - duplicate events/state reason 被放入 skipped，不进入 learnable signals。
   - pagination 合并不会重复计数。
 - `apply_guidance_output.py` 测试：
@@ -356,5 +363,5 @@ git diff --check
 ## 8. Follow-ups
 
 - 如果维护者希望学习 owner routing 或 CODEOWNERS 相关模式，应先定义可信 owner 数据源，再扩展聚合脚本和 guidance section。
-- 如果后续需要更精确识别“bot 初始 triage 后的维护者修正”，可以让 triage workflow artifact 或 triage comment 增加机器可读 marker；第一版可先依赖 timeline 和 label/comment evidence。
+- 如果后续需要更精确识别“bot 初始 triage 后的维护者修正”，可以让 triage workflow artifact 或 triage comment 增加机器可读 marker；第一版只依赖带 `triaged` label 的 issue 及其 GitHub API 可见 timeline、events 和 comments。
 - 如果 label taxonomy 经常变化，可以单独增加 config normalization helper，避免 Codex 直接重写整个 config。

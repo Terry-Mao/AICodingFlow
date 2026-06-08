@@ -21,7 +21,7 @@
 
 - 提供一个新的 `update-triage` skill，用于把维护者后续 triage 修正信号转化为 repo-local triage guidance。
 - 提供一个 GitHub Actions workflow，维护者可手动触发，默认分析最近 7 天的 triaged issue。
-- 聚合最近带 `triaged` label 且近期有更新的 issue，并收集维护者后续动作：
+- 聚合最近带 `triaged` label 且近期有更新的 issue；第一版只分析带 `triaged` label 的 issue，不从 triage bot comment 或历史 triage artifacts 推断候选 issue。聚合后收集维护者后续动作：
   - label added / removed。
   - reopened。
   - 维护者后续评论。
@@ -32,7 +32,7 @@
   - 维护者反复在同类 issue 下追问同样的必要信息。
   - bot 反复错误推断某类 issue 的分类、owner、area 或 follow-up 问题。
 - 主要更新 `.agents/skills/triage-issue-repo/SKILL.md`。
-- 仅当稳定模式表明 label taxonomy 缺失或描述不准确时，才允许最小化更新 `.github/issue-triage/config.json`。
+- 仅当稳定模式表明存在具体 label taxonomy 变更时，才允许最小化更新 `.github/issue-triage/config.json`，例如新增 label、重命名 label 或澄清 label description。
 - 证据不足、只有一次性 override、现有 guidance 已覆盖，或信号属于 duplicate 学习范围时，流程应输出 `no_change` 且不创建 PR。
 - 外层 GitHub Actions runner 负责 GitHub 数据收集、应用 proposed output、写入范围验证、提交、推送和 PR 创建。
 
@@ -65,8 +65,10 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 
 - 聚合脚本应优先收集结构化 timeline 信号，而不是让 Codex action 直接解释 GitHub API 原始响应。
 - 候选 issue 应满足：
-  - 当前或最近被 triage 过，能通过 `triaged` label 或 triage bot 输出识别。
+  - 当前带 `triaged` label；第一版不识别仅有 triage bot comment、已移除 `triaged` label 或仅存在历史 triage artifact 的 issue。
   - 在 triage 后有维护者动作或评论。
+- 聚合脚本只依赖 GitHub issue API 可见的 issue 状态、events、timeline 和 comments，不读取历史 triage artifacts。
+- 维护者身份判断应优先使用 GitHub 返回的 `OWNER`、`MEMBER` 或 `COLLABORATOR` 关系；当这些关系不足以覆盖仓库维护者时，允许使用可验证的组织成员身份作为 fallback。Bot actor/comment author 默认不作为维护者学习信号。
 - 每条候选记录应尽量包含：
   - issue number、title、url、author、state、created/updated 时间。
   - 初始 triage 标签或 triage comment 摘要。
@@ -105,7 +107,7 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 - 允许持久更新的文件只有：
   - `.agents/skills/triage-issue-repo/SKILL.md`
   - `.github/issue-triage/config.json`
-- `.github/issue-triage/config.json` 只能在 label taxonomy 需要新增、调整描述或颜色归一化时更新；普通 triage heuristic 应写入 companion skill。
+- `.github/issue-triage/config.json` 只能在 label taxonomy 需要新增 label、重命名 label 或澄清 description 时更新；普通 triage heuristic 应写入 companion skill。Workflow 不应主动重写已有 label color；新增 label 可使用默认或占位色，但颜色语义必须由维护者在 PR review 中确认，除非维护者明确要求，否则不得修改已有 color values。
 - 写入范围 guard 必须拒绝 `.agents/skills/triage-issue/SKILL.md`、dedupe companion、workflow 文件、脚本、tests、README、production code 或其他路径。
 
 ### PR 行为
@@ -137,7 +139,7 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 - 有变更时，持久写入范围仅限 `.agents/skills/triage-issue-repo/` 和 `.github/issue-triage/config.json`。
 - `.agents/skills/triage-issue/SKILL.md`、`.agents/skills/dedupe-issue-repo/SKILL.md`、其他 core skill、workflow、scripts、tests、README 和 production code 不会被 runtime self-evolution 输出修改。
 - 更新后的 companion skill 保留 frontmatter、core skill 边界、overridable categories 和 self-evolution boundary。
-- label config 更新只发生在 label taxonomy 需要变更时，且 JSON 格式稳定。
+- label config 更新只发生在具体 label taxonomy 需要变更时，且 JSON 格式稳定；除新增 label 的默认或占位色外，不会在没有明确维护者指导时改变已有 color values。
 - 无变更时 workflow 不创建 PR。
 - 有变更时 PR 使用固定分支 `feat/update-triage`，并包含非关闭 issue 引用。
 
@@ -166,9 +168,9 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
   - 有变更时只提交允许文件。
   - PR body 包含 evidence summary 和非关闭 issue reference。
 
-## 9. Open questions
+## 9. Decisions
 
-- 第一版是否只分析带 `triaged` label 的 issue，还是也应识别已有 triage bot comment 但 label 被维护者移除的 issue。
-- 维护者身份应如何判定：使用 repo collaborators/association、排除 bot、还是提供 allowlist input。
-- `.github/issue-triage/config.json` 的 label 颜色是否应由 workflow 生成默认值，还是必须由维护者在 PR review 中调整。
-- 聚合脚本是否需要读取历史 triage artifacts，还是仅依赖 GitHub issue timeline 和 comments。
+- 第一版只分析带 `triaged` label 的 issue。
+- 维护者身份使用 `OWNER`、`MEMBER`、`COLLABORATOR`，并允许组织成员身份作为 fallback；bot 默认排除。
+- `.github/issue-triage/config.json` 只在具体 label taxonomy 变更时更新。新增 label 可带默认或占位色，但已有 color values 不得在没有明确维护者指导时改变。
+- 聚合脚本不读取历史 triage artifacts，只依赖 GitHub issue API 可见的状态、events、timeline 和 comments。
