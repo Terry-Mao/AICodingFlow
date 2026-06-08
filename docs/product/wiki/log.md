@@ -1,5 +1,25 @@
 # Compile Log
 
+## 2026-06-07
+
+根据 `docs/product/raw/` 重新核对 wiki，补齐新增 raw source 的 source traceability，并校准既有概念覆盖：
+
+- 新增 [Create PR skill 摘要](summaries/create-pr-skill.md) 与 [Create PR skill](concepts/create-pr-skill.md)，记录当前 head branch open PR 复用、closed/merged PR 不复用、PR body 人工补充保留和 skill 职责边界。
+- 新增 [Product wiki workflow 摘要](summaries/product-wiki-compile-workflow.md) 与 [Product wiki workflow](concepts/product-wiki-workflow.md)，记录编译触发、输入输出、query/staging schema、raw checksum、validator 和 PR 行为。
+- 新增 [Product Wiki Query agent 摘要](summaries/product-wiki-query-agent.md) 与 [Product Wiki Query agent](concepts/product-wiki-query-agent.md)，记录 GitHub Copilot custom agent 的查询入口、raw 校验规则、回答边界和默认不维护 wiki 的边界。
+- 更新 [index.md](index.md)，链接新增 summary 与 concept。
+- 校准 [Agent 目录布局摘要](summaries/agent-directory-layout.md) 与 [Agent 目录布局](concepts/agent-directory-layout.md)：补充 `.github/agents/` 和 `Product Wiki Query` custom agent 的产品定位。
+- 校准 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)：同步范围包含 `.github/agents/`。
+- 扩展 [Agent 与外层 workflow 职责边界](concepts/agent-workflow-boundaries.md)：补齐 `create-pr`、`product-wiki-compile` 和 `Product Wiki Query` 的职责边界。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-06
 
 根据 `docs/product/raw/` 重新核对 wiki，修正与 raw source 不一致或覆盖不足的页面：

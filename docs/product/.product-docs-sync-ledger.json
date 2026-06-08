@@ -1787,6 +1787,102 @@
       "proposed_patch": "无需产品文档补丁；不修改 `docs/product/`。",
       "reason": "PR #213 仅重新编译 `docs/product/raw/` 到 `docs/product/wiki/`，变更范围是派生 wiki 页面和编译日志。现有产品文档已声明 `docs/product/raw/` 是权威来源，且本次没有 raw 文档、spec、产品代码或 workflow 行为变更。",
       "recorded_at": "2026-06-07T01:56:26Z"
+    },
+    {
+      "pr": 215,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/215",
+      "title": "fix: 跳过 product docs sync 中缺失的 issue 引用",
+      "merged_at": "2026-06-01T09:27:21Z",
+      "merge_commit": "67e940c61555249a233118e706984585e95a95c1",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #215",
+        "Issue #214",
+        "specs/issue-214/product.md",
+        "specs/issue-214/tech.md"
+      ],
+      "proposed_patch": "更新 Product Docs Sync workflow 权威文档，说明 unreadable linked issue 会被跳过，linked_issues 和相关 specs 只包含成功读取的 issue，且该情况不会让可处理的 merged PR 变为 should_run=false。",
+      "reason": "PR #215 改变了 Product Docs Sync 的长期 workflow 行为：单个 linked issue 读取失败时不再中断上下文准备，而是跳过该 issue 并继续处理 merged PR。现有产品文档只描述了 issue 引用进入上下文和 specs 读取流程，未覆盖缺失或不可读取 issue 的过滤规则。",
+      "recorded_at": "2026-06-07T06:52:58Z"
+    },
+    {
+      "pr": 217,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/217",
+      "title": "fix: append product docs sync PR comments",
+      "merged_at": "2026-06-01T18:50:22Z",
+      "merge_commit": "6a86f6434ec9e30750b1bb14cbb2da449f65a44f",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "source_context": [
+        "PR #217",
+        "Issue #216",
+        "specs/issue-216/product.md",
+        "specs/issue-216/tech.md"
+      ],
+      "proposed_patch": "Updated the Product Docs Sync workflow raw product doc to describe appended per-run PR comments on the docs sync PR, including fields, uncertain confirmation visibility, and the rule that old bot comments are not edited.",
+      "reason": "PR #217 changed the long-term Product Docs Sync workflow behavior: every create or update of the docs sync PR now appends a per-run PR comment with the current decision details. Existing product docs described the fixed-branch PR body and ledger behavior but did not cover the new conversation comment record.",
+      "recorded_at": "2026-06-07T10:18:48Z"
+    },
+    {
+      "pr": 222,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/222",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-02T11:01:32Z",
+      "merge_commit": "6ba69e0f29fe264d01ca9cc207d8298322038894",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #222",
+        "docs/product/raw/project-installer.md",
+        "docs/product/raw/update-dedupe-workflow.md"
+      ],
+      "proposed_patch": "No docs/product changes are needed.",
+      "reason": "PR #222 only compiled the generated docs/product/wiki knowledge layer from existing docs/product/raw sources. It did not introduce new product behavior, and the authoritative raw product docs already include the relevant source documents.",
+      "recorded_at": "2026-06-07T12:13:55Z"
+    },
+    {
+      "pr": 226,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/226",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-03T09:27:59Z",
+      "merge_commit": "7467fb7a8aeec33f29e8786f989559d15de3cdb9",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #226",
+        "docs/product/raw/",
+        "docs/product/wiki/"
+      ],
+      "proposed_patch": "无需修改 docs/product/；本次只记录 not-needed 决策。",
+      "reason": "PR #226 只是将现有 docs/product/raw/ 内容重新编译为 docs/product/wiki/ 知识层，没有引入新的权威产品行为、workflow、配置语义或公开契约。变更属于派生 wiki 内容同步，长期产品事实仍已由现有 raw 文档覆盖。",
+      "recorded_at": "2026-06-07T14:33:32Z"
+    },
+    {
+      "pr": 227,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/227",
+      "title": "fix(review): suppress repeated bot review comments",
+      "merged_at": "2026-06-03T09:53:38Z",
+      "merge_commit": "47bfdde64f96ffee7fd9f5f50386ad2c5418498c",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #227",
+        "Issue #225",
+        ".agents/skills/review-pr/SKILL.md",
+        ".agents/skills/review-spec/SKILL.md",
+        ".github/scripts/prepare_review_discussion_context.py",
+        ".github/workflows/review-pr.yml"
+      ],
+      "proposed_patch": "Updated docs/product/raw/pr-review-verdict.md to document review_discussion_context.json generation, duplicate-suppression rules, maintainer dismissal handling, unresolved-thread handling, and REVIEW_BOT_LOGIN source attribution.",
+      "reason": "PR #227 changes long-term AI PR Review behavior by adding prior review discussion snapshots and duplicate suppression for resolved, maintainer-dismissed, and still-unresolved bot inline comments. Existing product docs covered review workflow behavior but did not document this discussion context or its instruction-safety boundary.",
+      "recorded_at": "2026-06-07T16:00:13Z"
     }
   ]
 }
