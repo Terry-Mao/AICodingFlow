@@ -9,21 +9,11 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from github_api import flatten_gh_pages as flatten_pages
+from github_api import run_gh_json
+
 
 MARKER = "<!-- aicodingflow:create-implementation-from-issue -->"
-
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def flatten_pages(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list) and value and all(isinstance(page, list) for page in value):
-        return [item for page in value for item in page]
-    if isinstance(value, list):
-        return value
-    raise SystemExit("unexpected GitHub API response")
 
 
 def find_progress_comment(repo: str, issue_number: int) -> dict[str, Any] | None:

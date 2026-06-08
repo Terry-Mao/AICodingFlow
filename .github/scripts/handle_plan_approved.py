@@ -4,28 +4,20 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import re
 import subprocess
-from pathlib import Path
 from typing import Any
+
+from artifact_contracts import load_json, write_github_output
+from github_api import fetch_default_branch, run_gh_json
+from github_event import assignee_logins, label_names
+from issue_refs import issue_number_from_branch, issue_number_from_strict_text
 
 
 APPROVED_LABEL = "plan-approved"
 READY_TO_SPEC_LABEL = "ready-to-spec"
 READY_TO_IMPLEMENT_LABEL = "ready-to-implement"
 IMPLEMENTATION_WORKFLOW = "create-implementation-from-issue.yml"
-SPEC_BRANCH_RE = re.compile(r"^spec/issue-(\d+)$")
-LINKED_ISSUE_PATTERNS = [
-    re.compile(r"(?<![A-Za-z0-9-])(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)", re.IGNORECASE),
-    re.compile(r"(?<![A-Za-z0-9-])issue\s+#?(\d+)(?![A-Za-z0-9-])", re.IGNORECASE),
-]
-
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
 
 
 def run_gh(args: list[str]) -> None:
@@ -33,25 +25,7 @@ def run_gh(args: list[str]) -> None:
 
 
 def load_event(path: str | None) -> dict[str, Any]:
-    if not path:
-        return {}
-    return json.loads(Path(path).read_text(encoding="utf-8"))
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
-
-
-def label_names(item: dict[str, Any]) -> list[str]:
-    return [label.get("name", "") for label in item.get("labels", []) if label.get("name")]
-
-
-def assignee_logins(issue: dict[str, Any]) -> list[str]:
-    return [assignee.get("login", "") for assignee in issue.get("assignees", []) if assignee.get("login")]
+    return load_json(path, default={})
 
 
 def head_ref(pr: dict[str, Any]) -> str:
@@ -66,18 +40,11 @@ def head_repo_full_name(pr: dict[str, Any]) -> str:
 
 
 def issue_number_from_explicit_text(text: str) -> int | None:
-    for pattern in LINKED_ISSUE_PATTERNS:
-        match = pattern.search(text or "")
-        if match:
-            return int(match.group(1))
-    return None
+    return issue_number_from_strict_text(text)
 
 
 def issue_number_from_spec_branch(branch: str) -> int | None:
-    match = SPEC_BRANCH_RE.match(branch or "")
-    if not match:
-        return None
-    return int(match.group(1))
+    return issue_number_from_branch(branch, prefix="spec/issue-", include_suffix=False)
 
 
 def resolve_linked_issue_number(pr: dict[str, Any]) -> int | None:
@@ -118,14 +85,6 @@ def fetch_issue(repo: str, issue_number: int) -> dict[str, Any]:
             "number,title,labels,assignees,url,state",
         ]
     )
-
-
-def fetch_default_branch(repo: str) -> str:
-    repository = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
-    default_branch = (repository.get("defaultBranchRef") or {}).get("name")
-    if not default_branch:
-        raise SystemExit("could not determine default branch")
-    return default_branch
 
 
 def remove_ready_to_spec_label(repo: str, issue_number: int, dry_run: bool = False) -> bool:
@@ -186,23 +145,49 @@ def repository_default_branch(event: dict[str, Any]) -> str:
     return repository.get("default_branch") or ""
 
 
-def handle_plan_approved(args: argparse.Namespace) -> dict[str, str]:
-    event = load_event(args.event_path)
+def resolve_event_pr(args: argparse.Namespace, event: dict[str, Any]) -> dict[str, Any] | None:
     pr = event_pull_request(event)
-    if not pr:
-        pr_number = int(args.pr_number) if args.pr_number else event_pr_number(event)
-        if not pr_number:
-            return build_outputs(skip_reason="pull request is not available")
-        pr = fetch_pr(args.repo, pr_number)
+    if pr:
+        return pr
+    pr_number = int(args.pr_number) if args.pr_number else event_pr_number(event)
+    return fetch_pr(args.repo, pr_number) if pr_number else None
 
+
+def validate_spec_pr(pr: dict[str, Any]) -> tuple[int | None, str]:
     issue_number = resolve_linked_issue_number(pr)
     if issue_number is None:
-        return build_outputs(skip_reason="linked issue not found")
+        return None, "linked issue not found"
     if not is_spec_pr(pr, issue_number):
-        return build_outputs(issue_number=issue_number, skip_reason="pull request is not a spec PR")
-
+        return issue_number, "pull request is not a spec PR"
     if APPROVED_LABEL not in label_names(pr):
-        return build_outputs(issue_number=issue_number, skip_reason="pull request is missing plan-approved")
+        return issue_number, "pull request is missing plan-approved"
+    return issue_number, ""
+
+
+def implementation_skip_reason(
+    *,
+    has_ready_to_implement: bool,
+    agent_login: str,
+    has_agent_assignee: bool,
+) -> str:
+    if not has_ready_to_implement:
+        return f"missing {READY_TO_IMPLEMENT_LABEL}"
+    if not agent_login:
+        return "missing agent login"
+    if not has_agent_assignee:
+        return "missing bot assignee"
+    return ""
+
+
+def handle_plan_approved(args: argparse.Namespace) -> dict[str, str]:
+    event = load_event(args.event_path)
+    pr = resolve_event_pr(args, event)
+    if not pr:
+        return build_outputs(skip_reason="pull request is not available")
+
+    issue_number, skip_reason = validate_spec_pr(pr)
+    if skip_reason:
+        return build_outputs(issue_number=issue_number, skip_reason=skip_reason)
 
     issue = fetch_issue(args.repo, issue_number)
     issue_labels = set(label_names(issue))
@@ -217,17 +202,14 @@ def handle_plan_approved(args: argparse.Namespace) -> dict[str, str]:
     has_agent_assignee = bool(agent_login and agent_login in issue_assignees)
     default_branch = repository_default_branch(event) or fetch_default_branch(args.repo)
 
-    skip_reason = ""
-    implementation_dispatched = False
-    if not has_ready_to_implement:
-        skip_reason = f"missing {READY_TO_IMPLEMENT_LABEL}"
-    elif not agent_login:
-        skip_reason = "missing agent login"
-    elif not has_agent_assignee:
-        skip_reason = "missing bot assignee"
-    else:
+    skip_reason = implementation_skip_reason(
+        has_ready_to_implement=has_ready_to_implement,
+        agent_login=agent_login,
+        has_agent_assignee=has_agent_assignee,
+    )
+    implementation_dispatched = not skip_reason
+    if implementation_dispatched:
         dispatch_implementation(args.repo, default_branch, issue_number, agent_login, args.dry_run)
-        implementation_dispatched = True
 
     return build_outputs(
         issue_number=issue_number,

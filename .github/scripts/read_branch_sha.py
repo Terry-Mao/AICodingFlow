@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import write_github_output
+
 
 def run_gh_json(args: list[str]) -> Any | None:
     try:
@@ -100,14 +102,6 @@ def end_state(repo: str, branch_prefix: str, metadata_path: Path | None, snapsho
         "changed": "true" if (sha and sha != start_sha) or (not metadata_ref and changed) else "false",
         "changed_branches": ",".join(changed),
     }
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
 
 
 def main() -> None:

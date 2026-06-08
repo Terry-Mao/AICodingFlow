@@ -4,35 +4,31 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+from artifact_contracts import load_json, write_github_output, write_json
+from context_snapshot import flatten_pages, remove_triggering_comment
+from github_api import fetch_default_branch, run_gh_json
+from github_event import (
+    actor_login,
+    assignee_logins,
+    event_comment,
+    event_issue,
+    is_pull_request_issue_event,
+    label_names,
+    triggering_comment_snapshot,
+)
 
 
 TRUSTED_COMMENT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 NEEDS_INFO_LABEL = "needs-info"
 
 
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def flatten_pages(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list) and value and all(isinstance(page, list) for page in value):
-        return [item for page in value for item in page]
-    if isinstance(value, list):
-        return value
-    raise SystemExit("unexpected GitHub API response")
-
-
 def load_event(path: str | None) -> dict[str, Any]:
-    if not path:
-        return {}
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    return load_json(path, default={})
 
 
 def extract_issue_number(args_issue: str, event: dict[str, Any]) -> int:
@@ -45,8 +41,7 @@ def extract_issue_number(args_issue: str, event: dict[str, Any]) -> int:
 
 
 def author_login(item: dict[str, Any]) -> str:
-    user = item.get("user") or item.get("author") or {}
-    return user.get("login") or ""
+    return actor_login(item)
 
 
 def is_automation_user(item: dict[str, Any]) -> bool:
@@ -54,29 +49,6 @@ def is_automation_user(item: dict[str, Any]) -> bool:
     login = (user.get("login") or "").lower()
     user_type = (user.get("type") or "").lower()
     return user_type == "bot" or login.endswith("[bot]")
-
-
-def label_names(issue: dict[str, Any]) -> list[str]:
-    return [label.get("name", "") for label in issue.get("labels", []) if label.get("name")]
-
-
-def assignee_logins(issue: dict[str, Any]) -> list[str]:
-    return [assignee.get("login", "") for assignee in issue.get("assignees", []) if assignee.get("login")]
-
-
-def is_pull_request_issue_event(event: dict[str, Any]) -> bool:
-    issue = event.get("issue") or {}
-    return "pull_request" in issue and issue.get("pull_request") is not None
-
-
-def event_issue(event: dict[str, Any]) -> dict[str, Any]:
-    issue = event.get("issue")
-    return issue if isinstance(issue, dict) else {}
-
-
-def event_comment(event: dict[str, Any]) -> dict[str, Any]:
-    comment = event.get("comment")
-    return comment if isinstance(comment, dict) else {}
 
 
 def issue_has_label(issue: dict[str, Any], label: str) -> bool:
@@ -106,35 +78,7 @@ def comment_has_triage_command(comment: object, login: str) -> bool:
 
 
 def triggering_comment(event: dict[str, Any]) -> dict[str, Any] | None:
-    comment = event_comment(event)
-    if not comment:
-        return None
-    return {
-        "id": comment.get("id"),
-        "author": author_login(comment),
-        "author_association": comment.get("author_association") or "",
-        "body": comment.get("body") or "",
-        "created_at": comment.get("created_at") or "",
-        "url": comment.get("html_url") or "",
-    }
-
-
-def remove_triggering_comment(
-    comments: list[dict[str, Any]],
-    trigger_comment: dict[str, Any] | None,
-) -> list[dict[str, Any]]:
-    if not trigger_comment:
-        return comments
-    trigger_id = trigger_comment.get("id")
-    trigger_url = trigger_comment.get("url")
-    filtered: list[dict[str, Any]] = []
-    for comment in comments:
-        if trigger_id is not None and comment.get("id") == trigger_id:
-            continue
-        if trigger_url and comment.get("html_url") == trigger_url:
-            continue
-        filtered.append(comment)
-    return filtered
+    return triggering_comment_snapshot(event, include_author_association=True)
 
 
 def should_run(args: argparse.Namespace, event: dict[str, Any]) -> tuple[bool, str]:
@@ -282,18 +226,10 @@ def dedupe_candidates(repo: str, current_issue_number: int, *, now: datetime | N
     return candidates
 
 
-def fetch_default_branch(repo: str) -> str:
-    repository = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
-    default_branch = (repository.get("defaultBranchRef") or {}).get("name")
-    if not default_branch:
-        raise SystemExit("could not determine default branch")
-    return default_branch
-
-
 def load_config(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"labels": {}}
-    return json.loads(path.read_text(encoding="utf-8"))
+    return load_json(path, default={"labels": {}})
 
 
 def read_issue_templates(root: Path) -> list[dict[str, str]]:
@@ -347,45 +283,26 @@ def write_templates(path: Path, templates: list[dict[str, str]]) -> None:
 
 
 def write_dedupe_candidates(path: Path, candidates: list[dict[str, Any]]) -> None:
-    path.write_text(json.dumps(candidates, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json(path, candidates)
 
 
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", required=True)
-    parser.add_argument("--issue", default="")
-    parser.add_argument("--event-path", default=os.environ.get("GITHUB_EVENT_PATH", ""))
-    parser.add_argument("--event-name", default=os.environ.get("GITHUB_EVENT_NAME", ""))
-    parser.add_argument("--agent-login", default="")
-    parser.add_argument("--include-issue-body", action="store_true")
-    parser.add_argument("--output", default="triage_context.json")
-    parser.add_argument("--comments-output", default="issue_comments.txt")
-    parser.add_argument("--templates-output", default="issue_templates.txt")
-    parser.add_argument("--dedupe-output", default="dedupe_candidates.json")
-    parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
-    args = parser.parse_args()
-
-    event = load_event(args.event_path)
-    issue_number = extract_issue_number(args.issue, event)
-    issue = fetch_issue(args.repo, issue_number)
-    comments = fetch_comments(args.repo, issue_number)
-    candidates = dedupe_candidates(args.repo, issue_number)
-    default_branch = fetch_default_branch(args.repo)
-    run, reason = should_run(args, event)
+def build_triage_context(
+    args: argparse.Namespace,
+    *,
+    event: dict[str, Any],
+    issue_number: int,
+    issue: dict[str, Any],
+    comments: list[dict[str, Any]],
+    candidates: list[dict[str, Any]],
+    default_branch: str,
+    should_run_flag: bool,
+    trigger_reason: str,
+    root: Path,
+    config: dict[str, Any],
+    templates: list[dict[str, str]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     trigger_comment = triggering_comment(event) if args.event_name == "issue_comment" else None
     historical_comments = remove_triggering_comment(comments, trigger_comment)
-    root = Path.cwd()
-    config = load_config(root / ".github" / "issue-triage" / "config.json")
-    templates = read_issue_templates(root)
-
     context = {
         "owner": args.repo.split("/", 1)[0],
         "repo": args.repo.split("/", 1)[1] if "/" in args.repo else args.repo,
@@ -406,7 +323,7 @@ def main() -> None:
         "comments_count": len(comments),
         "historical_comments_count": len(historical_comments),
         "triggering_comment": trigger_comment,
-        "trigger_reason": reason if run else "",
+        "trigger_reason": trigger_reason if should_run_flag else "",
         "triage_config": config,
         "issue_template_paths": [template["path"] for template in templates],
         "dedupe_candidates_path": args.dedupe_output,
@@ -423,24 +340,81 @@ def main() -> None:
             ".agents/skills/triage-issue-local/SKILL.md",
             ".agents/skills/dedupe-issue-local/SKILL.md",
         ],
-        "should_run": run,
-        "skip_reason": "" if run else reason,
+        "should_run": should_run_flag,
+        "skip_reason": "" if should_run_flag else trigger_reason,
     }
+    return context, historical_comments
 
-    Path(args.output).write_text(json.dumps(context, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+def write_triage_outputs(
+    args: argparse.Namespace,
+    context: dict[str, Any],
+    historical_comments: list[dict[str, Any]],
+    templates: list[dict[str, str]],
+    candidates: list[dict[str, Any]],
+) -> None:
+    write_json(args.output, context)
     write_comments(Path(args.comments_output), historical_comments)
     write_templates(Path(args.templates_output), templates)
     write_dedupe_candidates(Path(args.dedupe_output), candidates)
     write_github_output(
         args.github_output,
         {
-            "should_run": "true" if run else "false",
-            "skip_reason": "" if run else reason,
-            "issue_number": str(issue_number),
-            "default_branch": default_branch,
-            "include_issue_body": "true" if args.include_issue_body else "false",
+            "should_run": "true" if context["should_run"] else "false",
+            "skip_reason": str(context["skip_reason"]),
+            "issue_number": str(context["issue_number"]),
+            "default_branch": str(context["default_branch"]),
+            "include_issue_body": "true" if context["include_issue_body"] else "false",
         },
     )
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo", required=True)
+    parser.add_argument("--issue", default="")
+    parser.add_argument("--event-path", default=os.environ.get("GITHUB_EVENT_PATH", ""))
+    parser.add_argument("--event-name", default=os.environ.get("GITHUB_EVENT_NAME", ""))
+    parser.add_argument("--agent-login", default="")
+    parser.add_argument("--include-issue-body", action="store_true")
+    parser.add_argument("--output", default="triage_context.json")
+    parser.add_argument("--comments-output", default="issue_comments.txt")
+    parser.add_argument("--templates-output", default="issue_templates.txt")
+    parser.add_argument("--dedupe-output", default="dedupe_candidates.json")
+    parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
+    return parser.parse_args(argv)
+
+
+def run(args: argparse.Namespace) -> None:
+    event = load_event(args.event_path)
+    issue_number = extract_issue_number(args.issue, event)
+    issue = fetch_issue(args.repo, issue_number)
+    comments = fetch_comments(args.repo, issue_number)
+    candidates = dedupe_candidates(args.repo, issue_number)
+    default_branch = fetch_default_branch(args.repo)
+    should_run_flag, trigger_reason = should_run(args, event)
+    root = Path.cwd()
+    config = load_config(root / ".github" / "issue-triage" / "config.json")
+    templates = read_issue_templates(root)
+    context, historical_comments = build_triage_context(
+        args,
+        event=event,
+        issue_number=issue_number,
+        issue=issue,
+        comments=comments,
+        candidates=candidates,
+        default_branch=default_branch,
+        should_run_flag=should_run_flag,
+        trigger_reason=trigger_reason,
+        root=root,
+        config=config,
+        templates=templates,
+    )
+    write_triage_outputs(args, context, historical_comments, templates, candidates)
+
+
+def main() -> None:
+    run(parse_args())
 
 
 if __name__ == "__main__":

@@ -12,23 +12,15 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from github_api import flatten_gh_pages as flatten_pages
+from github_api import run_gh_json
+from issue_refs import issue_number_from_text as shared_issue_number_from_text
+from issue_refs import resolve_issue_number_from_pr
+
 
 APPROVED_LABEL = "plan-approved"
 SPEC_CONTEXT_NONE = "Spec Context: No approved or repository spec context was found for this PR."
 DIFF_FILE_RE = re.compile(r"^FILE\s+(.+?)\s*$")
-
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def flatten_pages(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list) and value and all(isinstance(page, list) for page in value):
-        return [item for page in value for item in page]
-    if isinstance(value, list):
-        return value
-    raise SystemExit("unexpected GitHub API response")
 
 
 def load_event(path: str) -> dict[str, Any]:
@@ -36,29 +28,11 @@ def load_event(path: str) -> dict[str, Any]:
 
 
 def issue_number_from_text(text: str) -> int | None:
-    patterns = [
-        r"(?<![A-Za-z0-9-])(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)",
-        r"(?<![A-Za-z0-9-])(?:issue|gh)(?![A-Za-z0-9-])[-/\s#]*(\d+)",
-        r"(?:^|/)[A-Za-z0-9-]+-(\d+)$",
-        r"(?<![A-Za-z0-9-])#(\d+)",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text or "", re.IGNORECASE)
-        if match:
-            return int(match.group(1))
-    return None
+    return shared_issue_number_from_text(text)
 
 
 def resolve_issue_number(pr: dict[str, Any]) -> int | None:
-    for text in (
-        pr.get("body") or "",
-        pr.get("title") or "",
-        (pr.get("head") or {}).get("ref") or "",
-    ):
-        issue_number = issue_number_from_text(text)
-        if issue_number is not None:
-            return issue_number
-    return None
+    return resolve_issue_number_from_pr(pr)
 
 
 def spec_file_paths(issue_number: int) -> list[str]:

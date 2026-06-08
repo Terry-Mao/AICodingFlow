@@ -9,6 +9,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from artifact_contracts import write_github_output
+
 
 WIKI_ROOT = "docs/product/wiki/"
 REQUIRED_FILES = {
@@ -245,14 +247,6 @@ def validate_health_contract(root: Path) -> None:
             has_review_section = "\n## 待确认" in text or "\n## 开放问题" in text
             if has_review_marker and not has_review_section:
                 raise SystemExit(f"{relative} uses 待确认 or 开放问题 without a dedicated review section")
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
 
 
 def main() -> int:

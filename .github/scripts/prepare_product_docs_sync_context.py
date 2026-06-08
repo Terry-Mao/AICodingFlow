@@ -11,6 +11,11 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import write_github_output
+from github_api import fetch_default_branch, run_gh_json, run_gh_text
+from issue_refs import issue_numbers_from_closing_refs
+from ledger_contracts import entries_by_pr, load_ledger as load_pr_ledger
+
 UTC = dt.timezone.utc
 DEFAULT_LEDGER_PATH = "docs/product/.product-docs-sync-ledger.json"
 PRODUCT_DOCS_SYNC_BRANCH_PREFIX = "docs/product-docs-sync"
@@ -20,32 +25,6 @@ PRODUCT_DOCS_SYNC_TITLE_PREFIXES = (
     "Record product docs sync decision for PR #",
 )
 PRODUCT_DOCS_SYNC_TITLES = {"Update product docs"}
-ISSUE_REFERENCE_KEYWORD_RE = re.compile(
-    r"\b(?:refs?|references?|relates\s+to|fixes?|closes?|resolves?)\b[:\s]+[^\n\r]*",
-    re.IGNORECASE,
-)
-ISSUE_NUMBER_RE = re.compile(r"#(\d+)\b")
-PULL_REQUEST_REFERENCE_PREFIX_RE = re.compile(r"(?:\bPR|\bpull\s+request)\s*$", re.IGNORECASE)
-
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def run_gh_text(args: list[str]) -> str:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return result.stdout
-
-
-def fetch_default_branch(repo: str) -> str:
-    data = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
-    branch = (data.get("defaultBranchRef") or {}).get("name")
-    if not branch:
-        raise SystemExit("could not determine default branch")
-    return branch
-
-
 def parse_date(value: str) -> dt.date:
     return dt.date.fromisoformat(value)
 
@@ -165,26 +144,11 @@ def fetch_merged_prs(repo: str, start: dt.datetime, end: dt.datetime, default_br
 
 
 def load_ledger(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"version": 1, "entries": []}
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise SystemExit(f"invalid product docs sync ledger: {path}")
-    data.setdefault("version", 1)
-    data.setdefault("entries", [])
-    if not isinstance(data["entries"], list):
-        raise SystemExit(f"invalid product docs sync ledger entries: {path}")
-    return data
+    return load_pr_ledger(path, ledger_name="product docs sync")
 
 
 def ledger_entries_by_pr(ledger: dict[str, Any]) -> dict[int, dict[str, Any]]:
-    entries: dict[int, dict[str, Any]] = {}
-    for entry in ledger.get("entries") or []:
-        try:
-            entries[int(entry.get("pr"))] = entry
-        except (TypeError, ValueError):
-            continue
-    return entries
+    return entries_by_pr(ledger)
 
 
 def select_unprocessed_pr(prs: list[dict[str, Any]], ledger: dict[str, Any]) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
@@ -242,26 +206,7 @@ def fetch_pr_diff(repo: str, pr_number: str, max_chars: int) -> str:
 
 
 def issue_numbers(pr: dict[str, Any]) -> list[int]:
-    numbers: list[int] = []
-
-    def add_number(value: Any) -> None:
-        try:
-            number = int(value)
-        except (TypeError, ValueError):
-            return
-        if number not in numbers:
-            numbers.append(number)
-
-    for issue in pr.get("closingIssuesReferences") or []:
-        add_number(issue.get("number"))
-    for text in (pr.get("title") or "", pr.get("body") or ""):
-        for match in ISSUE_REFERENCE_KEYWORD_RE.finditer(str(text)):
-            reference_text = match.group(0)
-            for number_match in ISSUE_NUMBER_RE.finditer(reference_text):
-                if PULL_REQUEST_REFERENCE_PREFIX_RE.search(reference_text[: number_match.start()]):
-                    continue
-                add_number(number_match.group(1))
-    return numbers
+    return issue_numbers_from_closing_refs(pr)
 
 
 def compact_author(value: dict[str, Any] | None) -> str:
@@ -400,15 +345,7 @@ def write_existing_docs(path: Path, product_docs: list[dict[str, str]]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
-
-
-def main() -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--pr-number", default="")
@@ -422,10 +359,100 @@ def main() -> int:
     parser.add_argument("--github-output", default="")
     parser.add_argument("--ledger-path", default=DEFAULT_LEDGER_PATH)
     parser.add_argument("--max-diff-chars", type=int, default=100000)
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
-    root = Path.cwd()
-    default_branch = fetch_default_branch(args.repo)
+
+def write_no_pr_outputs(
+    args: argparse.Namespace,
+    default_branch: str,
+    product_docs: list[dict[str, str]],
+    scanned_pr_count: int,
+    skipped_prs: list[dict[str, Any]],
+    scan_window_payload: dict[str, str] | None,
+) -> None:
+    write_context_json(
+        Path(args.context_output),
+        args.repo,
+        default_branch,
+        {},
+        [],
+        [],
+        product_docs,
+        args.ledger_path,
+        scanned_pr_count,
+        skipped_prs,
+        scan_window_payload,
+    )
+    Path(args.markdown_output).write_text("No unprocessed merged PRs found.\n", encoding="utf-8")
+    Path(args.diff_output).write_text("", encoding="utf-8")
+    write_existing_docs(Path(args.existing_docs_output), product_docs)
+    write_github_output(
+        args.github_output,
+        {
+            "pr_number": "",
+            "pr_title": "",
+            "pr_url": "",
+            "merged_at": "",
+            "default_branch": default_branch,
+            "ledger_path": args.ledger_path,
+            "scanned_pr_count": str(scanned_pr_count),
+            "skipped_processed_pr_count": str(len(skipped_prs)),
+            "should_run": "false",
+            "skip_reason": "no unprocessed merged pull requests found",
+        },
+    )
+
+
+def write_selected_pr_outputs(
+    args: argparse.Namespace,
+    default_branch: str,
+    pr: dict[str, Any],
+    issues: list[dict[str, Any]],
+    specs: list[dict[str, str]],
+    product_docs: list[dict[str, str]],
+    scanned_pr_count: int,
+    skipped_prs: list[dict[str, Any]],
+    scan_window_payload: dict[str, str] | None,
+) -> None:
+    write_context_json(
+        Path(args.context_output),
+        args.repo,
+        default_branch,
+        pr,
+        issues,
+        specs,
+        product_docs,
+        args.ledger_path,
+        scanned_pr_count,
+        skipped_prs,
+        scan_window_payload,
+    )
+    write_markdown(Path(args.markdown_output), pr, issues, specs)
+    selected_pr_number = str(pr.get("number") or args.pr_number)
+    Path(args.diff_output).write_text(fetch_pr_diff(args.repo, selected_pr_number, args.max_diff_chars), encoding="utf-8")
+    write_existing_docs(Path(args.existing_docs_output), product_docs)
+    should_run = "true" if pr.get("mergedAt") else "false"
+    write_github_output(
+        args.github_output,
+        {
+            "pr_number": str(pr.get("number") or args.pr_number),
+            "pr_title": str(pr.get("title") or ""),
+            "pr_url": str(pr.get("url") or ""),
+            "merged_at": str(pr.get("mergedAt") or ""),
+            "default_branch": default_branch,
+            "ledger_path": args.ledger_path,
+            "scanned_pr_count": str(scanned_pr_count),
+            "skipped_processed_pr_count": str(len(skipped_prs)),
+            "should_run": should_run,
+            "skip_reason": "" if should_run == "true" else "pull request is not merged",
+        },
+    )
+
+
+def resolve_target_pr(
+    args: argparse.Namespace,
+    default_branch: str,
+) -> tuple[dict[str, Any] | None, int, list[dict[str, Any]], dict[str, str] | None]:
     skipped_prs: list[dict[str, Any]] = []
     scanned_pr_count = 1
     scan_window_payload = None
@@ -446,87 +473,49 @@ def main() -> int:
         scanned_prs = fetch_merged_prs(args.repo, start, end, default_branch)
         scanned_pr_count = len(scanned_prs)
         pr, skipped_prs = select_unprocessed_pr(scanned_prs, load_ledger(Path(args.ledger_path)))
+    return pr, scanned_pr_count, skipped_prs, scan_window_payload
 
-    if pr is None:
-        product_docs = read_existing_product_docs(root)
-        write_context_json(
-            Path(args.context_output),
-            args.repo,
-            default_branch,
-            {},
-            [],
-            [],
-            product_docs,
-            args.ledger_path,
-            scanned_pr_count,
-            skipped_prs,
-            scan_window_payload,
-        )
-        Path(args.markdown_output).write_text("No unprocessed merged PRs found.\n", encoding="utf-8")
-        Path(args.diff_output).write_text("", encoding="utf-8")
-        write_existing_docs(Path(args.existing_docs_output), product_docs)
-        write_github_output(
-            args.github_output,
-            {
-                "pr_number": "",
-                "pr_title": "",
-                "pr_url": "",
-                "merged_at": "",
-                "default_branch": default_branch,
-                "ledger_path": args.ledger_path,
-                "scanned_pr_count": str(scanned_pr_count),
-                "skipped_processed_pr_count": str(len(skipped_prs)),
-                "should_run": "false",
-                "skip_reason": "no unprocessed merged pull requests found",
-            },
-        )
-        return 0
 
+def load_linked_context(root: Path, repo: str, pr: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     numbers = issue_numbers(pr)
-    issues, _skipped_issue_numbers = fetch_existing_issues(args.repo, numbers)
+    issues, _skipped_issue_numbers = fetch_existing_issues(repo, numbers)
     existing_issue_numbers = []
     for issue in issues:
         try:
             existing_issue_numbers.append(int(issue.get("number")))
         except (TypeError, ValueError):
             continue
-    specs = read_specs(root, existing_issue_numbers)
-    product_docs = read_existing_product_docs(root)
-    should_run = "true" if pr.get("mergedAt") else "false"
+    return issues, read_specs(root, existing_issue_numbers)
 
-    write_context_json(
-        Path(args.context_output),
-        args.repo,
+
+def run(args: argparse.Namespace) -> int:
+    root = Path.cwd()
+    default_branch = fetch_default_branch(args.repo, run_json=run_gh_json)
+    pr, scanned_pr_count, skipped_prs, scan_window_payload = resolve_target_pr(args, default_branch)
+
+    if pr is None:
+        product_docs = read_existing_product_docs(root)
+        write_no_pr_outputs(args, default_branch, product_docs, scanned_pr_count, skipped_prs, scan_window_payload)
+        return 0
+
+    issues, specs = load_linked_context(root, args.repo, pr)
+    product_docs = read_existing_product_docs(root)
+    write_selected_pr_outputs(
+        args,
         default_branch,
         pr,
         issues,
         specs,
         product_docs,
-        args.ledger_path,
         scanned_pr_count,
         skipped_prs,
         scan_window_payload,
     )
-    write_markdown(Path(args.markdown_output), pr, issues, specs)
-    selected_pr_number = str(pr.get("number") or args.pr_number)
-    Path(args.diff_output).write_text(fetch_pr_diff(args.repo, selected_pr_number, args.max_diff_chars), encoding="utf-8")
-    write_existing_docs(Path(args.existing_docs_output), product_docs)
-    write_github_output(
-        args.github_output,
-        {
-            "pr_number": str(pr.get("number") or args.pr_number),
-            "pr_title": str(pr.get("title") or ""),
-            "pr_url": str(pr.get("url") or ""),
-            "merged_at": str(pr.get("mergedAt") or ""),
-            "default_branch": default_branch,
-            "ledger_path": args.ledger_path,
-            "scanned_pr_count": str(scanned_pr_count),
-            "skipped_processed_pr_count": str(len(skipped_prs)),
-            "should_run": should_run,
-            "skip_reason": "" if should_run == "true" else "pull request is not merged",
-        },
-    )
     return 0
+
+
+def main() -> int:
+    return run(parse_args())
 
 
 if __name__ == "__main__":

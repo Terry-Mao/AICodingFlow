@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import subprocess
@@ -15,6 +14,20 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+from artifact_contracts import load_json, write_github_output, write_json  # noqa: E402
+from context_snapshot import flatten_pages, format_issue_comments, remove_triggering_comment  # noqa: E402
+from github_api import fetch_default_branch, run_gh_json  # noqa: E402
+from github_event import (  # noqa: E402
+    actor_login,
+    assignee_logins,
+    event_action,
+    event_assignee_login,
+    event_comment_body,
+    event_label_name,
+    is_pull_request_issue_event,
+    label_names,
+    triggering_comment_snapshot,
+)
 from write_spec_context import (  # noqa: E402
     APPROVED_LABEL,
     collect_spec_entries,
@@ -30,36 +43,12 @@ READY_LABEL = "ready-to-implement"
 IMPLEMENT_BRANCH_PREFIX = "spec/implement-issue"
 
 
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def flatten_pages(value: Any) -> list[dict[str, Any]]:
-    if isinstance(value, list) and value and all(isinstance(page, list) for page in value):
-        return [item for page in value for item in page]
-    if isinstance(value, list):
-        return value
-    raise SystemExit("unexpected GitHub API response")
-
-
 def load_event(path: str | None) -> dict[str, Any]:
-    if not path:
-        return {}
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    return load_json(path, default={})
 
 
 def author_login(item: dict[str, Any]) -> str:
-    user = item.get("user") or item.get("author") or {}
-    return user.get("login") or ""
-
-
-def label_names(issue: dict[str, Any]) -> list[str]:
-    return [label.get("name", "") for label in issue.get("labels", []) if label.get("name")]
-
-
-def assignee_logins(issue: dict[str, Any]) -> list[str]:
-    return [assignee.get("login", "") for assignee in issue.get("assignees", []) if assignee.get("login")]
+    return actor_login(item)
 
 
 def comment_mentions_login(comment: str, login: str) -> bool:
@@ -71,41 +60,8 @@ def comment_mentions_login(comment: str, login: str) -> bool:
     return bool(pattern.search(visible_comment))
 
 
-def event_comment_body(event: dict[str, Any]) -> str:
-    comment = event.get("comment") or {}
-    return comment.get("body") or ""
-
-
-def is_pull_request_issue_event(event: dict[str, Any]) -> bool:
-    issue = event.get("issue") or {}
-    return bool(issue.get("pull_request"))
-
-
-def event_action(event: dict[str, Any]) -> str:
-    return event.get("action") or ""
-
-
-def event_label_name(event: dict[str, Any]) -> str:
-    label = event.get("label") or {}
-    return label.get("name") or ""
-
-
-def event_assignee_login(event: dict[str, Any]) -> str:
-    assignee = event.get("assignee") or {}
-    return assignee.get("login") or ""
-
-
 def triggering_comment(event: dict[str, Any]) -> dict[str, Any] | None:
-    comment = event.get("comment")
-    if not comment:
-        return None
-    return {
-        "id": comment.get("id"),
-        "author": author_login(comment),
-        "body": comment.get("body") or "",
-        "created_at": comment.get("created_at") or "",
-        "url": comment.get("html_url") or "",
-    }
+    return triggering_comment_snapshot(event)
 
 
 def collect_coauthor_directives(*texts: str) -> list[str]:
@@ -120,24 +76,6 @@ def collect_coauthor_directives(*texts: str) -> list[str]:
                 seen.add(key)
                 directives.append(directive)
     return directives
-
-
-def remove_triggering_comment(
-    comments: list[dict[str, Any]],
-    trigger_comment: dict[str, Any] | None,
-) -> list[dict[str, Any]]:
-    if not trigger_comment:
-        return comments
-    trigger_id = trigger_comment.get("id")
-    trigger_url = trigger_comment.get("url")
-    filtered: list[dict[str, Any]] = []
-    for comment in comments:
-        if trigger_id is not None and comment.get("id") == trigger_id:
-            continue
-        if trigger_url and comment.get("html_url") == trigger_url:
-            continue
-        filtered.append(comment)
-    return filtered
 
 
 def fetch_issue(repo: str, issue_number: int) -> dict[str, Any]:
@@ -164,14 +102,6 @@ def fetch_comments(repo: str, issue_number: int) -> list[dict[str, Any]]:
         ]
     )
     return flatten_pages(pages)
-
-
-def fetch_default_branch(repo: str) -> str:
-    repository = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
-    default_branch = (repository.get("defaultBranchRef") or {}).get("name")
-    if not default_branch:
-        raise SystemExit("could not determine default branch")
-    return default_branch
 
 
 def extract_issue_number(args_issue: str, event: dict[str, Any]) -> int:
@@ -292,28 +222,7 @@ def best_effort_assign(repo: str, issue_number: int, agent_login: str) -> str:
 
 
 def write_comments(path: Path, comments: list[dict[str, Any]]) -> None:
-    lines: list[str] = []
-    for comment in comments:
-        lines.extend(
-            [
-                f"Author: {author_login(comment)}",
-                f"Created: {comment.get('created_at') or ''}",
-                "",
-                comment.get("body") or "",
-                "",
-                "---",
-                "",
-            ]
-        )
-    path.write_text("\n".join(lines), encoding="utf-8")
-
-
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
+    path.write_text(format_issue_comments(comments), encoding="utf-8")
 
 
 def build_skipped_context(reason: str) -> dict[str, Any]:
@@ -359,7 +268,7 @@ def build_skipped_context(reason: str) -> dict[str, Any]:
 
 
 def write_skipped_outputs(args: argparse.Namespace, reason: str) -> None:
-    Path(args.output).write_text(json.dumps(build_skipped_context(reason), indent=2) + "\n", encoding="utf-8")
+    write_json(args.output, build_skipped_context(reason), ensure_ascii=True)
     Path(args.comments_output).write_text("", encoding="utf-8")
     spec_output = Path(args.spec_context_output)
     if spec_output.exists():
@@ -381,27 +290,17 @@ def write_skipped_outputs(args: argparse.Namespace, reason: str) -> None:
     )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", required=True)
-    parser.add_argument("--issue", default="")
-    parser.add_argument("--event-path", default=os.environ.get("GITHUB_EVENT_PATH", ""))
-    parser.add_argument("--event-name", default=os.environ.get("GITHUB_EVENT_NAME", ""))
-    parser.add_argument("--agent-login", default="")
-    parser.add_argument("--output", default="issue_context.json")
-    parser.add_argument("--comments-output", default="issue_comments.txt")
-    parser.add_argument("--spec-context-output", default="spec_context.md")
-    parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
-    parser.add_argument("--force", action="store_true")
-    args = parser.parse_args()
-
-    event = load_event(args.event_path)
-
-    issue_number = extract_issue_number(args.issue, event)
-    issue = fetch_issue(args.repo, issue_number)
-    comments = fetch_comments(args.repo, issue_number)
-    default_branch = fetch_default_branch(args.repo)
-    run, reason = should_run(args, event, issue)
+def build_implementation_context(
+    args: argparse.Namespace,
+    *,
+    event: dict[str, Any],
+    issue_number: int,
+    issue: dict[str, Any],
+    comments: list[dict[str, Any]],
+    default_branch: str,
+    should_run_flag: bool,
+    trigger_reason: str,
+) -> tuple[dict[str, Any], list[dict[str, Any]], str]:
     trigger_comment = triggering_comment(event)
     historical_comments = remove_triggering_comment(comments, trigger_comment)
     spec_context = resolve_implementation_spec_context(args.repo, issue_number, default_branch)
@@ -409,17 +308,13 @@ def main() -> None:
     selected_spec_pr = spec_context.get("selected_spec_pr") or {}
     target_branch = selected_spec_pr.get("head_ref_name") or implementation_target_branch(issue_number)
     noop = bool(spec_context.get("unapproved_spec_prs")) and not spec_context.get("spec_entries")
-    noop_reason = (
-        "linked spec PR(s) exist for this issue but none are labeled plan-approved"
-        if noop
-        else ""
-    )
-    assignment_warning = best_effort_assign(args.repo, issue_number, args.agent_login.strip()) if run else ""
+    noop_reason = "linked spec PR(s) exist for this issue but none are labeled plan-approved" if noop else ""
+    assignment_warning = best_effort_assign(args.repo, issue_number, args.agent_login.strip()) if should_run_flag else ""
     coauthor_directives = collect_coauthor_directives(
         issue.get("body") or "",
         *(comment.get("body") or "" for comment in comments),
     )
-    existing_pr = has_existing_implementation_pr(args.repo, target_branch) if run and not selected_spec_pr else False
+    existing_pr = has_existing_implementation_pr(args.repo, target_branch) if should_run_flag and not selected_spec_pr else False
 
     context = {
         "owner": args.repo.split("/", 1)[0],
@@ -453,15 +348,23 @@ def main() -> None:
             ".agents/skills/implement-issue/SKILL.md",
         ],
         "progress_start_line": f"Implementation run started for issue #{issue_number}.",
-        "should_run": run,
+        "should_run": should_run_flag,
         "should_noop": noop,
-        "skip_reason": "" if run else reason,
+        "skip_reason": "" if should_run_flag else trigger_reason,
         "noop_reason": noop_reason,
-        "trigger_reason": reason if run else "",
+        "trigger_reason": trigger_reason if should_run_flag else "",
         "assignment_warning": assignment_warning,
     }
+    return context, historical_comments, spec_context_text
 
-    Path(args.output).write_text(json.dumps(context, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+def write_context_outputs(
+    args: argparse.Namespace,
+    context: dict[str, Any],
+    historical_comments: list[dict[str, Any]],
+    spec_context_text: str,
+) -> None:
+    write_json(args.output, context)
     write_comments(Path(args.comments_output), historical_comments)
     spec_output = Path(args.spec_context_output)
     if spec_context_text:
@@ -471,18 +374,57 @@ def main() -> None:
     write_github_output(
         args.github_output,
         {
-            "should_run": "true" if run else "false",
-            "should_noop": "true" if noop else "false",
-            "skip_reason": "" if run else reason,
-            "noop_reason": noop_reason,
-            "issue_number": str(issue_number),
-            "default_branch": default_branch,
-            "target_branch": target_branch,
+            "should_run": "true" if context["should_run"] else "false",
+            "should_noop": "true" if context["should_noop"] else "false",
+            "skip_reason": str(context["skip_reason"]),
+            "noop_reason": str(context["noop_reason"]),
+            "issue_number": str(context["issue_number"]),
+            "default_branch": str(context["default_branch"]),
+            "target_branch": str(context["target_branch"]),
             "spec_context_source": str(context["spec_context_source"]),
             "selected_spec_pr_number": str(context["selected_spec_pr_number"] or ""),
-            "has_existing_implementation_pr": "true" if existing_pr else "false",
+            "has_existing_implementation_pr": "true" if context["has_existing_implementation_pr"] else "false",
         },
     )
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo", required=True)
+    parser.add_argument("--issue", default="")
+    parser.add_argument("--event-path", default=os.environ.get("GITHUB_EVENT_PATH", ""))
+    parser.add_argument("--event-name", default=os.environ.get("GITHUB_EVENT_NAME", ""))
+    parser.add_argument("--agent-login", default="")
+    parser.add_argument("--output", default="issue_context.json")
+    parser.add_argument("--comments-output", default="issue_comments.txt")
+    parser.add_argument("--spec-context-output", default="spec_context.md")
+    parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
+    parser.add_argument("--force", action="store_true")
+    return parser.parse_args(argv)
+
+
+def run(args: argparse.Namespace) -> None:
+    event = load_event(args.event_path)
+    issue_number = extract_issue_number(args.issue, event)
+    issue = fetch_issue(args.repo, issue_number)
+    comments = fetch_comments(args.repo, issue_number)
+    default_branch = fetch_default_branch(args.repo)
+    should_run_flag, trigger_reason = should_run(args, event, issue)
+    context, historical_comments, spec_context_text = build_implementation_context(
+        args,
+        event=event,
+        issue_number=issue_number,
+        issue=issue,
+        comments=comments,
+        default_branch=default_branch,
+        should_run_flag=should_run_flag,
+        trigger_reason=trigger_reason,
+    )
+    write_context_outputs(args, context, historical_comments, spec_context_text)
+
+
+def main() -> None:
+    run(parse_args())
 
 
 if __name__ == "__main__":

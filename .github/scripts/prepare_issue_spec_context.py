@@ -4,23 +4,25 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
-import subprocess
 from pathlib import Path
 from typing import Any
 
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(
-        ["gh", *args],
-        check=True,
-        stdout=subprocess.PIPE,
-        text=True,
-    )
-    return json.loads(result.stdout)
-
+from artifact_contracts import load_json, write_github_output, write_json
+from context_snapshot import flatten_pages, format_issue_comments, remove_triggering_comment
+from github_api import fetch_default_branch, run_gh_json
+from github_event import (
+    actor_login,
+    assignee_logins,
+    event_action,
+    event_assignee_login,
+    event_comment_body as event_comment_body_from_event,
+    event_label_name,
+    is_pull_request_issue_event,
+    label_names,
+    triggering_comment_snapshot,
+)
 
 def spec_paths(issue_number: int) -> dict[str, str]:
     spec_dir = f"specs/issue-{issue_number}"
@@ -39,7 +41,7 @@ def extract_issue_number(args_issue: str, event_path: str | None) -> int:
         return int(args_issue.lstrip("#"))
     if not event_path:
         raise SystemExit("--issue or --event-path is required")
-    event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+    event = load_event(event_path)
     issue = event.get("issue")
     if issue and issue.get("number"):
         return int(issue["number"])
@@ -47,8 +49,7 @@ def extract_issue_number(args_issue: str, event_path: str | None) -> int:
 
 
 def author_login(item: dict[str, Any]) -> str:
-    user = item.get("user") or {}
-    return user.get("login") or ""
+    return actor_login(item)
 
 
 def fetch_issue(repo: str, issue_number: int) -> dict[str, Any]:
@@ -75,58 +76,15 @@ def fetch_comments(repo: str, issue_number: int) -> list[dict[str, Any]]:
             "--slurp",
         ]
     )
-    if pages and all(isinstance(page, list) for page in pages):
-        return [comment for page in pages for comment in page]
-    if isinstance(pages, list):
-        return pages
-    raise SystemExit("unexpected gh api comments response")
-
-
-def fetch_default_branch(repo: str) -> str:
-    repository = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
-    default_branch = (repository.get("defaultBranchRef") or {}).get("name")
-    if not default_branch:
-        raise SystemExit("could not determine default branch")
-    return default_branch
-
-
-def label_names(issue: dict[str, Any]) -> list[str]:
-    return [label.get("name", "") for label in issue.get("labels", []) if label.get("name")]
-
-
-def assignee_logins(issue: dict[str, Any]) -> list[str]:
-    return [assignee.get("login", "") for assignee in issue.get("assignees", []) if assignee.get("login")]
+    return flatten_pages(pages)
 
 
 def load_event(event_path: str | None) -> dict[str, Any]:
-    if not event_path:
-        return {}
-    return json.loads(Path(event_path).read_text(encoding="utf-8"))
-
-
-def event_action(event: dict[str, Any]) -> str:
-    return event.get("action") or ""
-
-
-def event_label_name(event: dict[str, Any]) -> str:
-    label = event.get("label") or {}
-    return label.get("name") or ""
-
-
-def event_assignee_login(event: dict[str, Any]) -> str:
-    assignee = event.get("assignee") or {}
-    return assignee.get("login") or ""
+    return load_json(event_path, default={})
 
 
 def event_comment_body(event_path: str | None) -> str:
-    event = load_event(event_path)
-    comment = event.get("comment") or {}
-    return comment.get("body") or ""
-
-
-def is_pull_request_issue_event(event: dict[str, Any]) -> bool:
-    issue = event.get("issue") or {}
-    return bool(issue.get("pull_request"))
+    return event_comment_body_from_event(load_event(event_path))
 
 
 def comment_mentions_login(comment: str, login: str) -> bool:
@@ -139,17 +97,7 @@ def comment_mentions_login(comment: str, login: str) -> bool:
 
 
 def triggering_comment(event_path: str | None) -> dict[str, Any] | None:
-    event = load_event(event_path)
-    comment = event.get("comment")
-    if not comment:
-        return None
-    return {
-        "id": comment.get("id"),
-        "author": author_login(comment),
-        "body": comment.get("body") or "",
-        "created_at": comment.get("created_at") or "",
-        "url": comment.get("html_url") or "",
-    }
+    return triggering_comment_snapshot(load_event(event_path))
 
 
 def collect_coauthor_directives(*texts: str) -> list[str]:
@@ -164,25 +112,6 @@ def collect_coauthor_directives(*texts: str) -> list[str]:
                 seen.add(key)
                 directives.append(directive)
     return directives
-
-
-def remove_triggering_comment(
-    comments: list[dict[str, Any]],
-    trigger_comment: dict[str, Any] | None,
-) -> list[dict[str, Any]]:
-    if not trigger_comment:
-        return comments
-
-    trigger_id = trigger_comment.get("id")
-    trigger_url = trigger_comment.get("url")
-    filtered: list[dict[str, Any]] = []
-    for comment in comments:
-        if trigger_id is not None and comment.get("id") == trigger_id:
-            continue
-        if trigger_url and comment.get("html_url") == trigger_url:
-            continue
-        filtered.append(comment)
-    return filtered
 
 
 def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, str]:
@@ -230,31 +159,10 @@ def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, s
 
 
 def write_comments(path: Path, comments: list[dict[str, Any]]) -> None:
-    lines: list[str] = []
-    for comment in comments:
-        lines.extend(
-            [
-                f"Author: {author_login(comment)}",
-                f"Created: {comment.get('created_at') or ''}",
-                "",
-                comment.get("body") or "",
-                "",
-                "---",
-                "",
-            ]
-        )
-    path.write_text("\n".join(lines), encoding="utf-8")
+    path.write_text(format_issue_comments(comments), encoding="utf-8")
 
 
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
-
-
-def main() -> None:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--issue", default="")
@@ -265,8 +173,10 @@ def main() -> None:
     parser.add_argument("--comments-output", default="issue_comments.txt")
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
     parser.add_argument("--force", action="store_true")
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
+
+def run(args: argparse.Namespace) -> None:
     issue_number = extract_issue_number(args.issue, args.event_path)
     issue = fetch_issue(args.repo, issue_number)
     comments = fetch_comments(args.repo, issue_number)
@@ -293,7 +203,7 @@ def main() -> None:
         "trigger_reason": reason if run else "",
     }
 
-    Path(args.output).write_text(json.dumps(context, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json(args.output, context)
     write_comments(Path(args.comments_output), historical_comments)
     write_github_output(
         args.github_output,
@@ -309,6 +219,10 @@ def main() -> None:
             "default_branch": default_branch,
         },
     )
+
+
+def main() -> None:
+    run(parse_args())
 
 
 if __name__ == "__main__":

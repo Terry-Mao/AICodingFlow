@@ -6,23 +6,15 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import subprocess
 from pathlib import Path
 from typing import Any
 
+from artifact_contracts import write_github_output
+from github_api import fetch_default_branch, run_gh_json, run_gh_text
+from ledger_contracts import entries_by_pr, load_ledger as load_pr_ledger
 
 UTC = dt.timezone.utc
 DEFAULT_LEDGER_PATH = "docs/updates/.product-change-report-ledger.json"
-
-
-def run_gh_json(args: list[str]) -> Any:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return json.loads(result.stdout)
-
-
-def run_gh_text(args: list[str]) -> str:
-    result = subprocess.run(["gh", *args], check=True, stdout=subprocess.PIPE, text=True)
-    return result.stdout
 
 
 def parse_date(value: str) -> dt.date:
@@ -84,16 +76,8 @@ def iso_z(value: dt.datetime) -> str:
     return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def fetch_default_branch(repo: str) -> str:
-    data = run_gh_json(["repo", "view", repo, "--json", "defaultBranchRef"])
-    branch = (data.get("defaultBranchRef") or {}).get("name")
-    if not branch:
-        raise SystemExit("could not determine default branch")
-    return branch
-
-
 def search_merged_pr_numbers(repo: str, start: dt.datetime, end: dt.datetime) -> list[int]:
-    branch = fetch_default_branch(repo)
+    branch = fetch_default_branch(repo, run_json=run_gh_json)
     numbers: list[int] = []
     seen: set[int] = set()
     current_date = start.date()
@@ -212,29 +196,11 @@ def issue_refs(pr: dict[str, Any]) -> list[str]:
 
 
 def load_ledger(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"version": 1, "entries": []}
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise SystemExit(f"invalid product change report ledger: {path}")
-    entries = data.get("entries")
-    if entries is None:
-        data["entries"] = []
-    elif not isinstance(entries, list):
-        raise SystemExit(f"invalid product change report ledger entries: {path}")
-    data.setdefault("version", 1)
-    return data
+    return load_pr_ledger(path, ledger_name="product change report")
 
 
 def ledger_entries_by_pr(ledger: dict[str, Any]) -> dict[int, dict[str, Any]]:
-    entries: dict[int, dict[str, Any]] = {}
-    for entry in ledger.get("entries") or []:
-        try:
-            pr_number = int(entry.get("pr"))
-        except (TypeError, ValueError):
-            continue
-        entries[pr_number] = entry
-    return entries
+    return entries_by_pr(ledger)
 
 
 def split_prs_by_ledger(
@@ -358,15 +324,7 @@ def write_diffs(path: Path, repo: str, prs: list[dict[str, Any]], max_chars_per_
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def write_github_output(path: str | None, values: dict[str, str]) -> None:
-    if not path:
-        return
-    with Path(path).open("a", encoding="utf-8") as handle:
-        for key, value in values.items():
-            handle.write(f"{key}={value}\n")
-
-
-def main() -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--report-date", default="")
@@ -378,8 +336,10 @@ def main() -> int:
     parser.add_argument("--github-output", default="")
     parser.add_argument("--ledger-path", default=DEFAULT_LEDGER_PATH)
     parser.add_argument("--max-diff-chars-per-pr", type=int, default=60000)
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
+
+def run(args: argparse.Namespace) -> int:
     report_id, start, end = resolve_scan_window(args.report_date, args.start_date, args.end_date)
     default_branch = fetch_default_branch(args.repo)
     report_path = report_path_for_id(report_id)
@@ -413,6 +373,10 @@ def main() -> int:
         },
     )
     return 0
+
+
+def main() -> int:
+    return run(parse_args())
 
 
 if __name__ == "__main__":
