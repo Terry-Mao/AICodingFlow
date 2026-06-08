@@ -117,9 +117,11 @@ jobs:
       - name: Prepare workflow handoff directory
         id: handoff
         run: |
-          dir="$RUNNER_TEMP/aicodingflow-pr-comment-response"
-          rm -rf "$dir"
-          mkdir -p "$dir"
+          temp_dir="$RUNNER_TEMP/aicodingflow-pr-comment-response"
+          dir="$GITHUB_WORKSPACE/pr-worktree/.codex-runtime/handoff"
+          rm -rf "$temp_dir"
+          mkdir -p "$temp_dir"
+          echo "temp_dir=$temp_dir" >> "$GITHUB_OUTPUT"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
       - name: Prepare PR comment context
@@ -132,9 +134,9 @@ jobs:
             --event-name "${{ github.event_name }}" \
             --event-path "$GITHUB_EVENT_PATH" \
             --agent-login "${{ vars.AGENT_LOGIN }}" \
-            --output "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
-            --pr-event-output "${{ steps.handoff.outputs.dir }}/pr_event.json" \
-            --review-comment-ids-output "${{ steps.handoff.outputs.dir }}/review_comment_ids.json" \
+            --output "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" \
+            --pr-event-output "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" \
+            --review-comment-ids-output "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" \
             --github-output "$GITHUB_OUTPUT"
 
       - name: Checkout PR head
@@ -146,6 +148,16 @@ jobs:
           repository: ${{ steps.context.outputs.head_repo }}
           ref: ${{ steps.context.outputs.head_sha }}
           path: pr-worktree
+
+      - name: Prepare implementation workspace
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        run: |
+          rm -rf pr-worktree/.codex-runtime
+          mkdir -p "${{ steps.handoff.outputs.dir }}"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" "${{ steps.handoff.outputs.dir }}/pr_comment_context.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" "${{ steps.handoff.outputs.dir }}/pr_event.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" "${{ steps.handoff.outputs.dir }}/review_comment_ids.json"
+          cp -R .agents/skills pr-worktree/.codex-runtime/skills
 
       - name: Snapshot PR diff
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
@@ -170,13 +182,6 @@ jobs:
           python3 .github/scripts/write_spec_context.py \
             --changed-files-from-diff "${{ steps.handoff.outputs.dir }}/pr_diff.txt" \
             --output "${{ steps.handoff.outputs.dir }}/spec_context.md"
-
-      - name: Prepare implementation workspace
-        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
-        run: |
-          rm -rf pr-worktree/.codex-runtime
-          mkdir -p pr-worktree/.codex-runtime
-          cp -R .agents/skills pr-worktree/.codex-runtime/skills
 
       - name: Install Codex sandbox prerequisites
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'

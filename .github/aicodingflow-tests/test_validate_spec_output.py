@@ -189,6 +189,26 @@ class ValidateSpecOutputTest(unittest.TestCase):
                 }
             )
 
+    def test_validate_write_surface_ignores_codex_runtime_handoff(self) -> None:
+        result = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=(
+                " M specs/example/product.md\n"
+                "?? .codex-runtime/handoff/issue_context.json\n"
+                "?? .codex-runtime/handoff/issue_comments.txt\n"
+                "?? .codex-runtime/handoff/pr-metadata.json\n"
+            ),
+        )
+
+        with mock.patch.object(validate_spec_output.subprocess, "run", return_value=result):
+            validate_spec_output.validate_write_surface(
+                {
+                    "specs/example/product.md",
+                    "specs/example/tech.md",
+                }
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -65,7 +65,11 @@ def changed_paths() -> set[str]:
 
 def is_ignored_generated_path(path: str) -> bool:
     parts = Path(path).parts
-    return "__pycache__" in parts or path.endswith((".pyc", ".pyo"))
+    return (
+        bool(parts and parts[0] == ".codex-runtime")
+        or "__pycache__" in parts
+        or path.endswith((".pyc", ".pyo"))
+    )
 
 
 def validate_write_surface(allowed_paths: set[str]) -> None:

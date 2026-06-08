@@ -38,13 +38,13 @@ Source: [docs/product/raw/implementation-workflow.md](../../raw/implementation-w
 
 ## 职责边界
 
-- agent 负责读取 workflow 提供的稳定上下文路径、产出实现 diff、必要时同步 specs，并把 `implementation_summary.md` 与 `pr-metadata.json` 写到 workflow 指定的临时 handoff 目录。
+- agent 负责读取 workflow 提供的稳定上下文路径、产出实现 diff、必要时同步 specs，并把 `implementation_summary.md` 与 `pr-metadata.json` 写到 workspace 内 `.codex-runtime/handoff/`。
 - agent 不直接 commit、push、创建 PR、更新 PR 或编辑 issue。
 - 外层 workflow 负责校验 metadata、提交并推送目标分支、创建或更新 implementation PR，并维护 issue progress comment。
 - `pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和 `intended_files`。
 - `intended_files` 是外层 workflow 应提交的 repository-relative 实现文件列表，必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow 文件。
 - `intended_files` 不得包含 workflow handoff 文件、validation logs、生成缓存文件或未变化文件；实际变更与 `intended_files` 不一致时，workflow 会拒绝提交。
-- context、metadata、summary、branch SHA snapshot 与 validation logs 位于 runner 临时 handoff 目录，不依赖仓库根目录 `.gitignore`。
+- context、metadata、summary、branch SHA snapshot 与 validation logs 位于 workspace 内 `.codex-runtime/handoff/`，workflow 排除该目录，不依赖仓库根目录 `.gitignore`。
 - implementation 变更包含 `.github/workflows/` 下 GitHub workflow 文件时，外层 workflow 会通过 `actions/create-github-app-token` 生成短期 GitHub App installation token，并作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。
 - 仓库需要配置 `APP_CLIENT_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret；对应 GitHub App 必须安装到目标仓库，并具有 `Contents: Read and write` 与 `Workflows: Read and write` 权限。
 - 生成出来的一次性 installation token 不应存成 secret。

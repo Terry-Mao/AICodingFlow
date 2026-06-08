@@ -41,12 +41,12 @@ Source: [docs/product/raw/pr-comment-response-workflow.md](../../raw/pr-comment-
 ## Agent 输出与外层处理
 
 - agent 做最小合理修改；没有值得提交的 diff 时，workflow 不创建空提交或 follow-up PR。
-- 有可提交 diff 时，agent 必须把 `implementation_summary.md` 和 `pr-metadata.json` 写到 workflow 指定的临时 handoff 目录。
+- 有可提交 diff 时，agent 必须把 `implementation_summary.md` 和 `pr-metadata.json` 写到 `pr-worktree/.codex-runtime/handoff/`。
 - `pr-metadata.json` 至少包含 `branch_name`、`pr_title`、`pr_summary` 和 `intended_files`；`branch_name` 必须等于 context 允许的 `agent_push_branch`。
 - `intended_files` 必须覆盖所有应提交文件，不能包含 handoff、日志或缓存文件。
-- agent 可在确实解决 inline review comments 时把 `resolved_review_comments.json` 写到同一个临时 handoff 目录，其中 comment id 必须来自当前 PR 真实 inline review comment id。
+- agent 可在确实解决 inline review comments 时把 `resolved_review_comments.json` 写到同一个 `pr-worktree/.codex-runtime/handoff/` 目录，其中 comment id 必须来自当前 PR 真实 inline review comment id。
 - 外层 workflow 校验 metadata、resolved comments 和实际 diff 后提交并 push 到允许 branch。
-- PR discussion context、diff snapshot、spec context、metadata、summary 和 validation logs 位于 runner 临时目录，不污染 PR worktree。
+- PR discussion context、diff snapshot、spec context、metadata、summary 和 validation logs 位于 `pr-worktree/.codex-runtime/handoff/`，workflow 排除 `.codex-runtime/`，不污染提交内容。
 - `push-head` 成功后不会按 metadata 改写原 PR title/body；fallback PR 会在 PR body 中说明来源 PR 和触发评论。
 - resolve review thread 失败只记录 warning，不回滚已完成的 commit、push 或 PR update。
 - 修改 `.github/workflows/` 下 GitHub workflow 文件时，外层 workflow 会通过 GitHub App installation token 设置 `WORKFLOW_UPDATE_TOKEN`；仓库需要配置 `APP_CLIENT_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret。

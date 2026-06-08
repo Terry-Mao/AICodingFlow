@@ -54,7 +54,7 @@ jobs:
       - name: Prepare workflow handoff directory
         id: handoff
         run: |
-          dir="$RUNNER_TEMP/aicodingflow-create-spec"
+          dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
           rm -rf "$dir"
           mkdir -p "$dir"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"

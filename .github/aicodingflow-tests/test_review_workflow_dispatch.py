@@ -205,7 +205,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         step_names = [step.get("name") for step in create_steps]
 
         self.assertEqual(handoff["id"], "handoff")
-        self.assertIn("$RUNNER_TEMP/aicodingflow-create-spec", handoff["run"])
+        self.assertIn("$GITHUB_WORKSPACE/.codex-runtime/handoff", handoff["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_context.json', prepare["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_comments.txt', prepare["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_context.json', validate["run"])
@@ -233,12 +233,14 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         step_names = [step.get("name") for step in create_steps]
 
         self.assertEqual(handoff["id"], "handoff")
-        self.assertIn("$RUNNER_TEMP/aicodingflow-create-implementation", handoff["run"])
+        self.assertIn("$GITHUB_WORKSPACE/.codex-runtime/handoff", handoff["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_context.json', prepare["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_comments.txt', prepare["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/spec_context.md', prepare["run"])
         self.assertNotIn("':!issue_context.json'", worktree["run"])
         self.assertNotIn("':!pr-metadata.json'", worktree["run"])
+        self.assertIn("':!.codex-runtime'", worktree["run"])
+        self.assertIn("':!.codex-runtime/**'", worktree["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_context.json', validate["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/pr-metadata.json', validate["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/validation-output.txt', validate["run"])
@@ -335,6 +337,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         checkout = next(step for step in respond_steps if step.get("name") == "Checkout PR head")
         self.assertEqual(handoff["id"], "handoff")
         self.assertIn("$RUNNER_TEMP/aicodingflow-pr-comment-response", handoff["run"])
+        self.assertIn("$GITHUB_WORKSPACE/pr-worktree/.codex-runtime/handoff", handoff["run"])
+        self.assertIn("temp_dir=", handoff["run"])
         self.assertIn("steps.context.outputs.should_run == 'true'", checkout["if"])
         self.assertIn("steps.context.outputs.branch_strategy != 'blocked'", checkout["if"])
         self.assertEqual(checkout["with"]["persist-credentials"], False)

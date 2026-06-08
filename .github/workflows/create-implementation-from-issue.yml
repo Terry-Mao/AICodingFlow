@@ -52,7 +52,7 @@ jobs:
       - name: Prepare workflow handoff directory
         id: handoff
         run: |
-          dir="$RUNNER_TEMP/aicodingflow-create-implementation"
+          dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
           rm -rf "$dir"
           mkdir -p "$dir"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
@@ -245,7 +245,9 @@ jobs:
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         id: worktree
         run: |
-          changed="$(git status --porcelain=v1 --untracked-files=all)"
+          changed="$(git status --porcelain=v1 --untracked-files=all -- \
+            ':!.codex-runtime' \
+            ':!.codex-runtime/**')"
           if [ -n "$changed" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
