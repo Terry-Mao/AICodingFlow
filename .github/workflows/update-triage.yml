@@ -48,20 +48,26 @@ jobs:
       - name: Aggregate triage feedback
         env:
           GH_TOKEN: ${{ github.token }}
+          INPUT_DAYS: ${{ inputs.days }}
+          INPUT_INCLUDE_BOTS: ${{ inputs.include_bots }}
+          INPUT_ISSUE: ${{ inputs.issue }}
+          INPUT_MAINTAINER_LOGIN: ${{ inputs.maintainer_login }}
+          INPUT_REPO: ${{ inputs.repo }}
+          DEFAULT_REPO: ${{ github.repository }}
         run: |
-          repo_input="${{ inputs.repo }}"
+          repo_input="$INPUT_REPO"
           if [ -z "$repo_input" ]; then
-            repo_input="${{ github.repository }}"
+            repo_input="$DEFAULT_REPO"
           fi
 
           args=(
             --repo "$repo_input"
-            --days "${{ inputs.days }}"
+            --days "$INPUT_DAYS"
             --output triage-feedback.json
             --org-member-fallback
           )
 
-          maintainer_login_input="${{ inputs.maintainer_login }}"
+          maintainer_login_input="$INPUT_MAINTAINER_LOGIN"
           if [ -n "$maintainer_login_input" ]; then
             IFS=',' read -ra maintainer_logins <<< "$maintainer_login_input"
             for login in "${maintainer_logins[@]}"; do
@@ -73,11 +79,11 @@ jobs:
             done
           fi
 
-          if [ -n "${{ inputs.issue }}" ]; then
-            args+=(--issue "${{ inputs.issue }}")
+          if [ -n "$INPUT_ISSUE" ]; then
+            args+=(--issue "$INPUT_ISSUE")
           fi
 
-          if [ "${{ inputs.include_bots }}" = "true" ]; then
+          if [ "$INPUT_INCLUDE_BOTS" = "true" ]; then
             args+=(--include-bots)
           fi
 

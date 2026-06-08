@@ -98,6 +98,20 @@ class ApplyTriageGuidanceOutputTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "refusing to apply symlink output"):
                 apply_guidance.apply_output(output, root)
 
+    def test_changed_status_rejects_symlink_parent_escape(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "out"
+            output.mkdir()
+            outside = root / "outside"
+            outside.mkdir()
+            (outside / "SKILL.md").write_text("outside\n", encoding="utf-8")
+            (output / "triage-issue-repo").symlink_to(outside, target_is_directory=True)
+            self.write_status(output, [".agents/skills/triage-issue-repo/SKILL.md"])
+
+            with self.assertRaisesRegex(SystemExit, "outside output dir"):
+                apply_guidance.apply_output(output, root)
+
     def test_invalid_config_json_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

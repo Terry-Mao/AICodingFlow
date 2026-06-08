@@ -40,9 +40,24 @@ def validate_updated_files(updated_files: Any) -> list[str]:
     return sorted(set(updated_files))
 
 
-def read_proposed_file(source: Path) -> str:
+def is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+    except ValueError:
+        return False
+    return True
+
+
+def read_proposed_file(source: Path, output_dir: Path) -> str:
+    output_root = output_dir.resolve()
+    try:
+        resolved_source = source.resolve(strict=True)
+    except FileNotFoundError:
+        raise SystemExit(f"missing proposed update-triage file: {source}") from None
     if source.is_symlink():
         raise SystemExit(f"refusing to apply symlink output: {source}")
+    if not is_relative_to(resolved_source, output_root):
+        raise SystemExit(f"refusing to apply output outside output dir: {source}")
     if not source.is_file():
         raise SystemExit(f"missing proposed update-triage file: {source}")
     return source.read_text(encoding="utf-8")
@@ -77,7 +92,7 @@ def apply_output(output_dir: Path, repo_root: Path) -> str:
     updated_files = validate_updated_files(status_data.get("updated_files"))
     for destination in updated_files:
         source = output_dir / ALLOWED_FILES[destination]
-        content = read_proposed_file(source)
+        content = read_proposed_file(source, output_dir)
         if destination == ".github/issue-triage/config.json":
             content = normalize_config_json(content, source)
         target = repo_root / destination

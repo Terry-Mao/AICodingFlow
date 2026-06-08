@@ -5,18 +5,30 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 from pathlib import Path
+
+
+CLOSING_KEYWORD_RE = re.compile(
+    r"\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)",
+    flags=re.IGNORECASE,
+)
+
+
+def neutralize_closing_keywords(text: str) -> str:
+    return CLOSING_KEYWORD_RE.sub(r"\1 issue #\2", text)
 
 
 def build_body(reason: str, days: str, issue: str, repo: str, changed_files: str) -> str:
     files = [line.strip() for line in changed_files.splitlines() if line.strip()]
     file_lines = [f"- {path}" for path in files] or ["- Not captured"]
+    safe_reason = neutralize_closing_keywords(reason)
     return "\n".join(
         [
             "Updates repo-local triage guidance from recent maintainer triage corrections.",
             "",
             "Evidence summary:",
-            reason,
+            safe_reason,
             "",
             "Source:",
             f"- days: {days}",

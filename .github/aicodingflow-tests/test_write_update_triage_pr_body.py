@@ -25,6 +25,22 @@ class WriteUpdateTriagePrBodyTest(unittest.TestCase):
         self.assertIn("- .agents/skills/triage-issue-repo/SKILL.md", body)
         self.assertNotIn("Closes #", body)
 
+    def test_build_body_neutralizes_closing_keywords_in_reason(self) -> None:
+        body = writer.build_body(
+            reason="Closes #123, fixes #124, and RESOLVED #125.",
+            days="7",
+            issue="all recent triaged issues",
+            repo="owner/repo",
+            changed_files="",
+        )
+
+        self.assertIn("Closes issue #123", body)
+        self.assertIn("fixes issue #124", body)
+        self.assertIn("RESOLVED issue #125", body)
+        self.assertNotIn("Closes #123", body)
+        self.assertNotIn("fixes #124", body)
+        self.assertNotIn("RESOLVED #125", body)
+
 
 if __name__ == "__main__":
     unittest.main()
