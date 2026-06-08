@@ -33,14 +33,15 @@ commit、push、更新 PR、回复评论或 resolve thread。
 ## 上下文与安全边界
 
 `prepare_pr_comment_context.py` 是解析 trigger、授权状态、PR 分支信息和分支策略的受控入口。
-它会生成稳定的 `pr_comment_context.json`、PR diff、可用 spec context，以及当前 PR 的
-inline review comment id 索引。context 记录 PR number、head/base repo 与 branch、
+它会生成稳定的 PR comment context。workflow checkout PR head 后，会把
+`pr_comment_context.json`、`pr_event.json`、PR diff、可用 spec context，以及当前 PR 的
+inline review comment id 索引放到 `pr-worktree/.codex-runtime/handoff/`。context 记录 PR number、head/base repo 与 branch、
 trigger metadata、触发者授权状态、branch strategy、agent push 目标、coauthor directives，
 以及触发评论正文 `trigger_body`。context 还会暴露 `base_repo_private` 和
 `trigger_actor_repository_permission`，用于说明私有仓库 `CONTRIBUTOR` fallback 授权判断
 或拒绝原因。
 
-agent 使用 workflow 提供的稳定本地快照作为 PR 讨论上下文：`pr_comment_context.json`、
+agent 使用 workflow 在 `pr-worktree/.codex-runtime/handoff/` 提供的稳定本地快照作为 PR 讨论上下文：`pr_comment_context.json`、
 `pr_event.json`、`pr_diff.txt`、可用的 `spec_context.md` 和 `review_comment_ids.json`。
 `pr_event.json` 包含 PR title、body 和 metadata；`review_comment_ids.json` 包含当前 inline
 review comments 的 bodies、resolved/outdated thread state、paths、lines、diff hunks 和 URLs。
@@ -75,19 +76,23 @@ workflow 使用三种分支策略：
 Agent 根据触发评论、PR diff、相关讨论和 spec context 做最小合理修改。没有值得提交的 diff 时，
 workflow 不创建空提交，也不创建 follow-up PR。
 
-有可提交 diff 时，agent 必须写出 `implementation_summary.md` 和 `pr-metadata.json`。
+有可提交 diff 时，agent 必须把 `implementation_summary.md` 和 `pr-metadata.json` 写到
+`pr-worktree/.codex-runtime/handoff/`。
 `pr-metadata.json` 至少包含目标 `branch_name`、`pr_title`、`pr_summary` 和
 `intended_files`；`branch_name` 必须等于 context 中允许的 `agent_push_branch`。
 `intended_files` 必须覆盖所有应提交的 repository-relative 文件，不能包含 handoff、日志或缓存文件。
 
 当本次修改确实解决 inline review comments 时，agent 可以写出
-`resolved_review_comments.json`。其中每个 `comment_id` 必须来自当前 PR 真实 inline
+`pr-worktree/.codex-runtime/handoff/resolved_review_comments.json`。其中每个 `comment_id` 必须来自当前 PR 真实 inline
 review comment id，不能使用普通 conversation comment id、review id、其他 PR 的 comment id
 或编造 id。没有解决 inline review comment 时不应上传该文件。当一次运行实际解决多条 inline
 review comments 时，`resolved_review_comments.json` 必须为每条已解决 comment 分别包含一条
 entry。
 
 外层 workflow 校验 metadata、resolved comments 和实际 diff 后提交并 push 到允许 branch。
+外层 workflow 的变更检查和提交过滤会排除 `pr-worktree/.codex-runtime/`，因此 context、
+metadata、summary、validation logs 和 resolved-comments handoff 不会进入提交，也不需要
+仓库根目录 `.gitignore` 覆盖。
 `push-head` 成功后不会按 metadata 改写原 PR title/body；`pr_title` 与 `pr_summary`
 仍用于校验、commit metadata 和回复评论摘要。`fallback-pr-to-fork` 成功后会查找或创建
 follow-up PR，并在 PR body 中说明来源 PR 和触发评论。无论是更新原 PR 分支还是创建
