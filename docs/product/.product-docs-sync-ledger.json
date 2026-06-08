@@ -1883,6 +1883,25 @@
       "proposed_patch": "Updated docs/product/raw/pr-review-verdict.md to document review_discussion_context.json generation, duplicate-suppression rules, maintainer dismissal handling, unresolved-thread handling, and REVIEW_BOT_LOGIN source attribution.",
       "reason": "PR #227 changes long-term AI PR Review behavior by adding prior review discussion snapshots and duplicate suppression for resolved, maintainer-dismissed, and still-unresolved bot inline comments. Existing product docs covered review workflow behavior but did not document this discussion context or its instruction-safety boundary.",
       "recorded_at": "2026-06-07T16:00:13Z"
+    },
+    {
+      "pr": 228,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/228",
+      "title": "修复 review dismiss 误判和换行输出",
+      "merged_at": "2026-06-03T15:42:07Z",
+      "merge_commit": "aebdcd3652fd8cfab6bd430d490530d8000b57f4",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #228",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新 docs/product/raw/pr-review-verdict.md，补充 maintainer dismissal 的肯定语义要求、否定或疑问 intentional 回复的处理方式，以及 GitHub review 发布前对 markdown body/comment 中字面量 \\\\n 的换行规范化规则。",
+      "reason": "PR #228 改变了 AI PR Review 的长期用户可见行为：维护者 dismissal 识别不再把否定或疑问语境中的 intentional 裸词当作已 dismiss，并且发布 review 前会把 fenced code block 外的字面量 \\\\n 规范化为真实换行。现有产品文档只概括了 dismissed/resolved 去重和 review 输出契约，未覆盖这些精确语义。",
+      "recorded_at": "2026-06-08T16:41:46Z"
     }
   ]
 }

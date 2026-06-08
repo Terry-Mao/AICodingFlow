@@ -91,6 +91,10 @@ comments 是否已被 resolved、是否仍 unresolved、是否收到维护者明
 可用于指定发布 review 的 bot login；未配置时默认按 `github-actions[bot]` 识别旧 bot
 comments。
 
+维护者 dismissal 必须是明确表示不需要修改、保持现状、预期行为或有意如此的肯定回复。
+含有 `intentional` 等词但表达否定或疑问的回复，例如询问是否有意或说明并非有意，不应被视为
+`maintainer_dismissed`，旧 finding 仍按 unresolved 处理。
+
 ## 本地 review 入口
 
 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或
@@ -140,6 +144,10 @@ review 不生成 spec context。
 `review.json` 可以包含 `recommended_reviewers`，该字段只用于需要推荐人工
 reviewer 的场景。`recommended_reviewers` 必须是字符串数组，最多包含 1 个
 reviewer。
+
+发布到 GitHub 前，review body 和 inline comment body 中位于 fenced code block 之外的字面量
+`\n` 会规范化为真实换行，保证总结和评论按 Markdown 段落显示。Fenced code block 内的内容保持
+原样，避免改写 suggestion 或代码片段中的字面量。
 
 `APPROVE` 表示没有阻塞级发现。`REJECT` 表示存在需要修复后再合并的阻塞级发现。
 建议和 nit 不应单独导致 `REJECT`。
@@ -211,5 +219,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
+PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，PR #228，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
 `specs/issue-77/product.md`，`specs/issue-85/product.md`，`specs/issue-115/product.md`。
