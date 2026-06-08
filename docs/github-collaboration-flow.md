@@ -225,4 +225,4 @@ validation-output.txt
 validation-error.txt
 ```
 
-这些 implementation、spec 和 `/fix` handoff artifact 由 workflow 放在 workspace 内 `.codex-runtime/handoff/` 目录中，artifact 上传仍保留文件名；workflow 的提交和变更检查会排除 `.codex-runtime/`，因此不再依赖仓库根目录 `.gitignore` 来隐藏 scratch 文件。
+这些 implementation、spec 和 `/fix` handoff artifact 由 workflow 放在 workspace 内 `.codex-runtime/handoff/` 或 `pr-worktree/.codex-runtime/handoff/` 目录中，artifact 上传仍保留文件名；workflow 的提交和变更检查会排除 `.codex-runtime/`，因此不再依赖仓库根目录 `.gitignore` 来隐藏 scratch 文件。Spec workflow 当前只定义 issue context、comments 和 PR metadata handoff，不定义单独 summary 或 validation-log handoff。

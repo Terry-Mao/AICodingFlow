@@ -39,7 +39,8 @@ AICodingFlow 的自动化把 agent 的代码或文档产出职责，与外层 Gi
 - `pr-metadata.json` 必须包含 `branch_name`、`pr_title`、`pr_summary` 和 `intended_files`。
 - `intended_files` 必须覆盖所有有意修改的 production、test、spec、`.agents` 或 workflow 文件。
 - 外层 workflow 只提交通过校验且出现在 `intended_files` 中的实现文件；若实际变更与 `intended_files` 不一致，或包含 Python/cache 等生成文件，workflow 会拒绝提交。
-- Spec、implementation 和 PR comment response 的 context、metadata、validation logs 与 summary handoff 文件位于 workspace 内 `.codex-runtime/handoff/`，workflow 提交与变更检查排除 `.codex-runtime/`，不依赖仓库根目录 `.gitignore`。
+- Spec workflow 的 `issue_context.json`、`issue_comments.txt` 和 `pr-metadata.json` handoff 位于 workspace 内 `.codex-runtime/handoff/`；spec agent 直接修改目标 spec 文件，当前 spec workflow 不定义单独 summary 或 validation-log handoff。
+- Implementation workflow 的 context、metadata、summary、branch SHA snapshot、validation logs 和 `.agents` replacement output 位于 workspace 内 `.codex-runtime/handoff/`，workflow 提交与变更检查排除 `.codex-runtime/`，不依赖仓库根目录 `.gitignore`。
 - Issue triage agent 只产出 `triage_result.json`；GitHub label/comment 更新由外层 workflow 的写权限 job 执行。
 - PR comment response agent 产出修复 diff，并把 `implementation_summary.md`、`pr-metadata.json` 和可选 `resolved_review_comments.json` 写到 `pr-worktree/.codex-runtime/handoff/`；提交、push、原 PR 更新或 follow-up PR 创建由外层 workflow 执行。
 - PR comment response agent 不直接调用 GitHub API、创建 PR、发布评论、resolve thread、commit 或 push。
