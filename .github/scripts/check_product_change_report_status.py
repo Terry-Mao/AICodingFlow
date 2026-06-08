@@ -10,6 +10,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 NO_CHANGE_PLACEHOLDER_PATTERN = re.compile(
     r"(?:no[\s-]+(?:reportable[\s-]+)?(?:product[\s-]+)?changes(?:[\s\w-]*merged[\s\w-]*window)?"
@@ -23,6 +25,10 @@ COMMIT_ID_PATTERN = re.compile(
     r"|(?<![0-9A-Za-z])(?=[0-9a-f]{7,40}(?![0-9A-Za-z]))[0-9a-f]*[a-f][0-9a-f]*(?![0-9A-Za-z])",
     re.IGNORECASE,
 )
+MARKDOWN_LINK_PATTERN = re.compile(r"(?<!!)\[([^\]\n]+)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+BARE_SPEC_PATH_PATTERN = re.compile(r"(?<![\w/-])specs/issue-\d+/(?:product|tech)\.md(?![\w/-])")
+SPEC_ISSUE_DIR_PATTERN = re.compile(r"^specs/issue-\d+/(?:product|tech)\.md$")
+SPEC_REFERENCE_PATTERN = re.compile(r"\b(?:product\s+spec|tech\s+spec|specs?|规格|技术规格|产品规格)\b", re.IGNORECASE)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -73,9 +79,58 @@ def linked_issues(context: dict[str, Any]) -> list[dict[str, Any]]:
     return issues
 
 
-def validate_report_references(report_text: str, context: dict[str, Any]) -> None:
+def extract_markdown_links(report_text: str) -> list[tuple[str, str]]:
+    return [(match.group(1), match.group(2)) for match in MARKDOWN_LINK_PATTERN.finditer(report_text)]
+
+
+def mask_markdown_links(report_text: str) -> str:
+    chars = list(report_text)
+    for match in MARKDOWN_LINK_PATTERN.finditer(report_text):
+        for index in range(match.start(), match.end()):
+            chars[index] = " "
+    return "".join(chars)
+
+
+def mentions_spec_reference(text: str) -> bool:
+    return bool(SPEC_REFERENCE_PATTERN.search(text) or "specs/issue-" in text.lower())
+
+
+def normalize_spec_link_target(target: str, report_path: Path) -> Path:
+    path_target = target.split("#", 1)[0].strip()
+    if not path_target:
+        raise SystemExit("spec references must link to a checked-in spec file")
+    if re.match(r"^[a-z][a-z0-9+.-]*:", path_target, re.IGNORECASE) or path_target.startswith("/"):
+        raise SystemExit("spec references must use repository-relative Markdown links, not external or absolute URLs")
+
+    resolved = (report_path.parent / path_target).resolve()
+    specs_root = (REPO_ROOT / "specs").resolve()
+    try:
+        relative = resolved.relative_to(specs_root)
+    except ValueError as exc:
+        raise SystemExit("spec references must point under specs/") from exc
+
+    relative_text = f"specs/{relative.as_posix()}"
+    if not SPEC_ISSUE_DIR_PATTERN.fullmatch(relative_text):
+        raise SystemExit("spec references must point to specs/issue-<number>/product.md or tech.md")
+    if not resolved.exists():
+        raise SystemExit(f"spec reference target does not exist: {relative_text}")
+    return resolved
+
+
+def validate_spec_references(report_text: str, report_path: Path) -> None:
+    if BARE_SPEC_PATH_PATTERN.search(mask_markdown_links(report_text)):
+        raise SystemExit("spec references must be Markdown links with repository-relative targets")
+
+    for label, target in extract_markdown_links(report_text):
+        if mentions_spec_reference(label) or mentions_spec_reference(target):
+            normalize_spec_link_target(target, report_path)
+
+
+def validate_report_references(report_text: str, context: dict[str, Any], report_path: Path) -> None:
     if COMMIT_ID_PATTERN.search(report_text):
         raise SystemExit("product change report must not include commit IDs")
+
+    validate_spec_references(report_text, report_path)
 
     for issue in linked_issues(context):
         number = issue["number"]
@@ -137,7 +192,7 @@ def classify_report(context: dict[str, Any], report_path: Path) -> dict[str, str
         report_path.unlink(missing_ok=True)
         return {"has_report": "false", "ledger_status": "scanned_no_update", "ledger_should_update": "true"}
 
-    validate_report_references(report_text, context)
+    validate_report_references(report_text, context, report_path)
 
     if has_worktree_change(report_path):
         return {"has_report": "true", "ledger_status": "reported", "ledger_should_update": "true"}

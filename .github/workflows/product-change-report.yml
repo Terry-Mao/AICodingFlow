@@ -115,6 +115,7 @@ jobs:
             If none of the input changes are product-reportable, do not create an empty or "no changes" report file.
             Include source references to PRs, issue URLs, or specs where useful; do not include commit IDs in the report.
             When adding a related issue reference, use the GitHub issue URL from closingIssuesReferences instead of a PR URL.
+            When adding a spec reference, use a Markdown link whose target is the repository-relative path from docs/updates/ to an existing specs/issue-*/product.md or specs/issue-*/tech.md file, such as [Product spec](../../specs/issue-239/product.md) or [Tech spec](../../specs/issue-239/tech.md). Do not use GitHub blob URLs, PR URLs, branch URLs, bare specs/... text, directory links, or non-spec files for spec source references.
 
       - name: Validate product change report context integrity
         if: steps.context.outputs.reportable_pr_count != '0'

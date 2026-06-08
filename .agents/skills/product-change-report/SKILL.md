@@ -79,6 +79,7 @@ Map source changes into report sections. Use the repository's existing report fo
 - Keep entries concise but traceable to source PRs, issue URLs, or specs
 - Do not include commit IDs in generated reports.
 - When adding a related issue reference, use the GitHub issue URL from the linked issue metadata rather than a PR URL.
+- When adding a spec reference, use a Markdown link whose target is the repository-relative path from `docs/updates/` to an existing `specs/issue-*/product.md` or `specs/issue-*/tech.md` file, such as `[Product spec](../../specs/issue-239/product.md)` or `[Tech spec](../../specs/issue-239/tech.md)`. Do not use GitHub blob URLs, PR URLs, branch URLs, bare `specs/...` text, directory links, or non-spec files for spec source references.
 - Describe behavior and impact, not implementation details, unless the implementation detail explains risk or validation
 - Do not present planned, unmerged, or speculative work as shipped
 - Do not make `docs/updates/` sound authoritative over `docs/product/`, approved specs, or code
