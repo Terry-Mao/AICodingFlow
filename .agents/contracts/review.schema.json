@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aicodingflow.local/contracts/review.schema.json",
+  "title": "AICodingFlow Review Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "body", "comments"],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["APPROVE", "REJECT"]
+    },
+    "body": {
+      "type": "string"
+    },
+    "comments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "side", "line", "body"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string",
+            "enum": ["LEFT", "RIGHT"]
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "body": {
+            "type": "string",
+            "pattern": "^(🚨 \\[CRITICAL\\]|⚠️ \\[IMPORTANT\\]|💡 \\[SUGGESTION\\]|🧹 \\[NIT\\])"
+          }
+        }
+      }
+    },
+    "recommended_reviewers": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

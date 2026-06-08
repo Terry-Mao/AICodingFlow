@@ -28,6 +28,23 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
         self.assertIn("If authentication is unavailable or the prompt says not to call GitHub APIs", compact_text)
         self.assertNotIn("Fetch issue discussion on demand", text)
 
+    def test_non_review_workflow_skills_do_not_require_root_handoff_paths(self) -> None:
+        skill_paths = [
+            ".agents/skills/create-product-spec/SKILL.md",
+            ".agents/skills/create-tech-spec/SKILL.md",
+            ".agents/skills/implement-issue/SKILL.md",
+            ".agents/skills/implement-specs/SKILL.md",
+        ]
+
+        for path in skill_paths:
+            with self.subTest(path=path):
+                text = (ROOT / path).read_text(encoding="utf-8")
+                compact_text = compact(text)
+
+                self.assertIn("prompt", compact_text)
+                self.assertIn("system temporary directory", compact_text)
+                self.assertNotIn("at the repository root", compact_text)
+
     def test_implement_issue_documents_resolved_review_comments_contract(self) -> None:
         text = (ROOT / ".agents/skills/implement-issue/SKILL.md").read_text(encoding="utf-8")
         compact_text = compact(text)
@@ -49,8 +66,10 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
             compact_text = compact(text)
 
             self.assertIn("skill=<path>", text)
-            self.assertIn("Read the skill path printed by the command", compact_text)
+            self.assertIn("Read the `skill` path printed by the command", compact_text)
             self.assertIn("Follow the selected skill exactly", compact_text)
+            self.assertIn("printed snapshot paths", compact_text)
+            self.assertIn("printed `review_path`", compact_text)
 
     def test_create_pr_skill_only_reuses_open_prs(self) -> None:
         text = (ROOT / ".agents/skills/create-pr/SKILL.md").read_text(encoding="utf-8")

@@ -19,21 +19,33 @@ The differences are:
 
 - the primary input is a GitHub issue, not a Linear issue
 - the output path is `specs/issue-<issue-number>/tech.md`
-- `issue_context.json` contains the issue details, triggering comment, output paths, target branch, and workflow metadata
-- `issue_comments.txt` contains prior issue discussion, excluding the explicit triggering comment
-- a workflow may also request a structured PR metadata file in `pr-metadata.json`
+- the workflow or prompt provides the issue context path; in CI this is often
+  `issue_context.json`, while local wrappers should provide a path in a system
+  temporary directory
+- the workflow or prompt may provide an issue comments path; in CI this is
+  often `issue_comments.txt`
+- a workflow may also request a structured PR metadata output path; in CI this
+  is often `pr-metadata.json`
 - do not create or edit Linear issues as part of this workflow
 
 ## Inputs
 
-Expect issue details in `issue_context.json`, including the issue number, title, description, labels, assignees, triggering comment when present, exact `product_spec` path, and exact `tech_spec` path.
+Expect issue details in the issue context file named by the prompt, including
+the issue number, title, description, labels, assignees, triggering comment
+when present, exact `product_spec` path, and exact `tech_spec` path. If the
+prompt does not provide an explicit path, use `issue_context.json` in the
+current workflow worktree.
 
 When available, the product spec at the `product_spec` path from `issue_context.json` should be treated as the primary input for understanding the intended behavior. The tech spec translates that product intent into an implementation approach.
 
 ## Workflow
 
 1. Start from the local shared `write-tech-spec` guidance and follow its structure and writing standards unless this wrapper says otherwise.
-2. Read `issue_context.json` carefully. Read the product spec from the exact `product_spec` path first to understand the intended behavior. If `issue_comments.txt` exists, review it for clarifications, prior decisions, and design nuance that should influence the tech plan.
+2. Read the prompt-provided issue context path carefully. Read the product spec
+   from the exact `product_spec` path first to understand the intended
+   behavior. If a prompt-provided issue comments path exists, review it for
+   clarifications, prior decisions, and design nuance that should influence the
+   tech plan.
 3. Inspect the repository to understand the current implementation and the likely scope of the requested work before writing the spec. Do not guess about current architecture when the code can be inspected directly.
 4. Create or update the exact `tech_spec` path from `issue_context.json`.
 5. Use the shared skill's structure as the baseline, adapted to this repository and issue format. At minimum, cover:
@@ -46,14 +58,26 @@ When available, the product spec at the `product_spec` path from `issue_context.
    - testing and validation
    - follow-ups or open technical questions
 6. Keep the tech spec concise, actionable, and grounded in actual code paths and ownership boundaries in this repository.
-7. Do not implement the feature or modify production code as part of this task. Limit changes to the tech spec artifact and any minimal repository metadata needed to support it. Treat temporary context files such as `issue_context.json` and `issue_comments.txt` as scratch input only and do not commit them.
+7. Do not implement the feature or modify production code as part of this task.
+   Limit changes to the tech spec artifact and any minimal repository metadata
+   needed to support it. Treat temporary context and comments files as scratch
+   input only and do not commit them.
 8. Do not include issue number references (e.g. `(#N)`, `Refs #N`) in commit messages. The issue is already linked in the PR.
-9. If the prompt asks for it, write `pr-metadata.json` at the repository root containing a JSON object with the fields `branch_name`, `pr_title`, and `pr_summary`. The `pr_summary` should summarize the resulting spec changes, validation, and any reviewer-relevant assumptions or open questions. For spec-only PRs, include a non-closing reference to the source issue such as `Refs #<issue-number>` rather than closing keywords like `Closes` or `Fixes`.
+9. If the prompt asks for PR metadata, write it to the exact metadata output
+   path named by the prompt. If no explicit path is provided, use
+   `pr-metadata.json` in the current workflow worktree. The file must contain a
+   JSON object with the fields `branch_name`, `pr_title`, and `pr_summary`.
+   The `pr_summary` should summarize the resulting spec changes, validation,
+   and any reviewer-relevant assumptions or open questions. For spec-only PRs,
+   include a non-closing reference to the source issue such as
+   `Refs #<issue-number>` rather than closing keywords like `Closes` or
+   `Fixes`.
 10. Default behavior: do not stage files, create commits, push branches, open pull requests, or use the GitHub CLI.
 11. In your final response, provide a brief summary of the tech spec and call out any assumptions or open questions so the workflow can reuse that summary when creating the PR.
 
 ## Output expectations
 
 - Leave the repository with the new or updated tech spec file ready to be committed by the workflow.
-- When requested by the prompt, leave a ready-to-use `pr-metadata.json` with `branch_name`, `pr_title`, and `pr_summary`.
+- When requested by the prompt, leave a ready-to-use PR metadata file at the
+  prompt-provided path with `branch_name`, `pr_title`, and `pr_summary`.
 - If the issue is underspecified, still produce the best possible tech spec and clearly capture assumptions or open questions in the spec file and final response.

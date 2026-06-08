@@ -17,6 +17,7 @@ sources:
 
 ## 输出契约
 
+- `.agents/contracts/review.md` 是 review snapshot、diff-line targeting、`review.json` schema 和 validator 规则的共享合同。
 - `review.json` 必须包含 `verdict`、`body` 和 `comments`。
 - `verdict` 只能是 `APPROVE` 或 `REJECT`。
 - `APPROVE` 表示没有阻塞级发现。

@@ -13,6 +13,12 @@ selector = import_script(".github/scripts/select_review_skill.py", "select_revie
 
 
 class SelectReviewSkillTest(unittest.TestCase):
+    def test_primary_entrypoints_are_core_review_skills(self) -> None:
+        self.assertEqual(selector.CODE_REVIEW_SKILL, ".agents/skills/review-pr/SKILL.md")
+        self.assertEqual(selector.SPEC_REVIEW_SKILL, ".agents/skills/review-spec/SKILL.md")
+        self.assertNotIn("-repo", selector.CODE_REVIEW_SKILL)
+        self.assertNotIn("-repo", selector.SPEC_REVIEW_SKILL)
+
     def test_selects_spec_review_for_spec_only_diff(self) -> None:
         pr_diff = "\n".join(
             [

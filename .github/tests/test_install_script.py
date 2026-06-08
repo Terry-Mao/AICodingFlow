@@ -85,6 +85,8 @@ class InstallScriptTest(unittest.TestCase):
 
             self.assertTrue((target / ".agents/skills/create-issue/SKILL.md").is_file())
             self.assertTrue((target / ".agents/skills/git-branch/SKILL.md").is_file())
+            self.assertTrue((target / ".agents/contracts/review.md").is_file())
+            self.assertTrue((target / ".agents/contracts/review.schema.json").is_file())
             self.assertFalse((target / ".agents/skills/review-pr-repo/SKILL.md").exists())
             self.assertFalse((target / ".agents/skills/review-spec-repo/SKILL.md").exists())
             self.assertFalse((target / ".agents/skills/triage-issue-repo/SKILL.md").exists())

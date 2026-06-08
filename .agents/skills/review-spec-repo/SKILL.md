@@ -1,23 +1,21 @@
 ---
 name: review-spec-repo
 specializes: review-spec
-description: Repo-specific wrapper around the core review-spec workflow for spec-only pull request reviews.
+description: Repo-specific companion guidance for the core review-spec workflow. Do not use as the primary spec review entrypoint.
 ---
 
 # review-spec-repo
 
-Use this skill for reviewing PRs whose changed files are all under `specs/`.
+This file is a companion to the core `review-spec` skill and
+`.agents/contracts/review.md`.
 
-This is a repository-local wrapper around the core `review-spec` skill for
-spec-only pull requests. The core skill remains authoritative for the workflow,
-snapshot contract, output schema, severity labels, validation rules, and safety
-rules.
+Do not invoke this file as the primary spec review entrypoint. The primary
+entrypoint is `.agents/skills/review-spec/SKILL.md`; that skill reads this
+companion when it needs repository-specific spec review guidance.
 
-## Required Wrapper Flow
-
-1. Read `.agents/skills/review-spec/SKILL.md`.
-2. Follow the core `review-spec` workflow exactly.
-3. Apply the spec review focus below when choosing findings.
+This companion may add repository-specific checks and preferences, but it must
+not override the core workflow, shared review contract, output schema, severity
+labels, diff-line targeting, validation rules, or safety rules.
 
 ## Review Focus
 
@@ -29,4 +27,5 @@ rules.
 ## Self-Evolution Boundary
 
 `update-pr-review` may update this file from repeated human feedback on spec
-reviews. Keep additions concise and evidence-backed.
+reviews. Keep additions concise and evidence-backed. Do not use this file to
+override `.agents/contracts/review.md`.

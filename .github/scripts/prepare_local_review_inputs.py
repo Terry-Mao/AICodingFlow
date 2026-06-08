@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare root-level review snapshots for local PR review skills."""
+"""Prepare review snapshots for local PR review skills."""
 
 from __future__ import annotations
 
@@ -23,15 +23,14 @@ import write_pr_description  # noqa: E402
 import write_spec_context  # noqa: E402
 
 
-TEMP_REVIEW_PATHS = (
-    Path("pr_description.txt"),
-    Path("pr_diff.txt"),
-    Path("spec_context.md"),
-    Path("review_discussion_context.json"),
-    Path("review.json"),
-    Path(".local_review_baseline.status"),
-)
-TEMP_REVIEW_PATH_NAMES = {path.as_posix() for path in TEMP_REVIEW_PATHS}
+LEGACY_ROOT_REVIEW_PATH_NAMES = {
+    "pr_description.txt",
+    "pr_diff.txt",
+    "spec_context.md",
+    "review_discussion_context.json",
+    "review.json",
+    ".local_review_baseline.status",
+}
 StatusRecord = tuple[str, str, str, str]
 
 
@@ -45,12 +44,6 @@ def optional_git(args: list[str]) -> str:
         return run_command(["git", *args])
     except subprocess.CalledProcessError:
         return ""
-
-
-def remove_stale_review_files() -> None:
-    for path in TEMP_REVIEW_PATHS:
-        if path.exists():
-            path.unlink()
 
 
 def require_clean_worktree() -> None:
@@ -100,7 +93,7 @@ def git_status_raw() -> bytes:
 
 
 def is_temp_review_path(path: str) -> bool:
-    return Path(path).as_posix() in TEMP_REVIEW_PATH_NAMES
+    return Path(path).as_posix() in LEGACY_ROOT_REVIEW_PATH_NAMES
 
 
 def filtered_status_records() -> list[StatusRecord]:
@@ -298,26 +291,42 @@ def write_local_diff(base_sha: str, output: Path) -> str:
     return diff_text
 
 
-def write_baseline_status() -> str:
+def write_baseline_status(output_dir: Path) -> Path:
     records = filtered_status_records()
-    path = Path(".local_review_baseline.status")
+    path = output_dir / ".local_review_baseline.status"
     path.write_bytes(serialize_status_records(records))
-    return path.as_posix()
+    return path
 
 
-def write_spec_context_if_needed(repo: str, event: dict[str, Any], pr_diff_text: str, needs_spec_context: bool) -> None:
-    output = Path("spec_context.md")
+def write_spec_context_if_needed(
+    repo: str,
+    event: dict[str, Any],
+    pr_diff_text: str,
+    needs_spec_context: bool,
+    output_dir: Path,
+) -> Path | None:
+    output = output_dir / "spec_context.md"
     if not needs_spec_context:
-        if output.exists():
-            output.unlink()
-        return
+        return None
 
     changed_files = write_spec_context.changed_files_from_diff_text(pr_diff_text)
     context = write_spec_context.resolve_spec_context(repo, event, changed_files)
     if context.get("spec_entries"):
         output.write_text(write_spec_context.format_spec_context_text(context), encoding="utf-8")
-    elif output.exists():
-        output.unlink()
+        return output
+    return None
+
+
+def prepare_output_dir(path: str) -> Path:
+    if path:
+        output_dir = Path(path).expanduser().resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        return output_dir
+    return Path(tempfile.mkdtemp(prefix="aicodingflow-local-review-")).resolve()
+
+
+def display_path(path: Path) -> str:
+    return str(path)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -325,13 +334,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--repo", default="")
     parser.add_argument("--base", default="")
     parser.add_argument("--head", default="HEAD")
+    parser.add_argument("--output-dir", default="")
     parser.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT", ""))
     return parser.parse_args(argv)
 
 
 def run(args: argparse.Namespace) -> int:
-    remove_stale_review_files()
-
+    output_dir = prepare_output_dir(args.output_dir)
     repo = args.repo or default_repo()
     head_sha = resolve_ref(args.head)
     event = github_pr_event_for_current_branch(repo)
@@ -353,13 +362,17 @@ def run(args: argparse.Namespace) -> int:
     if not event:
         event = local_pr_event(repo, base, base_sha, head_sha)
 
-    Path("pr_description.txt").write_text(write_pr_description.format_pr_description(event), encoding="utf-8")
-    pr_diff_text = write_local_diff(base_sha, Path("pr_diff.txt"))
+    pr_description_path = output_dir / "pr_description.txt"
+    pr_diff_path = output_dir / "pr_diff.txt"
+    review_path = output_dir / "review.json"
+
+    pr_description_path.write_text(write_pr_description.format_pr_description(event), encoding="utf-8")
+    pr_diff_text = write_local_diff(base_sha, pr_diff_path)
     skill = select_review_skill.select_skill(pr_diff_text)
 
     needs_spec_context = select_review_skill.needs_spec_context(skill)
-    write_spec_context_if_needed(repo, event, pr_diff_text, needs_spec_context)
-    baseline_status_path = write_baseline_status()
+    spec_context_path = write_spec_context_if_needed(repo, event, pr_diff_text, needs_spec_context, output_dir)
+    baseline_status_path = write_baseline_status(output_dir)
 
     values = {
         "skill": skill,
@@ -367,7 +380,12 @@ def run(args: argparse.Namespace) -> int:
         "base": base,
         "base_sha": base_sha,
         "head_sha": head_sha,
-        "baseline_status_path": baseline_status_path,
+        "output_dir": display_path(output_dir),
+        "pr_description_path": display_path(pr_description_path),
+        "pr_diff_path": display_path(pr_diff_path),
+        "spec_context_path": display_path(spec_context_path) if spec_context_path else "",
+        "review_path": display_path(review_path),
+        "baseline_status_path": display_path(baseline_status_path),
     }
     write_github_output(args.github_output, values)
     for key, value in values.items():

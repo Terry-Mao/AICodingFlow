@@ -8,6 +8,8 @@ matches their purpose.
 ## Repository Map
 
 - `.agents/skills/`: local and workflow Codex skills.
+- `.agents/contracts/`: shared artifact schemas, validator contracts, and
+  workflow/skill boundary contracts.
 - `.github/workflows/`: GitHub Actions entrypoints for issue triage, spec
   creation, implementation, PR review, product updates, and feedback learning.
 - `.github/scripts/`: standard-library Python helpers used by the workflows.
