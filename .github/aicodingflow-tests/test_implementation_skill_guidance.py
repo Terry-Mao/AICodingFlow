@@ -49,8 +49,10 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
             compact_text = compact(text)
 
             self.assertIn("skill=<path>", text)
-            self.assertIn("Read the skill path printed by the command", compact_text)
+            self.assertIn("Read the `skill` path printed by the command", compact_text)
             self.assertIn("Follow the selected skill exactly", compact_text)
+            self.assertIn("printed snapshot paths", compact_text)
+            self.assertIn("printed `review_path`", compact_text)
 
     def test_create_pr_skill_only_reuses_open_prs(self) -> None:
         text = (ROOT / ".agents/skills/create-pr/SKILL.md").read_text(encoding="utf-8")

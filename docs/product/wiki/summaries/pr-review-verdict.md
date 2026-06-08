@@ -79,11 +79,11 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 ## 本地 review 入口
 
 - 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或 `review-spec-local`。
-- 本地 review 会准备 `pr_description.txt`、`pr_diff.txt`、按需准备 `spec_context.md`，并输出 `review.json`。
+- 本地 review 会在系统临时目录准备 `pr_description.txt`、`pr_diff.txt`、按需准备 `spec_context.md`，并要求 agent 写入打印出的 `review_path`。
 - 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。
-- 准备脚本会删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`。
-- 未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和 `.local_review_baseline.status` 不会纳入 diff。
-- review 阶段只能写入受控 review 输出文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
+- 准备脚本会打印 `output_dir`、`pr_description_path`、`pr_diff_path`、`spec_context_path`、`review_path` 和 `baseline_status_path`。
+- 未被 Git ignore 的未跟踪文件会纳入 diff；历史根目录 review 快照文件名仍会被 diff 过滤，避免旧本地输出污染 review。
+- review 阶段只能写入打印出的 `review_path`；校验会允许 baseline 中已存在的业务文件状态继续存在，但拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
 - 本地 review 的 base 可以显式传入；未显式传入时，已有 GitHub PR 的当前分支优先使用该 PR 的 base SHA，没有可用 PR base SHA 时按 `origin/main`、`upstream/main`、`main` 解析。
 - code review 根据本地 diff 中的 changed files 解析 spec context；spec-only review 不生成 spec context。
 

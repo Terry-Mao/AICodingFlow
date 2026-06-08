@@ -20,6 +20,7 @@ Agent 目录布局定义 AICodingFlow 如何用根目录 `AGENTS.md` 作为共�
 - `AGENTS.md` 是 Codex 默认加载的仓库级 agent guidance 权威入口。
 - `CLAUDE.md -> AGENTS.md` 让 Claude Code 加载同一份仓库级 guidance。
 - `.agents/skills/` 是可复用 workflow skills 的共享目录。
+- `.agents/contracts/` 保存 skills 与 workflows 共享的稳定 artifact 和边界合同。
 - Claude skills 入口通过 `.claude/skills -> ../.agents/skills` 指向共享 skills。
 - Codex skills 入口通过 `.codex/skills -> ../.agents/skills` 指向共享 skills。
 - Cursor 使用 `.cursor/rules/agents.mdc` 作为专用规则文件。

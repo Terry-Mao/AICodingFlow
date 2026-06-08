@@ -1,22 +1,21 @@
 ---
 name: review-pr-repo
 specializes: review-pr
-description: Repo-specific wrapper around the core review-pr workflow for pull request reviews.
+description: Repo-specific companion guidance for the core review-pr workflow. Do not use as the primary review entrypoint.
 ---
 
 # review-pr-repo
 
-Use this skill for reviewing pull requests in this repository.
+This file is a companion to the core `review-pr` skill and
+`.agents/contracts/review.md`.
 
-This is a repository-local wrapper around the core `review-pr` skill. The core
-skill remains authoritative for the workflow, snapshot contract, output schema,
-severity labels, validation rules, and safety rules.
+Do not invoke this file as the primary review entrypoint. The primary entrypoint
+is `.agents/skills/review-pr/SKILL.md`; that skill reads this companion when it
+needs repository-specific review guidance.
 
-## Required Wrapper Flow
-
-1. Read `.agents/skills/review-pr/SKILL.md`.
-2. Follow the core `review-pr` workflow exactly.
-3. Apply the repository-specific review focus below when choosing findings.
+This companion may add repository-specific checks and preferences, but it must
+not override the core workflow, shared review contract, output schema, severity
+labels, diff-line targeting, validation rules, or safety rules.
 
 ## Repository Review Focus
 
@@ -37,5 +36,6 @@ Prioritize findings that affect this repository's skills and PR-review automatio
 ## Self-Evolution Boundary
 
 Future self-evolution should normally update this skill, not
-`.agents/skills/review-pr/`. Treat core `review-pr` changes as higher risk
-because they alter the shared review contract used by CI.
+`.agents/skills/review-pr/` or `.agents/contracts/review.md`. Treat core
+review skill and shared contract changes as higher risk because they alter the
+review contract used by CI.

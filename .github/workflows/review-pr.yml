@@ -159,8 +159,10 @@ jobs:
       - name: Prepare review workspace
         run: |
           rm -rf pr-worktree/.agents/skills
+          rm -rf pr-worktree/.agents/contracts
           mkdir -p pr-worktree/.agents
           cp -R .agents/skills pr-worktree/.agents/skills
+          cp -R .agents/contracts pr-worktree/.agents/contracts
 
       - name: Install Codex sandbox prerequisites
         run: |
@@ -192,6 +194,9 @@ jobs:
           prompt: |
             First change directory to pr-worktree and do all file inspection from there.
             Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.
+            Read .agents/contracts/review.md in pr-worktree and treat it as the
+            shared review contract. The selected skill may add review focus but
+            must not override the contract.
             Use the existing pr_description.txt and pr_diff.txt snapshots in pr-worktree.
             Use spec_context.md in pr-worktree only when the selected review skill instructs you to.
             Use review_discussion_context.json in pr-worktree as prior review

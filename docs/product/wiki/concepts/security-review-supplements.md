@@ -25,6 +25,7 @@ AI PR Review 会把安全补充检查合并进基础 review，而不是生成独
 ## 输出边界
 
 - 安全发现合并进同一个 `review.json`，不会生成单独输出。
+- 安全补充必须遵守 `.agents/contracts/review.md`，不能改变 `review.json` schema、diff-line targeting 或 GitHub/API 边界。
 - 安全补充只报告有证据的问题。
 - 安全补充不运行动态扫描，不查询外部安全 API，不制造理论风险，也不直接发布 GitHub comment。
 - 安全发现的 review comment 使用 `[SECURITY]` 标签。

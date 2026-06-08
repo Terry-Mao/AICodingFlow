@@ -1,6 +1,6 @@
 ---
 name: review-pr-local
-description: Run the repository PR review workflow locally from the current branch using the same root-level snapshots and review.json contract as CI.
+description: Run the repository PR review workflow locally from the current branch using temporary-directory snapshots and the same review.json contract as CI.
 ---
 
 # review-pr-local
@@ -14,29 +14,30 @@ delegates review logic to `review-pr`.
 1. From the repository root, prepare local review inputs. This prefers the
    GitHub PR associated with the current branch for `pr_description.txt`, then
    falls back to locally built PR metadata when the GitHub PR cannot be fetched.
-   The `pr_diff.txt` snapshot is built from the local worktree diff, and the
-   command prints the selected review skill as `skill=<path>`:
+   The `pr_diff.txt` snapshot is built from the local worktree diff. The command
+   writes snapshots to a temporary directory and prints the selected review
+   skill as `skill=<path>` plus exact file paths:
    ```bash
    python3 .github/scripts/prepare_local_review_inputs.py
    ```
-2. Read the skill path printed by the command.
+2. Read the `skill` path printed by the command.
 3. Follow the selected skill exactly. It will apply any referenced local
    companion guidance when present.
-4. Use only these root-level snapshots as review inputs:
-   - `pr_description.txt`
-   - `pr_diff.txt`
-   - `spec_context.md` when present
+4. Use only the printed snapshot paths as review inputs:
+   - `pr_description_path`
+   - `pr_diff_path`
+   - `spec_context_path` when non-empty
 5. Inspect repository files from the current repository root when the review
    skill needs source context.
-6. Write only `review.json` in the repository root.
+6. Write the review output only to the printed `review_path`.
 7. Validate the review output:
    ```bash
-   python3 .github/scripts/validate_review_json.py pr_diff.txt review.json
+   python3 .github/scripts/validate_review_json.py <pr_diff_path> <review_path>
    ```
 8. Validate that the review phase did not mutate repository files:
    ```bash
    python3 .github/scripts/validate_local_review_result.py \
-     --baseline-status .local_review_baseline.status
+     --baseline-status <baseline_status_path>
    ```
 
 ## Safety Rules

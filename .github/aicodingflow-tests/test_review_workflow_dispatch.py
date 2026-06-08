@@ -140,11 +140,16 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
 
         prepare_step = next(step for step in review_steps if step.get("name") == "Prepare review workspace")
         self.assertIn("rm -rf pr-worktree/.agents/skills", prepare_step["run"])
+        self.assertIn("rm -rf pr-worktree/.agents/contracts", prepare_step["run"])
         self.assertIn("cp -R .agents/skills pr-worktree/.agents/skills", prepare_step["run"])
+        self.assertIn("cp -R .agents/contracts pr-worktree/.agents/contracts", prepare_step["run"])
 
         ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
         self.assertEqual(ai_step["with"]["allow-bot-users"], "github-actions[bot]")
         self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
+        self.assertIn("Read .agents/contracts/review.md", ai_step["with"]["prompt"])
+        self.assertIn("shared review contract", ai_step["with"]["prompt"])
+        self.assertIn("must not override the contract", ai_step["with"]["prompt"])
         self.assertIn("Write review.json in pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("target pr-worktree/review.json explicitly", ai_step["with"]["prompt"])
         self.assertIn("review_discussion_context.json", ai_step["with"]["prompt"])

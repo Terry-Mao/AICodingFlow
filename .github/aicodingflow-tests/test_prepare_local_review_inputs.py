@@ -67,7 +67,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             ),
             mock.patch.object(prepare_local, "github_pr_event_for_current_branch", return_value=None),
             mock.patch.object(prepare_local, "local_worktree_diff", return_value=diff_lines),
-            mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status"),
+            mock.patch.object(prepare_local, "write_baseline_status", return_value=Path("review-output/.local_review_baseline.status")),
         )
 
     def git(self, directory: Path, *args: str) -> str:
@@ -93,6 +93,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def test_prepares_code_review_inputs_and_removes_stale_files(self) -> None:
         def scenario(directory: Path) -> None:
+            output = directory / "review-output"
             for name in (
                 "pr_description.txt",
                 "pr_diff.txt",
@@ -112,20 +113,27 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                         return_value={"spec_context_source": "", "spec_entries": []},
                     )
                 )
-                stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py", "--github-output", ""]))
+                stack.enter_context(
+                    mock.patch(
+                        "sys.argv",
+                        ["prepare_local_review_inputs.py", "--github-output", "", "--output-dir", str(output)],
+                    )
+                )
                 self.assertEqual(prepare_local.main(), 0)
 
-            self.assertIn("Title: feat: local review", Path("pr_description.txt").read_text(encoding="utf-8"))
-            self.assertIn("FILE core/foo.py", Path("pr_diff.txt").read_text(encoding="utf-8"))
-            self.assertFalse(Path("spec_context.md").exists())
-            self.assertFalse(Path("review_discussion_context.json").exists())
-            self.assertFalse(Path("review.json").exists())
+            self.assertEqual(Path("pr_description.txt").read_text(encoding="utf-8"), "stale")
+            self.assertIn("Title: feat: local review", (output / "pr_description.txt").read_text(encoding="utf-8"))
+            self.assertIn("FILE core/foo.py", (output / "pr_diff.txt").read_text(encoding="utf-8"))
+            self.assertFalse((output / "spec_context.md").exists())
+            self.assertFalse((output / "review_discussion_context.json").exists())
+            self.assertFalse((output / "review.json").exists())
             resolve_spec_context.assert_called_once()
 
         self.run_in_tempdir(scenario)
 
     def test_prepares_spec_review_inputs_without_spec_context(self) -> None:
         def scenario(directory: Path) -> None:
+            output = directory / "review-output"
             Path("spec_context.md").write_text("stale", encoding="utf-8")
 
             with ExitStack() as stack:
@@ -141,19 +149,23 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                             "prepare_local_review_inputs.py",
                             "--github-output",
                             "",
+                            "--output-dir",
+                            str(output),
                         ],
                     )
                 )
                 self.assertEqual(prepare_local.main(), 0)
 
-            self.assertIn("FILE specs/issue-80/product.md", Path("pr_diff.txt").read_text(encoding="utf-8"))
-            self.assertFalse(Path("spec_context.md").exists())
+            self.assertIn("FILE specs/issue-80/product.md", (output / "pr_diff.txt").read_text(encoding="utf-8"))
+            self.assertEqual(Path("spec_context.md").read_text(encoding="utf-8"), "stale")
+            self.assertFalse((output / "spec_context.md").exists())
             resolve_spec_context.assert_not_called()
 
         self.run_in_tempdir(scenario)
 
     def test_prefers_github_pr_base_sha_for_diff_and_description(self) -> None:
         def scenario(directory: Path) -> None:
+            output = directory / "review-output"
             github_event = {
                 "pull_request": {
                     "number": 12,
@@ -187,16 +199,21 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                     )
                 )
                 stack.enter_context(
-                    mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status")
+                    mock.patch.object(prepare_local, "write_baseline_status", return_value=output / ".local_review_baseline.status")
                 )
-                stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py", "--github-output", ""]))
+                stack.enter_context(
+                    mock.patch(
+                        "sys.argv",
+                        ["prepare_local_review_inputs.py", "--github-output", "", "--output-dir", str(output)],
+                    )
+                )
                 self.assertEqual(prepare_local.main(), 0)
 
-            description = Path("pr_description.txt").read_text(encoding="utf-8")
+            description = (output / "pr_description.txt").read_text(encoding="utf-8")
             self.assertIn("Title: fix: github pr", description)
             self.assertIn("Body:\nremote body", description)
             self.assertIn("Base: main @ github-base", description)
-            self.assertIn("FILE core/foo.py", Path("pr_diff.txt").read_text(encoding="utf-8"))
+            self.assertIn("FILE core/foo.py", (output / "pr_diff.txt").read_text(encoding="utf-8"))
             default_base.assert_not_called()
             resolve_ref.assert_called_once_with("HEAD")
             local_pr_event.assert_not_called()
@@ -206,6 +223,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def test_explicit_base_overrides_github_pr_base_and_updates_description(self) -> None:
         def scenario(directory: Path) -> None:
+            output = directory / "review-output"
             github_event = {
                 "pull_request": {
                     "number": 12,
@@ -238,17 +256,25 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                     )
                 )
                 stack.enter_context(
-                    mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status")
+                    mock.patch.object(prepare_local, "write_baseline_status", return_value=output / ".local_review_baseline.status")
                 )
                 stack.enter_context(
                     mock.patch(
                         "sys.argv",
-                        ["prepare_local_review_inputs.py", "--github-output", "", "--base", "origin/main"],
+                        [
+                            "prepare_local_review_inputs.py",
+                            "--github-output",
+                            "",
+                            "--base",
+                            "origin/main",
+                            "--output-dir",
+                            str(output),
+                        ],
                     )
                 )
                 self.assertEqual(prepare_local.main(), 0)
 
-            description = Path("pr_description.txt").read_text(encoding="utf-8")
+            description = (output / "pr_description.txt").read_text(encoding="utf-8")
             self.assertIn("Title: fix: github pr", description)
             self.assertIn("Base: main @ explicit-base-sha", description)
             default_base.assert_not_called()
@@ -259,6 +285,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def test_github_pr_event_without_base_sha_uses_fallback_base(self) -> None:
         def scenario(directory: Path) -> None:
+            output = directory / "review-output"
             github_event = {
                 "pull_request": {
                     "number": 12,
@@ -291,12 +318,17 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                     )
                 )
                 stack.enter_context(
-                    mock.patch.object(prepare_local, "write_baseline_status", return_value=".local_review_baseline.status")
+                    mock.patch.object(prepare_local, "write_baseline_status", return_value=output / ".local_review_baseline.status")
                 )
-                stack.enter_context(mock.patch("sys.argv", ["prepare_local_review_inputs.py", "--github-output", ""]))
+                stack.enter_context(
+                    mock.patch(
+                        "sys.argv",
+                        ["prepare_local_review_inputs.py", "--github-output", "", "--output-dir", str(output)],
+                    )
+                )
                 self.assertEqual(prepare_local.main(), 0)
 
-            description = Path("pr_description.txt").read_text(encoding="utf-8")
+            description = (output / "pr_description.txt").read_text(encoding="utf-8")
             self.assertIn("Base: main @ fallback-base-sha", description)
             default_base.assert_called_once()
             self.assertEqual(resolve_ref.call_args_list, [mock.call("HEAD"), mock.call("origin/main")])
@@ -364,18 +396,12 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
         ):
             self.assertIsNone(prepare_local.github_pr_event_for_current_branch("owner/repo"))
 
-    def test_gitignore_excludes_root_review_snapshots(self) -> None:
-        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
-        for path in (
-            "pr_description.txt",
-            "pr_diff.txt",
-            "spec_context.md",
-            "review_discussion_context.json",
-            "review.json",
-            ".local_review_baseline.status",
-            "implementation_summary.md",
-        ):
-            self.assertIn(f"/{path}", gitignore)
+    def test_default_output_dir_is_system_temp_directory(self) -> None:
+        output_dir = prepare_local.prepare_output_dir("")
+
+        self.assertTrue(output_dir.is_dir())
+        self.assertTrue(output_dir.name.startswith("aicodingflow-local-review-"))
+        self.assertNotEqual(output_dir.parent, ROOT)
 
     def test_remote_repo_from_url_accepts_ssh_https_and_dotted_names(self) -> None:
         self.assertEqual(
@@ -453,17 +479,19 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
         self.run_in_tempdir(scenario)
 
-    def test_write_baseline_status_uses_fixed_ignored_root_path(self) -> None:
+    def test_write_baseline_status_uses_output_directory(self) -> None:
         def scenario(directory: Path) -> None:
             self.init_repo(directory)
             (directory / "core/foo.py").write_text("dirty\n", encoding="utf-8")
             self.git(directory, "mv", "core/deleted.py", "core/renamed.py")
+            output = directory / "review-output"
+            output.mkdir()
 
-            path = prepare_local.write_baseline_status()
+            path = prepare_local.write_baseline_status(output)
 
-            self.assertEqual(path, ".local_review_baseline.status")
-            self.assertTrue((directory / ".local_review_baseline.status").exists())
-            baseline = (directory / ".local_review_baseline.status").read_bytes()
+            self.assertEqual(path, output / ".local_review_baseline.status")
+            self.assertTrue((output / ".local_review_baseline.status").exists())
+            baseline = (output / ".local_review_baseline.status").read_bytes()
             self.assertIn(b" M core/foo.py\0", baseline)
             self.assertIn(b"R  core/renamed.py\0core/deleted.py\0", baseline)
 

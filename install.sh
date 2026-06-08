@@ -34,9 +34,10 @@ dry_run=false
 install_repository="${AICODINGFLOW_INSTALL_REPOSITORY:-https://github.com/Terry-Mao/AICodingFlow.git}"
 
 is_source_tree() {
-  [ -f "$script_dir/install.sh" ] &&
+    [ -f "$script_dir/install.sh" ] &&
     [ -f "$script_dir/AGENTS.md" ] &&
     [ -d "$script_dir/.agents/skills" ] &&
+    [ -d "$script_dir/.agents/contracts" ] &&
     [ -d "$script_dir/.github/workflows" ]
 }
 
@@ -78,6 +79,7 @@ command -v rsync >/dev/null 2>&1 || fail "rsync is required but was not found"
 
 [ -d "$target_dir" ] || fail "target path is not a directory: $target_dir"
 [ -d "$script_dir/.agents/skills" ] || fail "source .agents/skills directory is missing"
+[ -d "$script_dir/.agents/contracts" ] || fail "source .agents/contracts directory is missing"
 
 target_dir="$(cd "$target_dir" && pwd)"
 
@@ -133,6 +135,7 @@ sync_github_dirs() {
 }
 
 sync_skills
+copy_dir "$script_dir/.agents/contracts" "$target_dir/.agents/contracts"
 sync_github_dirs
 
 if [ "$dry_run" = true ]; then

@@ -24,7 +24,7 @@ sources:
 
 ## 同步边界
 
-- 同步范围包括 `.agents/skills/`、`.github/agents/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和 `.github/workflows/`。
+- 同步范围包括 `.agents/skills/`、`.agents/contracts/`、`.github/agents/`、`.github/scripts/`、`.github/aicodingflow-tests/` 和 `.github/workflows/`。
 - `.agents/skills/*-repo/SKILL.md` 不由安装脚本安装；目标项目已有 repo-local companion skills 会保留。
 - 目标项目 `.github` 下不属于同步目录的文件不会被删除。
 - `.github/aicodingflow-tests/` 是上游托管测试目录，目标项目自己的 `.github` 相关测试应优先放在 `.github/tests/`。

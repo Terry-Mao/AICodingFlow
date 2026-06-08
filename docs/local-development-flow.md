@@ -100,7 +100,7 @@ $review-pr-local
 $review-spec-local
 ```
 
-它们会从当前分支准备 `pr_description.txt`、`pr_diff.txt` 和可选 `spec_context.md`，运行对应 review skill，并验证 `review.json`。本地 review 不会发布 GitHub 评论。
+它们会从当前分支把 `pr_description.txt`、`pr_diff.txt`、可选 `spec_context.md` 和 `review.json` 放到系统临时目录，并打印对应路径；本地 review 按这些路径运行对应 review skill 和验证，不会发布 GitHub 评论。
 
 ## 测试
 

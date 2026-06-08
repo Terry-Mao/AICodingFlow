@@ -9,15 +9,6 @@ import argparse
 from pathlib import Path
 
 
-ALLOWED_PATHS = {
-    "pr_description.txt",
-    "pr_diff.txt",
-    "spec_context.md",
-    "review.json",
-    ".local_review_baseline.status",
-}
-
-
 def parse_status_records(raw: bytes) -> list[tuple[str, str, str]]:
     parts = raw.decode("utf-8", errors="replace").split("\0")
     records: list[tuple[str, str, str]] = []
@@ -43,36 +34,31 @@ def validate_records(records: list[tuple[str, str, str]]) -> list[str]:
         if index_status != " " and index_status != "?":
             errors.append(f"staged change is not allowed during local review: {normalized}")
             continue
-        if normalized not in ALLOWED_PATHS:
-            errors.append(f"unexpected file change during local review: {normalized}")
-            continue
-        if worktree_status == "D":
-            errors.append(f"local review output was deleted unexpectedly: {normalized}")
+        errors.append(f"unexpected file change during local review: {normalized}")
     return errors
 
 
-def business_records(records: list[tuple[str, str, str]]) -> dict[str, tuple[str, str]]:
+def status_records_by_path(records: list[tuple[str, str, str]]) -> dict[str, tuple[str, str]]:
     result: dict[str, tuple[str, str]] = {}
     for index_status, worktree_status, path in records:
         normalized = Path(path).as_posix()
-        if normalized not in ALLOWED_PATHS:
-            result[normalized] = (index_status, worktree_status)
+        result[normalized] = (index_status, worktree_status)
     return result
 
 
 def validate_records_against_baseline(
     records: list[tuple[str, str, str]], baseline_records: list[tuple[str, str, str]]
 ) -> list[str]:
-    errors = validate_records([record for record in records if Path(record[2]).as_posix() in ALLOWED_PATHS])
-    current_business = business_records(records)
-    baseline_business = business_records(baseline_records)
+    errors: list[str] = []
+    current_status = status_records_by_path(records)
+    baseline_status = status_records_by_path(baseline_records)
 
-    for path in sorted(set(current_business) - set(baseline_business)):
+    for path in sorted(set(current_status) - set(baseline_status)):
         errors.append(f"unexpected file change during local review: {path}")
-    for path in sorted(set(baseline_business) - set(current_business)):
+    for path in sorted(set(baseline_status) - set(current_status)):
         errors.append(f"baseline file state changed during local review: {path}")
-    for path in sorted(set(current_business) & set(baseline_business)):
-        if current_business[path] != baseline_business[path]:
+    for path in sorted(set(current_status) & set(baseline_status)):
+        if current_status[path] != baseline_status[path]:
             errors.append(f"baseline file state changed during local review: {path}")
     return errors
 
