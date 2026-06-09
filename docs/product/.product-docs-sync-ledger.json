@@ -2033,6 +2033,26 @@
       "proposed_patch": "No product docs patch is needed; the change is a generated wiki compile log entry and belongs outside authoritative long-term product docs.",
       "reason": "PR #248 only updated the generated Product LLM Wiki compile log under docs/product/wiki/log.md. It did not change authoritative raw product knowledge, specs, workflows, permissions, lifecycle rules, APIs, configuration semantics, or user-visible product behavior.",
       "recorded_at": "2026-06-09T13:35:02Z"
+    },
+    {
+      "pr": 247,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/247",
+      "title": "refactor(workflows): move handoff files to temp dir",
+      "merged_at": "2026-06-08T09:03:00Z",
+      "merge_commit": "343d5788c14437076bfc8342be5f62bc4bf32e81",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #247",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/pr-comment-response-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "proposed_patch": "无需补丁；合并 PR 已包含并落地所需的 docs/product/raw 更新。",
+      "reason": "PR #247 改变了 spec、implementation 和 PR comment response workflow 的 handoff 路径与提交排除契约，但该 PR 已同步更新对应的长期产品文档。现有 docs/product/raw/implementation-workflow.md、docs/product/raw/pr-comment-response-workflow.md 和 docs/product/raw/spec-workflow.md 已覆盖合并后的 .codex-runtime/handoff 行为、metadata 边界和 spec handoff 限制。",
+      "recorded_at": "2026-06-09T16:23:59Z"
     }
   ]
 }
