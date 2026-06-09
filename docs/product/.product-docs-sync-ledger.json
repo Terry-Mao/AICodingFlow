@@ -2053,6 +2053,25 @@
       "proposed_patch": "无需补丁；合并 PR 已包含并落地所需的 docs/product/raw 更新。",
       "reason": "PR #247 改变了 spec、implementation 和 PR comment response workflow 的 handoff 路径与提交排除契约，但该 PR 已同步更新对应的长期产品文档。现有 docs/product/raw/implementation-workflow.md、docs/product/raw/pr-comment-response-workflow.md 和 docs/product/raw/spec-workflow.md 已覆盖合并后的 .codex-runtime/handoff 行为、metadata 边界和 spec handoff 限制。",
       "recorded_at": "2026-06-09T16:23:59Z"
+    },
+    {
+      "pr": 249,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/249",
+      "title": "fix: validate product report spec links",
+      "merged_at": "2026-06-08T09:21:22Z",
+      "merge_commit": "4190d0ff50bed980a9376aa2b5ab8ad00b4d002b",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #249",
+        "Issue #239",
+        "specs/issue-239/product.md"
+      ],
+      "proposed_patch": "更新 docs/product/raw/product-change-reports.md 的来源引用和校验行为章节，补充 spec source reference 的合法链接格式、非法目标类型和状态校验拒绝规则。",
+      "reason": "PR #249 改变了 product change report 的长期来源引用契约和状态校验行为：spec 引用必须使用从 docs/updates/ 出发的仓库相对 Markdown 链接，并且错误 spec source reference 会被拒绝。现有产品文档只记录了 commit ID 和 related issue URL 校验，未覆盖该已合并行为。",
+      "recorded_at": "2026-06-09T18:08:41Z"
     }
   ]
 }

@@ -66,6 +66,13 @@ spec。生成的报告不得包含 commit ID。
 当条目引用 related issue 时，必须使用 linked issue metadata 提供的 GitHub
 issue URL。仅写 issue 编号不足以构成 related issue 引用。
 
+当条目引用 spec 时，必须使用从 `docs/updates/` 报告文件出发的仓库相对 Markdown 链接，
+目标只能是当前仓库中已提交的 `specs/issue-*/product.md` 或 `specs/issue-*/tech.md` 文件。
+例如，`docs/updates/auto-update-*.md` 中的合法引用是
+`[Product spec](../../specs/issue-239/product.md)` 或
+`[Tech spec](../../specs/issue-239/tech.md)`。外部 URL、裸 `specs/...` 路径、目录链接、
+不存在的文件，或非 `product.md` / `tech.md` 目标都不是合法 spec source reference。
+
 ## 校验行为
 
 报告状态校验会拒绝暴露 commit-like SHA token 的生成报告。对于已 linked 的
@@ -75,4 +82,9 @@ issue URL，校验也会拒绝该报告。
 即使 PR 编号与 linked issue 编号相同，PR 引用仍然有效。在这种情况下，类似
 `PR #87` 的来源引用不会被当作 related issue 引用处理。
 
-来源：PR #165，https://github.com/Terry-Mao/AICodingFlow/pull/165；PR #168，https://github.com/Terry-Mao/AICodingFlow/pull/168；PR #171，https://github.com/Terry-Mao/AICodingFlow/pull/171；PR #173，https://github.com/Terry-Mao/AICodingFlow/pull/173；PR #181，https://github.com/Terry-Mao/AICodingFlow/pull/181
+报告状态校验会拒绝错误 spec source reference，包括 spec-like Markdown 链接指向外部 URL、
+仓库外路径、缺失文件、目录或非 `product.md` / `tech.md` 文件，以及用裸
+`specs/issue-*/product.md` 或 `specs/issue-*/tech.md` 文本表达的 spec 引用。
+不包含 spec 引用的有效报告仍按既有规则处理。
+
+来源：PR #165，https://github.com/Terry-Mao/AICodingFlow/pull/165；PR #168，https://github.com/Terry-Mao/AICodingFlow/pull/168；PR #171，https://github.com/Terry-Mao/AICodingFlow/pull/171；PR #173，https://github.com/Terry-Mao/AICodingFlow/pull/173；PR #181，https://github.com/Terry-Mao/AICodingFlow/pull/181；PR #249，https://github.com/Terry-Mao/AICodingFlow/pull/249；Issue #239，https://github.com/Terry-Mao/AICodingFlow/issues/239；`specs/issue-239/product.md`
