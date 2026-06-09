@@ -21,7 +21,7 @@
 
 - 提供一个新的 `update-triage` skill，用于把维护者后续 triage 修正信号转化为 repo-local triage guidance。
 - 提供一个 GitHub Actions workflow，维护者可手动触发，默认分析最近 7 天的 triaged issue。
-- 聚合最近带 `triaged` label 且近期有更新的 issue；第一版只分析带 `triaged` label 的 issue，不从 triage bot comment 或历史 triage artifacts 推断候选 issue。聚合后收集维护者后续动作：
+- 聚合最近有更新且能可靠定位 bot triage 时间的 issue。聚合脚本应先为每个 issue 定位 `triaged_at`：优先使用 bot triage comment marker 的创建时间，其次使用 bot 添加 `triaged` label 的 timeline event；如果无法定位可靠时间则跳过该 issue，避免把 triage 前的维护者动作误学为后续修正。定位后只收集 `created_at > triaged_at` 的维护者后续动作：
   - label added / removed。
   - reopened。
   - 维护者后续评论。
@@ -56,7 +56,7 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 ### 触发与运行
 
 - 维护者可以通过 GitHub Actions `workflow_dispatch` 手动运行 `update-triage`。
-- 默认运行时，workflow 分析最近 7 天内带 `triaged` label 且有后续更新的 issue。
+- 默认运行时，workflow 分析最近 7 天内有更新、且可通过 bot triage comment 或 bot 添加 `triaged` label 定位 triage 时间的 issue。
 - 维护者可以通过 input 覆盖时间窗口，或指定单个 issue 进行调试和回放。
 - workflow 应使用固定分支 `feat/update-triage` 创建或更新 PR。
 - 如果 GitHub CLI 未认证、GitHub API 不可访问、输入 JSON 无法解析，流程应清晰失败，而不是生成不完整 guidance。
@@ -65,13 +65,14 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 
 - 聚合脚本应优先收集结构化 timeline 信号，而不是让 Codex action 直接解释 GitHub API 原始响应。
 - 候选 issue 应满足：
-  - 当前带 `triaged` label；第一版不识别仅有 triage bot comment、已移除 `triaged` label 或仅存在历史 triage artifact 的 issue。
-  - 在 triage 后有维护者动作或评论。
+  - 能通过 bot triage comment marker 或 bot 添加 `triaged` label 的 timeline event 定位可靠 `triaged_at`。
+  - 在 `triaged_at` 后有维护者动作或评论。
+  - 当前已移除 `triaged` label 的 issue 仍可纳入，只要历史 bot triage comment 或 bot labeled event 能定位 `triaged_at`。
 - 聚合脚本只依赖 GitHub issue API 可见的 issue 状态、events、timeline 和 comments，不读取历史 triage artifacts。
 - 维护者身份判断应优先使用 GitHub 返回的 `OWNER`、`MEMBER` 或 `COLLABORATOR` 关系；当这些关系不足以覆盖仓库维护者时，允许使用可验证的组织成员身份作为 fallback。Bot actor/comment author 默认不作为维护者学习信号。
 - 每条候选记录应尽量包含：
   - issue number、title、url、author、state、created/updated 时间。
-  - 初始 triage 标签或 triage comment 摘要。
+  - `triaged_at` 及其来源。
   - 后续 label added / removed 事件，包含 actor、时间和 label。
   - reopened 事件，包含 actor 和时间。
   - 维护者后续评论，包含 actor、时间、url 和正文。
@@ -148,7 +149,9 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 - 对聚合脚本输出运行 JSON 校验，确认字段稳定且能被 skill 消费。
 - 用 fixture 或 mocked `gh` 输出验证：
   - 没有 triaged issue 时输出空结果。
-  - triaged issue 无维护者后续动作时不产生可学习信号。
+  - 无法可靠定位 `triaged_at` 的 issue 会被跳过。
+  - triaged issue 在 `triaged_at` 后无维护者后续动作时不产生可学习信号。
+  - `triaged_at` 前的 label event、reopen event 和 comment 不作为维护者后续修正信号。
   - reporter-only 评论不作为维护者修正信号。
   - label added / removed 事件能按 issue 和 actor 归一化。
   - reopened 事件能被收集并保留上下文。
@@ -170,7 +173,7 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 
 ## 9. Decisions
 
-- 第一版只分析带 `triaged` label 的 issue。
+- 第一版只分析能通过 bot triage comment marker 或 bot 添加 `triaged` label 的 timeline event 可靠定位 `triaged_at` 的 issue；当前已移除 `triaged` label 的 issue 仍可纳入。
 - 维护者身份使用 `OWNER`、`MEMBER`、`COLLABORATOR`，并允许组织成员身份作为 fallback；bot 默认排除。
 - `.github/issue-triage/config.json` 只在具体 label taxonomy 变更时更新。新增 label 可带默认或占位色，但已有 color values 不得在没有明确维护者指导时改变。
-- 聚合脚本不读取历史 triage artifacts，只依赖 GitHub issue API 可见的状态、events、timeline 和 comments。
+- 聚合脚本不读取 workflow artifacts，只依赖 GitHub issue API 可见的状态、events、timeline 和 comments，并且只收集 `created_at > triaged_at` 的维护者信号。

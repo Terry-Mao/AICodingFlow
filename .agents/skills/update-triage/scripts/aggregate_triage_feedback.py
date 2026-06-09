@@ -17,6 +17,7 @@ PAGE_SIZE = 100
 COMMENT_BODY_LIMIT = 1200
 MAINTAINER_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 MAINTAINER_PERMISSIONS = {"admin", "maintain", "write", "triage"}
+TRIAGE_COMMENT_MARKER = "<!-- aicodingflow:triage-issue -->"
 PAGE_INFO = "pageInfo { hasNextPage endCursor }"
 AUTHOR_FIELDS = "author { __typename login }"
 LABEL_FIELDS = "label { name }"
@@ -162,7 +163,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
 
 def search_issues(repo: str, days: int) -> list[dict[str, Any]]:
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).date().isoformat()
-    search_query = f"repo:{repo} is:issue label:triaged updated:>={since}"
+    search_query = f"repo:{repo} is:issue updated:>={since}"
     issues: list[dict[str, Any]] = []
     after = None
 
@@ -285,6 +286,26 @@ def is_bot_user(login: str, typename: str = "") -> bool:
     return typename == "Bot" or login.endswith("[bot]") or login.lower().endswith("-bot")
 
 
+def parse_timestamp(value: object) -> dt.datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = dt.datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=dt.timezone.utc)
+    return parsed.astimezone(dt.timezone.utc)
+
+
+def created_after(value: object, timestamp: dt.datetime) -> bool:
+    parsed = parse_timestamp(value)
+    return parsed is not None and parsed > timestamp
+
+
 def repo_permission(repo: str, login: str, cache: dict[str, str]) -> str:
     if login in cache:
         return cache[login]
@@ -336,6 +357,48 @@ def truncated_body(body: str) -> str:
     if len(text) <= COMMENT_BODY_LIMIT:
         return text
     return text[: COMMENT_BODY_LIMIT - 1].rstrip() + "…"
+
+
+def triage_comment_created_at(issue: dict[str, Any]) -> str:
+    candidates: list[tuple[dt.datetime, str]] = []
+    for comment in (issue.get("comments") or {}).get("nodes") or []:
+        if not comment:
+            continue
+        author = comment.get("author") or {}
+        if TRIAGE_COMMENT_MARKER not in str(comment.get("body") or ""):
+            continue
+        if not is_bot_user(login_from_user(author), typename_from_user(author)):
+            continue
+        created_at = str(comment.get("createdAt") or "")
+        parsed = parse_timestamp(created_at)
+        if parsed is not None:
+            candidates.append((parsed, created_at))
+    return max(candidates, default=(dt.datetime.min.replace(tzinfo=dt.timezone.utc), ""))[1]
+
+
+def triaged_label_created_at(issue: dict[str, Any]) -> str:
+    candidates: list[tuple[dt.datetime, str]] = []
+    for event in (issue.get("timelineItems") or {}).get("nodes") or []:
+        if not event or event.get("__typename") != "LabeledEvent" or label_name(event) != "triaged":
+            continue
+        actor = event.get("actor") or {}
+        if not is_bot_user(login_from_user(actor), typename_from_user(actor)):
+            continue
+        created_at = str(event.get("createdAt") or "")
+        parsed = parse_timestamp(created_at)
+        if parsed is not None:
+            candidates.append((parsed, created_at))
+    return max(candidates, default=(dt.datetime.min.replace(tzinfo=dt.timezone.utc), ""))[1]
+
+
+def issue_triaged_at(issue: dict[str, Any]) -> tuple[str, str]:
+    comment_created_at = triage_comment_created_at(issue)
+    if comment_created_at:
+        return comment_created_at, "bot_triage_comment"
+    label_created_at = triaged_label_created_at(issue)
+    if label_created_at:
+        return label_created_at, "bot_labeled_triaged"
+    return "", ""
 
 
 def duplicate_skip_reason(issue: dict[str, Any], event: dict[str, Any]) -> str:
@@ -472,10 +535,24 @@ def normalize_issue(
         "current_labels": labels,
     }
 
-    if "triaged" not in labels:
-        return None, {**base, "reason": "missing_current_triaged_label"}
+    triaged_at, triaged_at_source = issue_triaged_at(issue)
+    if not triaged_at:
+        return None, {**base, "reason": "missing_reliable_triage_timestamp"}
+    triaged_timestamp = parse_timestamp(triaged_at)
+    if triaged_timestamp is None:
+        return None, {
+            **base,
+            "reason": "invalid_triage_timestamp",
+            "triaged_at": triaged_at,
+            "triaged_at_source": triaged_at_source,
+        }
     if str(issue.get("stateReason") or "").lower() == "duplicate":
-        return None, {**base, "reason": "state_reason_duplicate_owned_by_update_dedupe"}
+        return None, {
+            **base,
+            "reason": "state_reason_duplicate_owned_by_update_dedupe",
+            "triaged_at": triaged_at,
+            "triaged_at_source": triaged_at_source,
+        }
 
     label_events: list[dict[str, Any]] = []
     reopened_events: list[dict[str, Any]] = []
@@ -484,6 +561,8 @@ def normalize_issue(
 
     for event in (issue.get("timelineItems") or {}).get("nodes") or []:
         if not event:
+            continue
+        if not created_after(event.get("createdAt"), triaged_timestamp):
             continue
         skip_reason = duplicate_skip_reason(issue, event)
         if skip_reason:
@@ -540,17 +619,25 @@ def normalize_issue(
                 org_member_fallback,
             )
             for raw_comment in (issue.get("comments") or {}).get("nodes") or []
-            if raw_comment
+            if raw_comment and created_after(raw_comment.get("createdAt"), triaged_timestamp)
         )
         if comment
     ]
 
     if not label_events and not reopened_events and not maintainer_comments:
-        return None, {**base, "reason": "no_maintainer_followup_signal", "skipped_signals": skipped_signals}
+        return None, {
+            **base,
+            "triaged_at": triaged_at,
+            "triaged_at_source": triaged_at_source,
+            "reason": "no_maintainer_followup_signal",
+            "skipped_signals": skipped_signals,
+        }
 
     return (
         {
             **base,
+            "triaged_at": triaged_at,
+            "triaged_at_source": triaged_at_source,
             "label_events": label_events,
             "reopened_events": reopened_events,
             "maintainer_comments": maintainer_comments,

@@ -35,6 +35,12 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
                 "nodes": [
                     {
                         "__typename": "LabeledEvent",
+                        "createdAt": "2026-06-08T00:00:00Z",
+                        "actor": {"__typename": "Bot", "login": "github-actions[bot]"},
+                        "label": {"name": "triaged"},
+                    },
+                    {
+                        "__typename": "LabeledEvent",
                         "createdAt": "2026-06-08T00:01:00Z",
                         "actor": {"__typename": "User", "login": "maintainer"},
                         "label": {"name": "enhancement"},
@@ -55,6 +61,13 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
             },
             "comments": {
                 "nodes": [
+                    {
+                        "author": {"__typename": "Bot", "login": "github-actions[bot]"},
+                        "authorAssociation": "NONE",
+                        "createdAt": "2026-06-08T00:00:30Z",
+                        "url": "https://github.com/o/r/issues/134#issuecomment-0",
+                        "body": "<!-- aicodingflow:triage-issue -->\n### Triage summary\n\nInitial triage.",
+                    },
                     {
                         "author": {"__typename": "User", "login": "maintainer"},
                         "authorAssociation": "COLLABORATOR",
@@ -79,7 +92,7 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             aggregate.split_repo("owner-only")
 
-    def test_search_issues_uses_triaged_label_and_updated_window(self) -> None:
+    def test_search_issues_uses_updated_window_without_current_label_filter(self) -> None:
         calls = []
 
         def fake_run_graphql(query: str, variables: dict) -> dict:
@@ -104,7 +117,7 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
         query, variables = calls[0]
         self.assertIn("query($searchQuery: String!, $after: String)", query)
         self.assertIn("search(query: $searchQuery", query)
-        self.assertIn("label:triaged", variables["searchQuery"])
+        self.assertNotIn("label:triaged", variables["searchQuery"])
         self.assertIn("updated:>=", variables["searchQuery"])
 
     def test_normalize_issue_collects_maintainer_events_and_comments(self) -> None:
@@ -115,15 +128,107 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
         )
 
         self.assertIsNone(skipped)
+        self.assertEqual(normalized["triaged_at"], "2026-06-08T00:00:30Z")
+        self.assertEqual(normalized["triaged_at_source"], "bot_triage_comment")
         self.assertEqual([event["label"] for event in normalized["label_events"]], ["enhancement", "bug"])
         self.assertEqual(len(normalized["reopened_events"]), 1)
         self.assertEqual(len(normalized["maintainer_comments"]), 1)
         self.assertEqual(normalized["maintainer_comments"][0]["author_association"], "COLLABORATOR")
 
+    def test_normalize_issue_accepts_removed_current_triaged_label_when_timestamp_exists(self) -> None:
+        issue = self.triaged_issue()
+        issue["labels"]["nodes"] = [{"name": "bug"}]
+
+        normalized, skipped = aggregate.normalize_issue(
+            issue,
+            "o/r",
+            maintainer_logins={"maintainer"},
+        )
+
+        self.assertIsNone(skipped)
+        self.assertEqual(normalized["triaged_at"], "2026-06-08T00:00:30Z")
+        self.assertEqual(normalized["triaged_at_source"], "bot_triage_comment")
+        self.assertEqual([event["label"] for event in normalized["label_events"]], ["enhancement", "bug"])
+
+    def test_normalize_issue_falls_back_to_bot_labeled_triaged_event(self) -> None:
+        issue = self.triaged_issue()
+        issue["comments"]["nodes"] = [
+            comment
+            for comment in issue["comments"]["nodes"]
+            if aggregate.TRIAGE_COMMENT_MARKER not in comment.get("body", "")
+        ]
+
+        normalized, skipped = aggregate.normalize_issue(
+            issue,
+            "o/r",
+            maintainer_logins={"maintainer"},
+        )
+
+        self.assertIsNone(skipped)
+        self.assertEqual(normalized["triaged_at"], "2026-06-08T00:00:00Z")
+        self.assertEqual(normalized["triaged_at_source"], "bot_labeled_triaged")
+
+    def test_normalize_issue_filters_signals_before_triaged_at(self) -> None:
+        issue = self.triaged_issue()
+        issue["timelineItems"]["nodes"].insert(
+            0,
+            {
+                "__typename": "LabeledEvent",
+                "createdAt": "2026-06-07T23:59:00Z",
+                "actor": {"__typename": "User", "login": "maintainer"},
+                "label": {"name": "documentation"},
+            },
+        )
+        issue["comments"]["nodes"].append(
+            {
+                "author": {"__typename": "User", "login": "maintainer"},
+                "authorAssociation": "COLLABORATOR",
+                "createdAt": "2026-06-07T23:58:00Z",
+                "url": "https://github.com/o/r/issues/134#issuecomment-before",
+                "body": "Before triage.",
+            }
+        )
+
+        normalized, skipped = aggregate.normalize_issue(
+            issue,
+            "o/r",
+            maintainer_logins={"maintainer"},
+        )
+
+        self.assertIsNone(skipped)
+        self.assertEqual([event["label"] for event in normalized["label_events"]], ["enhancement", "bug"])
+        self.assertEqual([comment["body"] for comment in normalized["maintainer_comments"]], ["Please include the workflow run URL."])
+
+    def test_normalize_issue_skips_without_reliable_triage_timestamp(self) -> None:
+        issue = self.triaged_issue()
+        issue["timelineItems"]["nodes"] = [
+            event
+            for event in issue["timelineItems"]["nodes"]
+            if event.get("label", {}).get("name") != "triaged"
+        ]
+        issue["comments"]["nodes"] = [
+            comment
+            for comment in issue["comments"]["nodes"]
+            if aggregate.TRIAGE_COMMENT_MARKER not in comment.get("body", "")
+        ]
+
+        normalized, skipped = aggregate.normalize_issue(
+            issue,
+            "o/r",
+            maintainer_logins={"maintainer"},
+        )
+
+        self.assertIsNone(normalized)
+        self.assertEqual(skipped["reason"], "missing_reliable_triage_timestamp")
+
     def test_normalize_issue_skips_reporter_only_followup(self) -> None:
         issue = self.triaged_issue()
-        issue["timelineItems"]["nodes"] = []
-        issue["comments"]["nodes"][0]["authorAssociation"] = "NONE"
+        issue["timelineItems"]["nodes"] = [
+            event
+            for event in issue["timelineItems"]["nodes"]
+            if event.get("label", {}).get("name") == "triaged"
+        ]
+        issue["comments"]["nodes"][1]["authorAssociation"] = "NONE"
 
         normalized, skipped = aggregate.normalize_issue(issue, "o/r")
 
