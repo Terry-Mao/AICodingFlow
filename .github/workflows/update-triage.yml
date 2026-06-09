@@ -149,10 +149,14 @@ jobs:
           from pathlib import Path
 
           status = json.loads(Path("update-triage-output/status.json").read_text(encoding="utf-8"))
+          guidance_status = status.get("status")
+          if guidance_status not in {"changed", "no_change", "error"}:
+              raise SystemExit(f"invalid update-triage status: {guidance_status!r}")
           reason = str(status.get("reason") or "No evidence summary provided.").strip()
           delimiter = f"triage_summary_{uuid.uuid4().hex}"
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print(f"status={guidance_status}", file=output)
               print(f"reason<<{delimiter}", file=output)
               print(reason, file=output)
               print(delimiter, file=output)
@@ -184,7 +188,7 @@ jobs:
           fi
 
       - name: Create or update pull request
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.guidance.outputs.status == 'changed' && steps.changes.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GUIDANCE_REASON: ${{ steps.guidance.outputs.reason }}
