@@ -2072,6 +2072,24 @@
       "proposed_patch": "更新 docs/product/raw/product-change-reports.md 的来源引用和校验行为章节，补充 spec source reference 的合法链接格式、非法目标类型和状态校验拒绝规则。",
       "reason": "PR #249 改变了 product change report 的长期来源引用契约和状态校验行为：spec 引用必须使用从 docs/updates/ 出发的仓库相对 Markdown 链接，并且错误 spec source reference 会被拒绝。现有产品文档只记录了 commit ID 和 related issue URL 校验，未覆盖该已合并行为。",
       "recorded_at": "2026-06-09T18:08:41Z"
+    },
+    {
+      "pr": 250,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/250",
+      "title": "Update PR review guidance",
+      "merged_at": "2026-06-08T09:29:38Z",
+      "merge_commit": "b89a979c5db8a592d9e61fdf1845fb9851f39260",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #250",
+        ".agents/skills/review-pr-repo/SKILL.md"
+      ],
+      "proposed_patch": "Updated the authoritative PR review product doc with the newly merged repo-local review guidance and added PR #250 to the source references.",
+      "reason": "PR #250 merged durable repo-local AI PR Review guidance that changes how reviews interpret intra-PR path changes, product wiki/raw source support, and issue-number reference validation. Existing product docs described the companion guidance mechanism but did not capture these current review behavior rules.",
+      "recorded_at": "2026-06-09T18:39:36Z"
     }
   ]
 }
