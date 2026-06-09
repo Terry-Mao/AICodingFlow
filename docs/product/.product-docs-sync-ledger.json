@@ -2090,6 +2090,25 @@
       "proposed_patch": "Updated the authoritative PR review product doc with the newly merged repo-local review guidance and added PR #250 to the source references.",
       "reason": "PR #250 merged durable repo-local AI PR Review guidance that changes how reviews interpret intra-PR path changes, product wiki/raw source support, and issue-number reference validation. Existing product docs described the companion guidance mechanism but did not capture these current review behavior rules.",
       "recorded_at": "2026-06-09T18:39:36Z"
+    },
+    {
+      "pr": 253,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/253",
+      "title": "refactor(install): skip upstream tests by default",
+      "merged_at": "2026-06-08T09:56:26Z",
+      "merge_commit": "d7014c75123ec59c236a54918bf5081f43fa32c1",
+      "docs_update": "not-needed",
+      "affected_docs": [
+        "docs/product/raw/project-installer.md"
+      ],
+      "source_context": [
+        "PR #253",
+        "docs/product/raw/project-installer.md",
+        "install.sh"
+      ],
+      "proposed_patch": "No additional product docs patch is needed because `docs/product/raw/project-installer.md` already records that `.github/aicodingflow-tests/` is an upstream-managed test directory and is not installed by default.",
+      "reason": "PR #253 changed the project installer sync boundary by excluding `.github/aicodingflow-tests/` from default target-repository installs. The merged PR already updated the authoritative product documentation to describe the current default sync scope and the upstream-test-directory boundary.",
+      "recorded_at": "2026-06-09T20:37:22Z"
     }
   ]
 }
