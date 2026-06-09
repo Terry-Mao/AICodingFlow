@@ -33,6 +33,11 @@ review comment 也不是该入口。
 closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传
 review artifact。
 
+GitHub workflow 运行 AI PR Review 时，`pr_diff.txt` 来自 GitHub PR diff API，而不是
+checkout 后对 base/head SHA 执行本地 `git diff`。workflow 会在读取 diff 前后校验 PR
+metadata 中的 head SHA 和 base SHA 仍等于触发时解析出的快照；如果 head 或 base 在准备
+review diff 期间变化，本次 review run 失败而不是基于不一致的 diff 继续发布评审。
+
 ## Comment 与手动触发的 PR 关联
 
 当 AI PR Review 由 PR comment 或 `workflow_dispatch` 触发，且目标 PR 的 head
@@ -49,15 +54,19 @@ checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 不再在测试�
 
 ## Review skill 选择
 
-AI PR Review 会先按 changed files 判断 PR 类型，再选择仓库本地 review companion
-skill：
+AI PR Review 会先按 changed files 判断 PR 类型，再选择核心 review skill：
 
-- spec-only PR 使用 `review-spec-repo`。
-- 其他 code PR 使用 `review-pr-repo`。
+- spec-only PR 主入口使用 `review-spec`。
+- 其他 code PR 主入口使用 `review-pr`。
+
+Review workspace 会复制 `.agents/skills/` 与 `.agents/contracts/`。其中
+`.agents/contracts/review.md` 是共享 review contract，定义 snapshot 信任边界、
+`PR_DIFF_V1` 行定位、`review.json` 结构、severity labels、suggestion blocks、校验规则和
+GitHub/API 边界。Review skills 可以补充评审重点，但不得覆盖该合同。
 
 `review-pr-repo` 和 `review-spec-repo` 是 AICodingFlow 仓库对核心
-`review-pr` / `review-spec` 工作流的仓库本地包装器，用于补充本仓库的评审偏好，
-不改变核心输出契约。
+`review-pr` / `review-spec` 工作流的 companion guidance，用于补充本仓库的评审偏好，
+不作为主入口，也不改变共享输出契约。
 
 Code PR review 会在基础 `review-pr` 评审之外应用 `security-review-pr` 补充安全检查；
 spec-only PR review 会在基础 `review-spec` 评审之外应用 `security-review-spec`
@@ -91,20 +100,24 @@ comments 是否已被 resolved、是否仍 unresolved、是否收到维护者明
 可用于指定发布 review 的 bot login；未配置时默认按 `github-actions[bot]` 识别旧 bot
 comments。
 
+维护者 dismissal 必须是明确表示不需要修改、保持现状、预期行为或有意如此的肯定回复。
+含有 `intentional` 等词但表达否定或疑问的回复，例如询问是否有意或说明并非有意，不应被视为
+`maintainer_dismissed`，旧 finding 仍按 unresolved 处理。
+
 ## 本地 review 入口
 
 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或
 `review-spec-local` 在当前分支运行与 GitHub review workflow 一致的评审流程。
-两个本地 skill 会先准备根目录快照，再分别委托给 `review-pr-repo` 或
-`review-spec-repo`。
+两个本地 skill 会先准备 review 快照，再分别委托给 `review-pr` 或 `review-spec`；
+核心 skill 会按需读取对应的 `review-pr-repo` 或 `review-spec-repo` companion guidance。
 
-本地 review 输入与输出固定在仓库根目录：
+本地 review 输入与输出位于准备脚本创建的系统临时目录。准备命令会打印实际使用的路径：
 
-- `pr_description.txt`
-- `pr_diff.txt`
-- `spec_context.md`，仅 code review 需要且存在可用 spec context 时生成
-- `.local_review_baseline.status`
-- `review.json`
+- `pr_description_path`
+- `pr_diff_path`
+- `spec_context_path`，仅 code review 需要且存在可用 spec context 时非空
+- `baseline_status_path`
+- `review_path`
 
 准备 `pr_description.txt` 时，本地 review 优先读取当前分支关联的 GitHub PR metadata。
 如果无法获取关联 PR，则回退到基于本地仓库状态构造的 PR metadata。`pr_diff.txt` 不使用
@@ -112,14 +125,13 @@ GitHub PR diff，始终基于当前 worktree 相对选定 base 的完整状态�
 GitHub PR 且用户未显式传入 base 时，选定 base 使用该 PR metadata 中的真实 base SHA。
 
 本地 review 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。准备脚本会
-删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`；
-未被 Git ignore 的未跟踪文件会纳入 diff，根目录 review 快照文件和
-`.local_review_baseline.status` 不会纳入 diff。
+基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`。未被 Git ignore 的未跟踪文件
+会纳入 diff；系统临时目录中的 review 快照、baseline status 和 review output 不会纳入 diff。
 
-`.local_review_baseline.status` 记录准备阶段完成后的业务文件 dirty 状态，并被 Git ignore。
-review 阶段只能写入受控 review 输出文件，不得修改源码、workflow、测试、spec 或 skill
-文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但会拒绝新增业务文件改动、
-业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
+`baseline_status_path` 记录准备阶段完成后的仓库文件状态。review 阶段只能写入打印的
+`review_path`，不得修改源码、workflow、测试、spec 或 skill 文件；校验会允许 baseline 中
+已存在的文件状态继续存在，但会拒绝新增文件改动、文件状态变化、staged 输出、非 review
+输出文件变更，以及 review 输出被意外删除。
 
 本地 review 的 base 可以显式传入；显式 base 拥有最高优先级，并会同步反映在
 `pr_description.txt` 的 base metadata 中。未显式传入 base 时，已有 GitHub PR 的当前分支优先
@@ -141,8 +153,15 @@ review 不生成 spec context。
 reviewer 的场景。`recommended_reviewers` 必须是字符串数组，最多包含 1 个
 reviewer。
 
+发布到 GitHub 前，review body 和 inline comment body 中位于 fenced code block 之外的字面量
+`\n` 会规范化为真实换行，保证总结和评论按 Markdown 段落显示。Fenced code block 内的内容保持
+原样，避免改写 suggestion 或代码片段中的字面量。
+
 `APPROVE` 表示没有阻塞级发现。`REJECT` 表示存在需要修复后再合并的阻塞级发现。
 建议和 nit 不应单独导致 `REJECT`。
+
+`.agents/contracts/review.schema.json` 提供共享 JSON schema。Workflow 会在 agent 退出后校验
+`review.json`；本地 review 应使用打印的 `pr_diff_path` 与 `review_path` 执行同一类校验。
 
 ## PR 作者与类型
 
@@ -211,5 +230,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
+PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，PR #228，PR #231，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
 `specs/issue-77/product.md`，`specs/issue-85/product.md`，`specs/issue-115/product.md`。

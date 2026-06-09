@@ -1883,6 +1883,195 @@
       "proposed_patch": "Updated docs/product/raw/pr-review-verdict.md to document review_discussion_context.json generation, duplicate-suppression rules, maintainer dismissal handling, unresolved-thread handling, and REVIEW_BOT_LOGIN source attribution.",
       "reason": "PR #227 changes long-term AI PR Review behavior by adding prior review discussion snapshots and duplicate suppression for resolved, maintainer-dismissed, and still-unresolved bot inline comments. Existing product docs covered review workflow behavior but did not document this discussion context or its instruction-safety boundary.",
       "recorded_at": "2026-06-07T16:00:13Z"
+    },
+    {
+      "pr": 228,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/228",
+      "title": "修复 review dismiss 误判和换行输出",
+      "merged_at": "2026-06-03T15:42:07Z",
+      "merge_commit": "aebdcd3652fd8cfab6bd430d490530d8000b57f4",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #228",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "更新 docs/product/raw/pr-review-verdict.md，补充 maintainer dismissal 的肯定语义要求、否定或疑问 intentional 回复的处理方式，以及 GitHub review 发布前对 markdown body/comment 中字面量 \\\\n 的换行规范化规则。",
+      "reason": "PR #228 改变了 AI PR Review 的长期用户可见行为：维护者 dismissal 识别不再把否定或疑问语境中的 intentional 裸词当作已 dismiss，并且发布 review 前会把 fenced code block 外的字面量 \\\\n 规范化为真实换行。现有产品文档只概括了 dismissed/resolved 去重和 review 输出契约，未覆盖这些精确语义。",
+      "recorded_at": "2026-06-08T16:41:46Z"
+    },
+    {
+      "pr": 231,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/231",
+      "title": "fix(review): 使用 GitHub PR diff 快照",
+      "merged_at": "2026-06-04T11:44:26Z",
+      "merge_commit": "92d3d134fda7ef2da570fae7ffcb6e262485832e",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md",
+        "docs/product/raw/pr-comment-response-workflow.md"
+      ],
+      "source_context": [
+        "PR #231",
+        "product-docs-sync-diff.md",
+        ".github/scripts/build_pr_diff.py",
+        ".github/workflows/review-pr.yml",
+        ".github/workflows/respond-to-pr-comment.yml"
+      ],
+      "proposed_patch": "Document that GitHub workflow PR diff snapshots for AI PR Review and /fix now come from the GitHub PR diff API, and that the workflows fail if the PR head or base SHA changes while preparing the diff.",
+      "reason": "PR #231 changed the authoritative PR diff snapshot behavior for GitHub-hosted review and /fix workflows from a local base/head git diff to the GitHub PR diff API with before-and-after SHA validation. This is long-term workflow and public failure-semantics knowledge that was not explicitly covered by the existing product docs.",
+      "recorded_at": "2026-06-08T19:11:23Z"
+    },
+    {
+      "pr": 234,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/234",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-05T07:50:42Z",
+      "merge_commit": "b862396fe00034dabbdf0b8db6419cdbd91dd483",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #234",
+        "docs/product/raw/",
+        "docs/product/wiki/"
+      ],
+      "proposed_patch": "No product docs patch is needed because the merged PR updated only the generated wiki query layer from existing raw sources.",
+      "reason": "PR #234 only compiled existing authoritative docs/product/raw/ content into docs/product/wiki/. It did not change implementation behavior, specs, raw product docs, or any long-term product rule that is not already represented by the existing product documentation.",
+      "recorded_at": "2026-06-08T21:29:18Z"
+    },
+    {
+      "pr": 238,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/238",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-06T11:17:02Z",
+      "merge_commit": "3f3250161df1490bf03bdc2048d8e48a3c172c71",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #238",
+        "docs/product/raw/product-wiki-compile-workflow.md",
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/product-change-reports.md",
+        "docs/product/raw/project-installer.md"
+      ],
+      "proposed_patch": "No docs/product changes needed; the merged PR is a compiled wiki refresh from existing authoritative raw product docs.",
+      "reason": "PR #238 only updates compiled Product LLM Wiki pages under docs/product/wiki/ from existing docs/product/raw/ sources. The authoritative long-term product facts are already covered by raw docs, so no additional product docs patch is warranted.",
+      "recorded_at": "2026-06-08T23:05:57Z"
+    },
+    {
+      "pr": 242,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/242",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-07T16:50:48Z",
+      "merge_commit": "ee0b64e28748798fc7ecc7f9ea295deba043aeb9",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #242",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "无需文档补丁；现有 raw product docs 仍是权威来源，本次合并只是基于这些来源更新派生 wiki。",
+      "reason": "PR #242 仅编译并刷新 docs/product/wiki/ 查询层，变更文件全部位于 compiled wiki。它没有修改实现、spec 或 docs/product/raw/ 权威来源，也没有引入新的长期产品行为或规则。",
+      "recorded_at": "2026-06-09T01:32:57Z"
+    },
+    {
+      "pr": 245,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/245",
+      "title": "refactor(workflows): extract shared script helpers",
+      "merged_at": "2026-06-08T05:36:00Z",
+      "merge_commit": "308e9f4630cd6a1b2f959d5d0ad22b73fd39ff88",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #245",
+        "Issue #243",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the change is internal workflow script structure and regression coverage only.",
+      "reason": "PR #245 is a workflow script refactor that extracts shared helper modules and moves existing context, GitHub API, ledger, metadata, and artifact I/O logic behind reusable Python helpers. The merged diff does not introduce a new product workflow, lifecycle, permission model, configuration contract, or user-visible behavior that is not already covered by the existing product docs sync workflow documentation.",
+      "recorded_at": "2026-06-09T05:54:08Z"
+    },
+    {
+      "pr": 246,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/246",
+      "title": "refactor(review): extract shared review contracts",
+      "merged_at": "2026-06-08T07:51:51Z",
+      "merge_commit": "23678670f7c14c6c6165488b6a7652c70785e578",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #246",
+        ".agents/contracts/review.md",
+        ".agents/contracts/review.schema.json",
+        ".agents/skills/review-pr-local/SKILL.md",
+        ".agents/skills/review-spec-local/SKILL.md",
+        ".github/scripts/prepare_local_review_inputs.py"
+      ],
+      "proposed_patch": "Updated authoritative raw product docs to describe `.agents/contracts/`, shared review contract/schema ownership, core review entrypoints with repo companion guidance, and temporary-directory local review snapshot/output paths.",
+      "reason": "PR #246 changed long-term AI PR Review behavior by introducing a shared review contract and moving local review snapshots/output to system temporary-directory paths. Existing authoritative raw product docs still described repo-root local snapshots and did not document `.agents/contracts/` as a shared workflow/skill contract area.",
+      "recorded_at": "2026-06-09T10:29:47Z"
+    },
+    {
+      "pr": 248,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/248",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-08T08:43:43Z",
+      "merge_commit": "8262de9d0f930fa080f511333d014a89499a3e97",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #248",
+        "docs/product/wiki/log.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; the change is a generated wiki compile log entry and belongs outside authoritative long-term product docs.",
+      "reason": "PR #248 only updated the generated Product LLM Wiki compile log under docs/product/wiki/log.md. It did not change authoritative raw product knowledge, specs, workflows, permissions, lifecycle rules, APIs, configuration semantics, or user-visible product behavior.",
+      "recorded_at": "2026-06-09T13:35:02Z"
+    },
+    {
+      "pr": 247,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/247",
+      "title": "refactor(workflows): move handoff files to temp dir",
+      "merged_at": "2026-06-08T09:03:00Z",
+      "merge_commit": "343d5788c14437076bfc8342be5f62bc4bf32e81",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #247",
+        "product-docs-sync-context.json",
+        "product-docs-sync-diff.md",
+        "docs/product/raw/implementation-workflow.md",
+        "docs/product/raw/pr-comment-response-workflow.md",
+        "docs/product/raw/spec-workflow.md"
+      ],
+      "proposed_patch": "无需补丁；合并 PR 已包含并落地所需的 docs/product/raw 更新。",
+      "reason": "PR #247 改变了 spec、implementation 和 PR comment response workflow 的 handoff 路径与提交排除契约，但该 PR 已同步更新对应的长期产品文档。现有 docs/product/raw/implementation-workflow.md、docs/product/raw/pr-comment-response-workflow.md 和 docs/product/raw/spec-workflow.md 已覆盖合并后的 .codex-runtime/handoff 行为、metadata 边界和 spec handoff 限制。",
+      "recorded_at": "2026-06-09T16:23:59Z"
+    },
+    {
+      "pr": 249,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/249",
+      "title": "fix: validate product report spec links",
+      "merged_at": "2026-06-08T09:21:22Z",
+      "merge_commit": "4190d0ff50bed980a9376aa2b5ab8ad00b4d002b",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/product-change-reports.md"
+      ],
+      "source_context": [
+        "PR #249",
+        "Issue #239",
+        "specs/issue-239/product.md"
+      ],
+      "proposed_patch": "更新 docs/product/raw/product-change-reports.md 的来源引用和校验行为章节，补充 spec source reference 的合法链接格式、非法目标类型和状态校验拒绝规则。",
+      "reason": "PR #249 改变了 product change report 的长期来源引用契约和状态校验行为：spec 引用必须使用从 docs/updates/ 出发的仓库相对 Markdown 链接，并且错误 spec source reference 会被拒绝。现有产品文档只记录了 commit ID 和 related issue URL 校验，未覆盖该已合并行为。",
+      "recorded_at": "2026-06-09T18:08:41Z"
     }
   ]
 }

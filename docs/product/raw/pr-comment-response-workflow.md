@@ -45,6 +45,10 @@ agent 使用 workflow 在 `pr-worktree/.codex-runtime/handoff/` 提供的稳定�
 `pr_event.json`、`pr_diff.txt`、可用的 `spec_context.md` 和 `review_comment_ids.json`。
 `pr_event.json` 包含 PR title、body 和 metadata；`review_comment_ids.json` 包含当前 inline
 review comments 的 bodies、resolved/outdated thread state、paths、lines、diff hunks 和 URLs。
+`pr_diff.txt` 来自 GitHub PR diff API，而不是 checkout 后对 base/head SHA 执行本地
+`git diff`。workflow 会在读取 diff 前后校验 PR metadata 中的 head SHA 和 base SHA 仍等于
+context 解析出的快照；如果 head 或 base 在准备 diff 期间变化，本次 `/fix` run 失败而不是
+让 agent 基于不一致的 PR diff 继续修改代码。
 
 当触发请求要求处理所有 inline comments、未解决 comments，或某一类 inline review comments
 时，agent 应使用 `review_comment_ids.json` 确定请求范围内的每条 inline review comment，
@@ -113,5 +117,5 @@ workflow 文件的修复提交继续使用当前 workflow 的默认写入凭据�
 `Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
 installation token 存成 secret；该 token 是短期凭据，会过期。
 
-来源：PR #99，PR #120，PR #133，PR #139，PR #142，PR #145，PR #150，Issue #28，Issue #119，Issue #141，Issue #144，Issue #149，`specs/issue-28/product.md`，
+来源：PR #99，PR #120，PR #133，PR #139，PR #142，PR #145，PR #150，PR #231，Issue #28，Issue #119，Issue #141，Issue #144，Issue #149，`specs/issue-28/product.md`，
 `specs/issue-28/tech.md`。

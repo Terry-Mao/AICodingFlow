@@ -14,8 +14,9 @@ AICodingFlow 使用根目录 `AGENTS.md` 作为共享仓库级 agent guidance，
 - `.codex/skills -> ../.agents/skills`
 - `.cursor/rules/agents.mdc` 是 Cursor 专用规则文件。
 
-`.agents/skills/` 存放可复用 workflow skills；Cursor 规则通过 `.cursor/rules/agents.mdc`
-暴露给 Cursor。
+`.agents/skills/` 存放可复用 workflow skills。`.agents/contracts/` 存放 skills 与
+workflows 共享的稳定 artifact schema、validator contract 和 workflow/skill 边界合同。
+Cursor 规则通过 `.cursor/rules/agents.mdc` 暴露给 Cursor。
 
 该布局的产品目标是让 Claude、Codex 和 Cursor 使用同一组仓库规则与 workflow skills，而不是为每个工具维护独立配置副本。
 
@@ -43,4 +44,4 @@ AICodingFlow 产品行为、workflow、边界、状态和规则问题。查询�
 
 目录 junction 只适合作为无法使用真实 symlink 的本地 fallback。它们不是 tracked symlink 路径的默认设置方式，因为可能让 working tree 与 Git index 表现不一致。
 
-来源：PR #159，Issue #156；PR #161；PR #175；PR #204，Issue #202。
+来源：PR #159，Issue #156；PR #161；PR #175；PR #204，Issue #202；PR #246。
