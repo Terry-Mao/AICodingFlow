@@ -23,6 +23,12 @@ class UpdateTriageWriteSurfaceTest(unittest.TestCase):
             [],
         )
 
+    def test_blocks_other_triage_companion_files(self) -> None:
+        self.assertEqual(
+            validator.invalid_paths([".agents/skills/triage-issue-repo/extra.md"]),
+            [".agents/skills/triage-issue-repo/extra.md"],
+        )
+
     def test_allows_exact_label_config_file(self) -> None:
         self.assertEqual(
             validator.invalid_paths([".github/issue-triage/config.json"]),

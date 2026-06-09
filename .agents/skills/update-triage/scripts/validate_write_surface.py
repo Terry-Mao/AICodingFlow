@@ -8,8 +8,10 @@ import subprocess
 import sys
 
 
-ALLOWED_PREFIXES = (".agents/skills/triage-issue-repo/",)
-ALLOWED_FILES = (".github/issue-triage/config.json",)
+ALLOWED_FILES = (
+    ".agents/skills/triage-issue-repo/SKILL.md",
+    ".github/issue-triage/config.json",
+)
 
 
 def run_git(args: list[str]) -> list[str]:
@@ -24,7 +26,7 @@ def changed_paths() -> list[str]:
 
 
 def path_allowed(path: str) -> bool:
-    return path in ALLOWED_FILES or path.startswith(ALLOWED_PREFIXES)
+    return path in ALLOWED_FILES
 
 
 def invalid_paths(paths: list[str]) -> list[str]:
@@ -48,9 +50,7 @@ def main() -> int:
         print("update-triage write surface violation:", file=sys.stderr)
         for path in invalid:
             print(f"- {path}", file=sys.stderr)
-        print("\nAllowed paths:", file=sys.stderr)
-        for prefix in ALLOWED_PREFIXES:
-            print(f"- {prefix}", file=sys.stderr)
+        print("\nAllowed files:", file=sys.stderr)
         for path in ALLOWED_FILES:
             print(f"- {path}", file=sys.stderr)
         return 1

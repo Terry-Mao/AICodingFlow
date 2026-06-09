@@ -41,6 +41,23 @@ class WriteUpdateTriagePrBodyTest(unittest.TestCase):
         self.assertNotIn("fixes #124", body)
         self.assertNotIn("RESOLVED #125", body)
 
+    def test_build_body_neutralizes_cross_repo_and_url_closing_refs(self) -> None:
+        body = writer.build_body(
+            reason=(
+                "fixes owner/repo#123 and resolves "
+                "https://github.com/owner/repo/issues/124."
+            ),
+            days="7",
+            issue="all recent triaged issues",
+            repo="owner/repo",
+            changed_files="",
+        )
+
+        self.assertIn("fixes issue owner/repo#123", body)
+        self.assertIn("resolves issue https://github.com/owner/repo/issues/124", body)
+        self.assertNotIn("fixes owner/repo#123", body)
+        self.assertNotIn("resolves https://github.com/owner/repo/issues/124", body)
+
 
 if __name__ == "__main__":
     unittest.main()

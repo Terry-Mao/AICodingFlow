@@ -10,13 +10,16 @@ from pathlib import Path
 
 
 CLOSING_KEYWORD_RE = re.compile(
-    r"\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)",
+    r"\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)(\s+)(?="
+    r"(?:https?://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/issues/\d+"
+    r"|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#\d+"
+    r"|#\d+))",
     flags=re.IGNORECASE,
 )
 
 
 def neutralize_closing_keywords(text: str) -> str:
-    return CLOSING_KEYWORD_RE.sub(r"\1 issue #\2", text)
+    return CLOSING_KEYWORD_RE.sub(r"\1 issue ", text)
 
 
 def build_body(reason: str, days: str, issue: str, repo: str, changed_files: str) -> str:
