@@ -211,10 +211,10 @@ Skill 写入 guidance 时应保留 companion frontmatter 和 core-boundary wordi
 
 新增 `.agents/skills/update-triage/scripts/validate_write_surface.py`：
 
-- `ALLOWED_PREFIXES = (".agents/skills/triage-issue-repo/", ".github/issue-triage/config.json")`。
+- `ALLOWED_FILES = (".agents/skills/triage-issue-repo/SKILL.md", ".github/issue-triage/config.json")`。
 - 默认读取 changed tracked paths 和 untracked paths。
 - 提供 `--path` repeatable 参数，便于单元测试直接验证路径。
-- 任意不在允许前缀或精确文件内的 path 都应失败。
+- 任意不在允许精确文件集合内的 path 都应失败。
 
 实现时注意：`.github/issue-triage/config.json` 是单个文件，不是整个目录；guard 应允许该精确文件，但拒绝 `.github/issue-triage/other.json`。
 

@@ -137,7 +137,7 @@ Figma: none provided。该功能是 GitHub Actions、Python helper 和 Codex ski
 - `closed-as-duplicate` 或正式 duplicate 关闭信号不会触发 triage guidance 更新。
 - 两个或更多独立 issue 显示同一维护者修正模式时，流程能产出 concise repo-local guidance。
 - 单个 one-off override、reporter-only 评论、agent-only 推断、已覆盖模式或弱信号不会导致变更。
-- 有变更时，持久写入范围仅限 `.agents/skills/triage-issue-repo/` 和 `.github/issue-triage/config.json`。
+- 有变更时，持久写入范围仅限 `.agents/skills/triage-issue-repo/SKILL.md` 和 `.github/issue-triage/config.json`。
 - `.agents/skills/triage-issue/SKILL.md`、`.agents/skills/dedupe-issue-repo/SKILL.md`、其他 core skill、workflow、scripts、tests、README 和 production code 不会被 runtime self-evolution 输出修改。
 - 更新后的 companion skill 保留 frontmatter、core skill 边界、overridable categories 和 self-evolution boundary。
 - label config 更新只发生在具体 label taxonomy 需要变更时，且 JSON 格式稳定；除新增 label 的默认或占位色外，不会在没有明确维护者指导时改变已有 color values。

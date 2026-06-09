@@ -167,7 +167,11 @@ jobs:
       - name: Check for guidance changes
         id: changes
         run: |
-          changed_files="$(git diff --name-only -- .agents/skills/triage-issue-repo .github/issue-triage/config.json)"
+          changed_files="$(
+            git diff --name-only -- \
+              .agents/skills/triage-issue-repo/SKILL.md \
+              .github/issue-triage/config.json
+          )"
           if [ -z "$changed_files" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -196,7 +200,7 @@ jobs:
 
           git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
           git switch -C "$branch"
-          git add .agents/skills/triage-issue-repo .github/issue-triage/config.json
+          git add .agents/skills/triage-issue-repo/SKILL.md .github/issue-triage/config.json
           git commit -m "docs(skill): update triage guidance"
           git push --force-with-lease origin "$branch"
 
