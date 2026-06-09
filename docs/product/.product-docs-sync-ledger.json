@@ -1994,6 +1994,29 @@
       "proposed_patch": "No product docs patch is needed because the change is internal workflow script structure and regression coverage only.",
       "reason": "PR #245 is a workflow script refactor that extracts shared helper modules and moves existing context, GitHub API, ledger, metadata, and artifact I/O logic behind reusable Python helpers. The merged diff does not introduce a new product workflow, lifecycle, permission model, configuration contract, or user-visible behavior that is not already covered by the existing product docs sync workflow documentation.",
       "recorded_at": "2026-06-09T05:54:08Z"
+    },
+    {
+      "pr": 246,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/246",
+      "title": "refactor(review): extract shared review contracts",
+      "merged_at": "2026-06-08T07:51:51Z",
+      "merge_commit": "23678670f7c14c6c6165488b6a7652c70785e578",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #246",
+        ".agents/contracts/review.md",
+        ".agents/contracts/review.schema.json",
+        ".agents/skills/review-pr-local/SKILL.md",
+        ".agents/skills/review-spec-local/SKILL.md",
+        ".github/scripts/prepare_local_review_inputs.py"
+      ],
+      "proposed_patch": "Updated authoritative raw product docs to describe `.agents/contracts/`, shared review contract/schema ownership, core review entrypoints with repo companion guidance, and temporary-directory local review snapshot/output paths.",
+      "reason": "PR #246 changed long-term AI PR Review behavior by introducing a shared review contract and moving local review snapshots/output to system temporary-directory paths. Existing authoritative raw product docs still described repo-root local snapshots and did not document `.agents/contracts/` as a shared workflow/skill contract area.",
+      "recorded_at": "2026-06-09T10:29:47Z"
     }
   ]
 }
