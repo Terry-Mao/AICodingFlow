@@ -276,6 +276,32 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
             )
         )
 
+    def test_maintainer_login_allowlist_restricts_other_maintainers(self) -> None:
+        self.assertFalse(
+            aggregate.is_maintainer_signal(
+                repo="o/r",
+                login="other-maintainer",
+                association="OWNER",
+                maintainer_logins={"target-maintainer"},
+            )
+        )
+        self.assertFalse(
+            aggregate.is_maintainer_signal(
+                repo="o/r",
+                login="other-maintainer",
+                maintainer_logins={"target-maintainer"},
+                permission_cache={"other-maintainer": "write"},
+                org_member_fallback=True,
+            )
+        )
+        self.assertTrue(
+            aggregate.is_maintainer_signal(
+                repo="o/r",
+                login="target-maintainer",
+                maintainer_logins={"target-maintainer"},
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

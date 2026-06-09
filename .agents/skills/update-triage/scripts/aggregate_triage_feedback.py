@@ -333,8 +333,8 @@ def is_maintainer_signal(
         return False
     if is_bot_user(login, typename) and not include_bots:
         return False
-    if maintainer_logins and login in maintainer_logins:
-        return True
+    if maintainer_logins:
+        return login in maintainer_logins
     if association in MAINTAINER_ASSOCIATIONS:
         return True
     if org_member_fallback:
