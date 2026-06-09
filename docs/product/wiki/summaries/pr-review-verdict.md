@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-01
-review_due: 2026-08-30
+last_reviewed: 2026-06-09
+review_due: 2026-09-07
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -28,8 +28,12 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 
 ## 触发与 skill 选择
 
-- AI PR Review 可以由 `pull_request`、`workflow_dispatch` 或 PR comment mention `AGENT_LOGIN` 触发。
-- 手动触发和 comment 触发会先解析目标 PR，再复用普通 PR 事件一致的 review 流程。
+- AI PR Review 默认由目标项目 CI 成功路径通过 `workflow_dispatch` 输入 PR number 触发；AICodingFlow 参考 `CI` workflow 在非 draft、同仓库 head PR 的测试和编译检查成功后 dispatch `review-pr.yml`。
+- 目标项目已有自己的 CI 时，应在自己的 CI 成功路径中 dispatch `review-pr.yml`，而不是修改已安装的 `review-pr.yml`。
+- AI PR Review 也可以手动通过 `workflow_dispatch` 输入 PR number 触发，或由 open 且非 draft PR conversation comment 中的 `@AGENT_LOGIN /review` body-level command 从 `issue_comment` 事件触发。
+- `review-pr.yml` 不直接监听 GitHub `pull_request` 事件。
+- `workflow_dispatch` 触发允许 `github-actions[bot]` 运行 Codex review action；如果目标仓库改用 GitHub App token、PAT 或第三方 CI dispatch，需要让 bot allowlist 与实际触发 actor 匹配，或改用有人类账号权限的 token 触发。
+- 手动触发和 comment 触发会先解析目标 PR，再复用 review 流程。
 - Comment 触发要求 `@AGENT_LOGIN /review` 独占一行，允许前后空白。
 - 裸 `/review`、单纯 `@AGENT_LOGIN` mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的 `@AGENT_LOGIN /review ...` 都不会触发 AI review。
 - 普通 issue comment 和 PR inline review comment 不是 comment 触发入口。
@@ -42,8 +46,9 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 
 - PR comment 或 `workflow_dispatch` 触发 AI PR Review，且目标 PR 的 head repository 是当前仓库时，workflow 会在 PR head commit 上写入 `AI PR Review` commit status。
 - Review 开始时 status 为 `pending`，结束后按 job 结果更新为 `success` 或 `failure`，target URL 指向对应 GitHub Actions run。
-- 该 status 让 comment 或手动触发的 review run 出现在目标 PR 的 checks / statuses 视图中。
-- 普通 `pull_request` 事件触发的 review 不通过该路径补写 status；来自 fork 的 PR 也不会写入该 status。
+- 该 status 让 CI dispatch、comment 或手动触发的 review run 出现在目标 PR 的 checks / statuses 视图中。
+- AICodingFlow 参考 `CI` workflow 不再在测试前预写 `AI PR Review` status；测试失败、测试被跳过或 dispatch 未发生时，参考 `CI` workflow 不写入该 status。
+- 来自 fork 的 PR 不会写入该 status。
 
 ## 安全补充 review
 
@@ -79,11 +84,12 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 ## 本地 review 入口
 
 - 本地开发完成但尚未 push 或创建 PR 时，可以使用 `review-pr-local` 或 `review-spec-local`。
-- 本地 review 会在系统临时目录准备 `pr_description.txt`、`pr_diff.txt`、按需准备 `spec_context.md`，并要求 agent 写入打印出的 `review_path`。
+- 两个本地 skill 会先准备根目录快照，再分别委托给 `review-pr-repo` 或 `review-spec-repo`。
+- 本地 review 输入与输出固定在仓库根目录：`pr_description.txt`、`pr_diff.txt`、按需生成的 `spec_context.md`、`.local_review_baseline.status` 和 `review.json`。
 - 准备阶段支持 worktree 中已有 staged、unstaged 和未跟踪文件改动。
-- 准备脚本会打印 `output_dir`、`pr_description_path`、`pr_diff_path`、`spec_context_path`、`review_path` 和 `baseline_status_path`。
-- 未被 Git ignore 的未跟踪文件会纳入 diff；历史根目录 review 快照文件名仍会被 diff 过滤，避免旧本地输出污染 review。
-- review 阶段只能写入打印出的 `review_path`；校验会允许 baseline 中已存在的业务文件状态继续存在，但拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
+- `pr_diff.txt` 始终基于当前 worktree 相对选定 base 的完整状态生成；未被 Git ignore 的未跟踪文件会纳入 diff。
+- `.local_review_baseline.status` 记录准备阶段完成后的业务文件 dirty 状态，并被 Git ignore。
+- review 阶段只能写入受控 review 输出文件；校验会允许 baseline 中已存在的业务文件状态继续存在，但拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
 - 本地 review 的 base 可以显式传入；未显式传入时，已有 GitHub PR 的当前分支优先使用该 PR 的 base SHA，没有可用 PR base SHA 时按 `origin/main`、`upstream/main`、`main` 解析。
 - code review 根据本地 diff 中的 changed files 解析 spec context；spec-only review 不生成 spec context。
 

@@ -1,5 +1,21 @@
 # Compile Log
 
+## 2026-06-09
+
+按 `docs/product/raw/` 作为权威来源复核 Product LLM Wiki，并校准近期 raw source 中已经确认的新规则：
+
+- 更新 [产品文档同步 workflow 摘要](summaries/product-docs-sync-workflow.md) 与 [产品文档同步 workflow](concepts/product-docs-sync-workflow.md)：触发方式改为定时任务与 `workflow_dispatch`，补充 UTC 扫描窗口、自同步 PR 跳过、linked issue 解析、ledger、固定同步分支、`not-needed` PR 行为和追加 PR comment 规则。
+- 更新 [PR review verdict 与 non-member gate 摘要](summaries/pr-review-verdict.md)、[AI PR Review workflow](concepts/ai-pr-review-workflow.md)、[Comment / manual review status](concepts/comment-manual-review-status.md) 与 [本地 PR review 入口](concepts/local-pr-review-entrypoints.md)：记录 `review-pr.yml` 不直接监听 `pull_request`、默认由 CI 成功后 dispatch、本地 review 根目录快照和受控输出文件。
+- 重新校验 21 个 raw source 均有对应 summary，index 链接全部 summary、concept、schema、Agent guide 与 compile log。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-08
 
 按 `docs/product/raw/` 作为权威来源复核 Product LLM Wiki，保持现有 Ingest、Query 与 Linter 结构：

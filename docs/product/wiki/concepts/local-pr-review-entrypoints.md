@@ -5,8 +5,8 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-01
-review_due: 2026-08-30
+last_reviewed: 2026-06-09
+review_due: 2026-09-07
 sources:
   - docs/product/raw/pr-review-verdict.md
 ---
@@ -19,26 +19,26 @@ sources:
 
 - code review 使用 `review-pr-local`。
 - spec-only review 使用 `review-spec-local`。
-- 两个本地 skill 会先在系统临时目录准备快照，再读取脚本选择出的主入口 `review-pr` 或 `review-spec`。
-- 主入口 skill 负责读取对应的 `review-pr-repo` 或 `review-spec-repo` companion。
+- 两个本地 skill 会先准备根目录快照，再分别委托给 `review-pr-repo` 或 `review-spec-repo`。
+- 仓库本地 wrapper skill 补充本仓库评审偏好，不改变核心输出契约。
 
 ## 输入与输出快照
 
-本地 review 输入与输出固定在准备脚本打印的临时目录路径：
+本地 review 输入与输出固定在仓库根目录：
 
-- `pr_description_path`
-- `pr_diff_path`
-- `spec_context_path`，仅 code review 需要且存在可用 spec context 时非空
-- `baseline_status_path`
-- `review_path`
+- `pr_description.txt`
+- `pr_diff.txt`
+- `spec_context.md`，仅 code review 需要且存在可用 spec context 时生成
+- `.local_review_baseline.status`
+- `review.json`
 
 ## 工作树与写入约束
 
 - 本地 review 准备阶段支持当前 worktree 中已有 staged、unstaged 和未跟踪文件改动。
-- 准备脚本基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff_path`。
-- 未被 Git ignore 的未跟踪文件会纳入 diff；历史根目录 review 快照文件名仍会被 diff 过滤，避免旧本地输出污染 review。
-- `baseline_status_path` 记录准备阶段完成后的业务文件 dirty 状态，位于临时目录。
-- review 阶段只能写入打印出的 `review_path`。
+- 准备脚本会删除旧的 review 快照，并基于当前 worktree 相对选定 base 的完整状态生成 `pr_diff.txt`。
+- 未被 Git ignore 的未跟踪文件会纳入 diff；根目录 review 快照文件和 `.local_review_baseline.status` 不会纳入 diff。
+- `.local_review_baseline.status` 记录准备阶段完成后的业务文件 dirty 状态，并被 Git ignore。
+- review 阶段只能写入受控 review 输出文件。
 - review 阶段不得修改源码、workflow、测试、spec 或 skill 文件。
 - 校验会允许 baseline 中已存在的业务文件状态继续存在，但会拒绝新增业务文件改动、业务文件状态变化、staged 输出、非 review 快照文件变更，以及 review 输出被意外删除。
 
