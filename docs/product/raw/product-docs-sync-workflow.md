@@ -91,6 +91,10 @@ PR comment，记录本次 run 的 source PR、`docs_update` 决策、原因、�
 如果最新决策是 `uncertain`，追加 comment 也应明确提示需要维护者确认。workflow 不会编辑旧的
 bot comment 来替代追加记录。
 
+生成 PR body 和 comment 时，workflow 会保守控制输出长度，避免超过 GitHub body/comment
+长度限制。最新同步决策会保留较完整摘要；历史 ledger 决策只展示最近一批，并对过长的 reason
+或 patch summary 做截断，完整上下文仍可从 workflow artifacts 和 ledger 文件中追溯。
+
 长期产品文档只有在同步 PR 经过 review 并合并后才成为权威产品知识。
 
-来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187；PR #188，https://github.com/Terry-Mao/AICodingFlow/pull/188；PR #194，https://github.com/Terry-Mao/AICodingFlow/pull/194；PR #215，Issue #214；PR #217，Issue #216。
+来源：PR #179，https://github.com/Terry-Mao/AICodingFlow/pull/179；PR #184，https://github.com/Terry-Mao/AICodingFlow/pull/184；PR #187，https://github.com/Terry-Mao/AICodingFlow/pull/187；PR #188，https://github.com/Terry-Mao/AICodingFlow/pull/188；PR #194，https://github.com/Terry-Mao/AICodingFlow/pull/194；PR #215，Issue #214；PR #217，Issue #216；Issue #257。

@@ -1,5 +1,19 @@
 # Compile Log
 
+## 2026-06-10
+
+按 `docs/product/raw/` 作为权威来源同步 Product LLM Wiki 的产品文档同步行为：
+
+- 更新 [产品文档同步 workflow 摘要](summaries/product-docs-sync-workflow.md) 与 [产品文档同步 workflow](concepts/product-docs-sync-workflow.md)：记录产品文档同步 PR body/comment 的长度保护、历史 ledger 摘要和超长字段截断规则。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-09
 
 按 `docs/product/raw/` 作为权威来源复核 Product LLM Wiki，并校准近期 raw source 中已经确认的新规则：

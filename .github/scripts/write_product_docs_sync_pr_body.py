@@ -11,6 +11,25 @@ from typing import Any
 
 
 DEFAULT_LEDGER_PATH = "docs/product/.product-docs-sync-ledger.json"
+MAX_GITHUB_MARKDOWN_CHARS = 60_000
+MAX_FIELD_CHARS = 4_000
+MAX_LEDGER_FIELD_CHARS = 800
+MAX_LEDGER_ENTRIES_IN_BODY = 20
+
+
+def truncate_text(value: Any, max_chars: int, *, label: str = "content") -> str:
+    text = str(value or "").strip()
+    if len(text) <= max_chars:
+        return text
+    suffix = f"\n\n[Truncated {label}; full content is available in workflow artifacts.]"
+    return text[: max(0, max_chars - len(suffix))].rstrip() + suffix
+
+
+def enforce_markdown_limit(markdown: str, max_chars: int = MAX_GITHUB_MARKDOWN_CHARS) -> str:
+    if len(markdown) <= max_chars:
+        return markdown
+    suffix = "\n\n[Truncated to stay within GitHub body length limits. See workflow artifacts for full details.]\n"
+    return markdown[: max(0, max_chars - len(suffix))].rstrip() + suffix
 
 
 def load_ledger(path: Path) -> dict[str, Any]:
@@ -41,12 +60,16 @@ def format_decision(entry: dict[str, Any]) -> list[str]:
     lines = [
         heading,
         f"  - docs update: `{entry.get('docs_update')}`",
-        f"  - reason: {entry.get('reason') or ''}",
+        f"  - reason: {truncate_text(entry.get('reason') or '', MAX_LEDGER_FIELD_CHARS, label='reason')}",
         f"  - url: {entry.get('url') or ''}",
         "  - affected docs:",
         *format_list(entry.get("affected_docs") or []),
     ]
-    proposed_patch = str(entry.get("proposed_patch") or "").strip()
+    proposed_patch = truncate_text(
+        entry.get("proposed_patch") or "",
+        MAX_LEDGER_FIELD_CHARS,
+        label="change summary",
+    )
     if proposed_patch:
         lines.extend(["  - change summary:", *[f"    {line}" for line in proposed_patch.splitlines()]])
     return lines
@@ -61,14 +84,21 @@ def build_body(pr_number: str, pr_url: str, result: dict[str, Any], ledger: dict
     affected_docs = result.get("affected_docs") or []
     source_context = result.get("source_context") or []
     processed_entries = ledger_entries(ledger or {})
-    return "\n".join(
+    shown_entries = processed_entries[-MAX_LEDGER_ENTRIES_IN_BODY:]
+    omitted_count = max(0, len(processed_entries) - len(shown_entries))
+    omitted_lines = (
+        [f"- Omitted {omitted_count} older processed decisions to keep the PR body within GitHub limits.", ""]
+        if omitted_count
+        else []
+    )
+    body = "\n".join(
         [
             "Synchronizes long-term product docs from merged implementation pull requests.",
             "",
             "Latest decision:",
             f"- source PR: #{pr_number}",
             f"- docs update: `{result.get('docs_update')}`",
-            f"- reason: {result.get('reason')}",
+            f"- reason: {truncate_text(result.get('reason'), MAX_FIELD_CHARS, label='reason')}",
             f"- source URL: {pr_url}",
             "",
             "Affected docs:",
@@ -78,18 +108,20 @@ def build_body(pr_number: str, pr_url: str, result: dict[str, Any], ledger: dict
             *(f"- {item}" for item in source_context),
             "",
             "Patch summary:",
-            str(result.get("proposed_patch") or ""),
+            truncate_text(result.get("proposed_patch"), MAX_FIELD_CHARS, label="patch summary"),
             "",
             "Processed decisions in this PR:",
+            *omitted_lines,
             *(
                 line
-                for entry in processed_entries
+                for entry in shown_entries
                 for line in [*format_decision(entry), ""]
             ),
             "This PR may accumulate multiple product docs sync decisions until it is reviewed and merged.",
             "",
         ]
     )
+    return enforce_markdown_limit(body)
 
 
 def build_comment(pr_number: str, pr_url: str, result: dict[str, Any]) -> str:
@@ -99,7 +131,7 @@ def build_comment(pr_number: str, pr_url: str, result: dict[str, Any]) -> str:
         "",
         f"- source PR: #{pr_number}",
         f"- docs update: `{result.get('docs_update')}`",
-        f"- reason: {result.get('reason') or ''}",
+        f"- reason: {truncate_text(result.get('reason'), MAX_FIELD_CHARS, label='reason')}",
         f"- source URL: {pr_url}",
         "",
         "Affected docs:",
@@ -108,12 +140,12 @@ def build_comment(pr_number: str, pr_url: str, result: dict[str, Any]) -> str:
     if not affected_docs:
         lines.append("- none")
 
-    proposed_patch = str(result.get("proposed_patch") or "").strip()
+    proposed_patch = truncate_text(result.get("proposed_patch") or "", MAX_FIELD_CHARS, label="patch summary")
     lines.extend(["", "Patch summary:", proposed_patch or "None."])
     if result.get("docs_update") == "uncertain":
         lines.extend(["", "This docs update is uncertain and needs maintainer confirmation."])
     lines.append("")
-    return "\n".join(lines)
+    return enforce_markdown_limit("\n".join(lines))
 
 
 def main() -> int:

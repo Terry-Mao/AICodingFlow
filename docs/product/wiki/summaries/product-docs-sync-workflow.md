@@ -45,6 +45,7 @@ Source: [docs/product/raw/product-docs-sync-workflow.md](../../raw/product-docs-
 - 普通同步 PR title 是 `Update product docs`；最新决策为 `uncertain` 时使用 draft PR 和 `Draft: Update product docs` title。
 - `not-needed` 不修改权威 markdown 文档，但 ledger 更新仍会创建或更新只记录同步决策的 PR。
 - 每次创建或更新同步 PR 后，workflow 都会追加一条 conversation comment，记录本次 run 的 source PR、决策、原因、受影响文档和 patch summary；旧 bot comment 不会被编辑替代。
+- PR body 和 comment 会保守控制长度；历史 ledger 决策只展示最近一批，过长 reason 或 patch summary 会被截断，完整上下文保留在 workflow artifacts 和 ledger 中。
 - 长期产品文档只有在同步 PR review 并合并后才成为权威产品知识。
 
 ## 支持的概念
