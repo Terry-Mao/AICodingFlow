@@ -1977,6 +1977,23 @@
       "proposed_patch": "无需文档补丁；现有 raw product docs 仍是权威来源，本次合并只是基于这些来源更新派生 wiki。",
       "reason": "PR #242 仅编译并刷新 docs/product/wiki/ 查询层，变更文件全部位于 compiled wiki。它没有修改实现、spec 或 docs/product/raw/ 权威来源，也没有引入新的长期产品行为或规则。",
       "recorded_at": "2026-06-09T01:32:57Z"
+    },
+    {
+      "pr": 245,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/245",
+      "title": "refactor(workflows): extract shared script helpers",
+      "merged_at": "2026-06-08T05:36:00Z",
+      "merge_commit": "308e9f4630cd6a1b2f959d5d0ad22b73fd39ff88",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #245",
+        "Issue #243",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed because the change is internal workflow script structure and regression coverage only.",
+      "reason": "PR #245 is a workflow script refactor that extracts shared helper modules and moves existing context, GitHub API, ledger, metadata, and artifact I/O logic behind reusable Python helpers. The merged diff does not introduce a new product workflow, lifecycle, permission model, configuration contract, or user-visible behavior that is not already covered by the existing product docs sync workflow documentation.",
+      "recorded_at": "2026-06-09T05:54:08Z"
     }
   ]
 }
