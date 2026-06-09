@@ -342,6 +342,57 @@ class ProductDocsSyncScriptTest(unittest.TestCase):
         self.assertIn("PR #86: Add first flow", body)
         self.assertIn("Document first flow.", body)
 
+    def test_pr_body_truncates_large_processed_decision_history(self) -> None:
+        entries = []
+        for number in range(1, 35):
+            entries.append(
+                {
+                    "pr": number,
+                    "title": f"PR {number}",
+                    "url": f"https://example.test/pull/{number}",
+                    "merged_at": f"2026-05-25T01:{number:02d}:00Z",
+                    "docs_update": "required",
+                    "reason": "Changed product behavior. " * 400,
+                    "affected_docs": [f"docs/product/raw/{number}.md"],
+                    "proposed_patch": "Document the product behavior in detail. " * 400,
+                }
+            )
+
+        body = body_writer.build_body(
+            pr_number="99",
+            pr_url="https://example.test/pull/99",
+            result={
+                "docs_update": "required",
+                "reason": "Product behavior changed.",
+                "affected_docs": ["docs/product/raw/flow.md"],
+                "source_context": ["PR #99"],
+                "proposed_patch": "Document the flow.",
+            },
+            ledger={"version": 1, "entries": entries},
+        )
+
+        self.assertLessEqual(len(body), body_writer.MAX_GITHUB_MARKDOWN_CHARS)
+        self.assertIn("Omitted 14 older processed decisions", body)
+        self.assertNotIn("PR #1: PR 1", body)
+        self.assertIn("PR #34: PR 34", body)
+        self.assertIn("Truncated change summary", body)
+
+    def test_pr_comment_truncates_large_patch_summary(self) -> None:
+        comment = body_writer.build_comment(
+            pr_number="87",
+            pr_url="https://example.test/pull/87",
+            result={
+                "docs_update": "required",
+                "reason": "Docs changed.",
+                "affected_docs": ["docs/product/raw/flow.md"],
+                "source_context": ["PR #87"],
+                "proposed_patch": "Long patch summary. " * 1000,
+            },
+        )
+
+        self.assertLessEqual(len(comment), body_writer.MAX_GITHUB_MARKDOWN_CHARS)
+        self.assertIn("Truncated patch summary", comment)
+
     def test_pr_comment_includes_current_run_decision(self) -> None:
         comment = body_writer.build_comment(
             pr_number="87",
