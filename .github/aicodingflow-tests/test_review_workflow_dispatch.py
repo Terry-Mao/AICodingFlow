@@ -295,6 +295,26 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
         self.assertIn("git status --porcelain -- .agents/skills/dedupe-issue-repo", changes["run"])
 
+    def test_update_triage_pr_requires_changed_status_and_allowed_file_diff(self) -> None:
+        data = workflow(".github/workflows/update-triage.yml")
+        update_steps = steps(data, "update")
+
+        capture = next(step for step in update_steps if step.get("name") == "Capture triage guidance summary")
+        self.assertEqual(capture["id"], "guidance")
+        self.assertIn("update-triage-output/status.json", capture["run"])
+        self.assertIn("guidance_status = status.get(\"status\")", capture["run"])
+        self.assertIn("status={guidance_status}", capture["run"])
+
+        changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
+        self.assertIn(".agents/skills/triage-issue-repo/SKILL.md", changes["run"])
+        self.assertIn(".github/issue-triage/config.json", changes["run"])
+
+        create_pr = next(step for step in update_steps if step.get("name") == "Create or update pull request")
+        self.assertEqual(
+            create_pr["if"],
+            "steps.guidance.outputs.status == 'changed' && steps.changes.outputs.changed == 'true'",
+        )
+
     def test_respond_to_pr_comment_workflow_has_secure_triggers_and_gates(self) -> None:
         data = workflow(".github/workflows/respond-to-pr-comment.yml")
         triggers = data[True]
