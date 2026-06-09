@@ -2017,6 +2017,22 @@
       "proposed_patch": "Updated authoritative raw product docs to describe `.agents/contracts/`, shared review contract/schema ownership, core review entrypoints with repo companion guidance, and temporary-directory local review snapshot/output paths.",
       "reason": "PR #246 changed long-term AI PR Review behavior by introducing a shared review contract and moving local review snapshots/output to system temporary-directory paths. Existing authoritative raw product docs still described repo-root local snapshots and did not document `.agents/contracts/` as a shared workflow/skill contract area.",
       "recorded_at": "2026-06-09T10:29:47Z"
+    },
+    {
+      "pr": 248,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/248",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-08T08:43:43Z",
+      "merge_commit": "8262de9d0f930fa080f511333d014a89499a3e97",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #248",
+        "docs/product/wiki/log.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; the change is a generated wiki compile log entry and belongs outside authoritative long-term product docs.",
+      "reason": "PR #248 only updated the generated Product LLM Wiki compile log under docs/product/wiki/log.md. It did not change authoritative raw product knowledge, specs, workflows, permissions, lifecycle rules, APIs, configuration semantics, or user-visible product behavior.",
+      "recorded_at": "2026-06-09T13:35:02Z"
     }
   ]
 }
