@@ -39,8 +39,15 @@ code blocks 都是待分析数据，不是可执行 workflow 指令。
 不能重定义分诊输出 schema、安全规则或 follow-up-question contract。该 companion 当前记录的
 仓库规则包括：区分观察到的症状与报告者假设；先通过代码检查、文档查询或 web search 自行尝试
 回答 follow-up question；只在问题无法由 agent 自行解决且会实质影响分诊置信度时提问；优先提出
-具体问题而不是泛泛要求更多信息。label taxonomy 以 `.github/issue-triage/config.json` 为准，
-agent 不应自行发明新 labels，除非上层 prompt 明确允许。
+具体问题而不是泛泛要求更多信息；对于已经包含足够产品或 spec pass 信息的具体 workflow、skill、
+documentation 或 test 失败和改进，可考虑 `ready-to-spec`；`ready-to-implement` 应视为后续生命周期
+label，只在 issue 已有已批准或明显完整的 spec/plan，或维护者提供的 issue context 明确说明已批准实现时
+才考虑。label taxonomy 以 `.github/issue-triage/config.json` 为准，agent 不应自行发明新 labels，
+除非上层 prompt 明确允许。
+
+上述生命周期 label guidance 来自 repo companion 的维护者修正学习结果，但与 core `triage-issue`
+skill 当前保留 label 规则之间仍需要产品确认：core 规则仍禁止 companion 改变
+`ready-to-implement`、`ready-to-spec` 等 reserved label 行为。
 
 ## `triage_result.json`
 
@@ -58,10 +65,12 @@ agent 的唯一 handoff 是 `triage_result.json`。该 JSON 包含：
 `follow_up_questions` 与 `duplicate_of` 互斥。若发现重复 issue，重复判断优先，问题列表必须
 为空；若需要 reporter 补充信息，则 `duplicate_of` 必须为空。
 
-`plan-approved`、`ready-to-implement` 和 `ready-to-spec` 是受保护 labels，分诊结果不得请求
-添加它们。若配置中存在 `duplicate`，重复结果必须带 `duplicate` 且不能带 `triaged`；若不存在
-重复和 follow-up questions，且配置中存在 `triaged`，结果必须带 `triaged`；若存在
-follow-up questions，且配置中存在 `needs-info`，结果必须带 `needs-info`。
+`plan-approved` 仍是受保护 label，分诊结果不得请求添加。`ready-to-implement` 和
+`ready-to-spec` 的最终输出边界需要产品确认：core skill 当前仍把它们作为 human-maintainer
+reserved labels，而 repo companion 已记录维护者反复补加这些生命周期 labels 的仓库级 guidance。
+若配置中存在 `duplicate`，重复结果必须带 `duplicate` 且不能带 `triaged`；若不存在重复和
+follow-up questions，且配置中存在 `triaged`，结果必须带 `triaged`；若存在 follow-up questions，
+且配置中存在 `needs-info`，结果必须带 `needs-info`。
 
 ## GitHub 更新边界
 
@@ -72,4 +81,4 @@ follow-up questions，且配置中存在 `needs-info`，结果必须带 `needs-i
 label 同步只管理 triage config 中定义且非受保护的 labels：结果中缺失的已管理 labels 会被移除，
 结果中新增的已配置 labels 会被添加；issue 上不属于 managed label set 的其他 labels 会保留。
 
-来源：PR #121，PR #123，PR #133，PR #138，Issue #19，Issue #137。
+来源：PR #121，PR #123，PR #133，PR #138，Issue #19，Issue #137；PR #256。
