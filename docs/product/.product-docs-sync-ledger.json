@@ -2183,6 +2183,24 @@
       "proposed_patch": "No patch needed because docs/product/raw/product-docs-sync-workflow.md already documents the length guard and truncation behavior.",
       "reason": "PR #258 changed product-docs-sync PR body/comment generation to cap GitHub markdown length, show only recent ledger decisions, and truncate oversized reason or patch summary fields. The merged PR already updated the authoritative product docs with this behavior, so no additional long-term product docs change is needed.",
       "recorded_at": "2026-06-10T12:47:57Z"
+    },
+    {
+      "pr": 261,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/261",
+      "title": "fix(update-triage): treat maintainer login as additive",
+      "merged_at": "2026-06-10T04:29:06Z",
+      "merge_commit": "f24a254de18aa927722f3e52c0ef8bc412201a6d",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/update-triage-workflow.md"
+      ],
+      "source_context": [
+        "PR #261",
+        "docs/product/raw/update-triage-workflow.md"
+      ],
+      "proposed_patch": "Updated the authoritative update-triage raw product doc to state that explicit maintainer logins add another maintainer source without replacing OWNER, MEMBER, COLLABORATOR, or organization-member fallback detection.",
+      "reason": "PR #261 changed the long-term update-triage maintainer identity semantics: configured maintainer login values are additive, not an exclusive allowlist. Existing product docs covered OWNER/MEMBER/COLLABORATOR and organization-member fallback detection but did not record how explicit maintainer logins interact with those sources.",
+      "recorded_at": "2026-06-10T16:51:14Z"
     }
   ]
 }

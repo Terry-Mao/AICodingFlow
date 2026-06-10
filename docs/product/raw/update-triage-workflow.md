@@ -16,8 +16,10 @@
 维护者 label added / removed、reopened 事件和后续评论。
 
 维护者身份优先来自 GitHub 返回的 `OWNER`、`MEMBER` 或 `COLLABORATOR` 关系；必要时可使用可验证
-的组织成员身份作为 fallback。Bot actor 和普通 reporter 评论默认不作为学习信号。`closed-as-duplicate`
-或正式 duplicate 关闭信号由 `update-dedupe` 负责，不进入 triage guidance 学习。
+的组织成员身份作为 fallback。显式配置的 maintainer login 是额外维护者来源，不会取代
+`OWNER`、`MEMBER`、`COLLABORATOR` 或组织成员 fallback 判定。Bot actor 和普通 reporter
+评论默认不作为学习信号。`closed-as-duplicate` 或正式 duplicate 关闭信号由 `update-dedupe`
+负责，不进入 triage guidance 学习。
 
 ## 规则学习
 
@@ -51,4 +53,4 @@ taxonomy 需要新增 label、重命名 label 或澄清 description 时，才允
 guidance diff 时，不创建 PR。若实现或后续维护需要更新 `.github/workflows/update-triage.yml` 这类
 workflow 文件，推送该类文件仍需要外层 workflow 配置具备 workflow 写权限的 token。
 
-来源：PR #254，Issue #134，`specs/issue-134/product.md`。
+来源：PR #254，Issue #134，`specs/issue-134/product.md`；PR #261。
