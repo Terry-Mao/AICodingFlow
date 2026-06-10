@@ -2166,6 +2166,23 @@
       "proposed_patch": "已在 docs/product/raw/issue-triage-workflow.md 中保守记录 PR #256 的 repo companion 生命周期标签 guidance，并明确标注 ready-to-spec / ready-to-implement 输出边界仍需产品确认。",
       "reason": "PR #256 更新了 repo-local triage companion，新增 ready-to-spec 与 ready-to-implement 的生命周期标签判断规则，属于长期 triage workflow 行为。该规则与 core triage-issue skill 当前的 reserved label 禁止输出规则存在冲突，因此需要产品确认后才能写成确定行为。",
       "recorded_at": "2026-06-10T05:08:46Z"
+    },
+    {
+      "pr": 258,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/258",
+      "title": "fix(product-docs): limit sync PR body length",
+      "merged_at": "2026-06-09T18:05:03Z",
+      "merge_commit": "a62a65c5b044c91b4c85c63362b815707eb95542",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #258",
+        "Issue #257",
+        "docs/product/raw/product-docs-sync-workflow.md"
+      ],
+      "proposed_patch": "No patch needed because docs/product/raw/product-docs-sync-workflow.md already documents the length guard and truncation behavior.",
+      "reason": "PR #258 changed product-docs-sync PR body/comment generation to cap GitHub markdown length, show only recent ledger decisions, and truncate oversized reason or patch summary fields. The merged PR already updated the authoritative product docs with this behavior, so no additional long-term product docs change is needed.",
+      "recorded_at": "2026-06-10T12:47:57Z"
     }
   ]
 }
