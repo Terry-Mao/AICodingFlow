@@ -276,8 +276,8 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
             )
         )
 
-    def test_maintainer_login_allowlist_restricts_other_maintainers(self) -> None:
-        self.assertFalse(
+    def test_maintainer_login_adds_to_association_and_fallback_sources(self) -> None:
+        self.assertTrue(
             aggregate.is_maintainer_signal(
                 repo="o/r",
                 login="other-maintainer",
@@ -285,7 +285,7 @@ class AggregateTriageFeedbackTest(unittest.TestCase):
                 maintainer_logins={"target-maintainer"},
             )
         )
-        self.assertFalse(
+        self.assertTrue(
             aggregate.is_maintainer_signal(
                 repo="o/r",
                 login="other-maintainer",
