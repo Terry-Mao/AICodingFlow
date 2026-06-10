@@ -5,6 +5,8 @@
 按 `docs/product/raw/` 作为权威来源同步 Product LLM Wiki 的产品文档同步行为：
 
 - 更新 [产品文档同步 workflow 摘要](summaries/product-docs-sync-workflow.md) 与 [产品文档同步 workflow](concepts/product-docs-sync-workflow.md)：记录产品文档同步 PR body/comment 的长度保护、历史 ledger 摘要和超长字段截断规则。
+- 新增 [update-triage workflow 摘要](summaries/update-triage-workflow.md) 与 [update-triage 自进化 triage 规则 workflow](concepts/update-triage-workflow.md)：补齐 `docs/product/raw/update-triage-workflow.md` 的 source traceability、维护者反馈学习规则、写入边界和 PR 行为。
+- 更新 [index.md](index.md)：链接新增 update-triage summary 与 concept，使 22 个 raw source 均有对应 summary。
 
 ## 待确认 / 开放问题
 
