@@ -18,6 +18,7 @@
 - [Issue triage 初始化配置](concepts/issue-triage-bootstrap.md)
 - [Repo-specific duplicate guidance](concepts/repo-specific-duplicate-guidance.md)
 - [update-dedupe 自进化规则 workflow](concepts/update-dedupe-workflow.md)
+- [update-triage 自进化 triage 规则 workflow](concepts/update-triage-workflow.md)
 - [Issue ready label 与 agent assignment](concepts/issue-readiness-and-assignment.md)
 - [Agent login 配置](concepts/agent-login-configuration.md)
 - [自动 spec workflow](concepts/automated-spec-workflow.md)
@@ -82,6 +83,7 @@
 - [Product Wiki Query agent 摘要](summaries/product-wiki-query-agent.md)
 - [项目安装脚本摘要](summaries/project-installer.md)
 - [update-dedupe workflow 摘要](summaries/update-dedupe-workflow.md)
+- [update-triage workflow 摘要](summaries/update-triage-workflow.md)
 - [update-pr-review workflow 摘要](summaries/update-pr-review-workflow.md)
 
 ## Schema
