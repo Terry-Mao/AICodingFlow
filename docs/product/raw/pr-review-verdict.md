@@ -68,6 +68,13 @@ GitHub/API 边界。Review skills 可以补充评审重点，但不得覆盖该�
 `review-pr` / `review-spec` 工作流的 companion guidance，用于补充本仓库的评审偏好，
 不作为主入口，也不改变共享输出契约。
 
+Repo-local code review guidance 会约束本仓库的 AI PR Review 如何解释若干稳定场景：
+评审引用路径缺失前，应先检查同一 PR diff 是否新增、删除或重命名了相关路径；当
+`docs/product/wiki/` 编译内容改变长期产品或 workflow 事实时，应核对同一 PR 中对应
+`docs/product/raw/` 权威来源是否支持该事实，但不要求仅反映已更新 raw source 的 wiki
+recompile 再次修改 raw；解析 `#<number>` 引用的 validator 或报告检查应区分 issue
+引用与 PR/source 引用，只在明确的 issue 或 related issue 语境中强制 issue URL 要求。
+
 Code PR review 会在基础 `review-pr` 评审之外应用 `security-review-pr` 补充安全检查；
 spec-only PR review 会在基础 `review-spec` 评审之外应用 `security-review-spec`
 补充设计层安全检查。安全发现不会生成单独输出，而是合并进同一个 `review.json`。
@@ -230,5 +237,5 @@ owner。
 blocking `REQUEST_CHANGES` 和维护者权限共同决定。
 
 来源：PR #55，PR #65，PR #67，PR #79，PR #81，PR #82，PR #89，PR #90，PR #93，PR #103，
-PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，PR #228，PR #231，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
+PR #116，PR #154，PR #155，PR #162，PR #163，PR #227，PR #228，PR #231，PR #250，Issue #115，Issue #151，Issue #152，Issue #225，`specs/issue-51/product.md`，
 `specs/issue-77/product.md`，`specs/issue-85/product.md`，`specs/issue-115/product.md`。

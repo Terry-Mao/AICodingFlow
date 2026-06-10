@@ -2072,6 +2072,80 @@
       "proposed_patch": "更新 docs/product/raw/product-change-reports.md 的来源引用和校验行为章节，补充 spec source reference 的合法链接格式、非法目标类型和状态校验拒绝规则。",
       "reason": "PR #249 改变了 product change report 的长期来源引用契约和状态校验行为：spec 引用必须使用从 docs/updates/ 出发的仓库相对 Markdown 链接，并且错误 spec source reference 会被拒绝。现有产品文档只记录了 commit ID 和 related issue URL 校验，未覆盖该已合并行为。",
       "recorded_at": "2026-06-09T18:08:41Z"
+    },
+    {
+      "pr": 250,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/250",
+      "title": "Update PR review guidance",
+      "merged_at": "2026-06-08T09:29:38Z",
+      "merge_commit": "b89a979c5db8a592d9e61fdf1845fb9851f39260",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/pr-review-verdict.md"
+      ],
+      "source_context": [
+        "PR #250",
+        ".agents/skills/review-pr-repo/SKILL.md"
+      ],
+      "proposed_patch": "Updated the authoritative PR review product doc with the newly merged repo-local review guidance and added PR #250 to the source references.",
+      "reason": "PR #250 merged durable repo-local AI PR Review guidance that changes how reviews interpret intra-PR path changes, product wiki/raw source support, and issue-number reference validation. Existing product docs described the companion guidance mechanism but did not capture these current review behavior rules.",
+      "recorded_at": "2026-06-09T18:39:36Z"
+    },
+    {
+      "pr": 253,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/253",
+      "title": "refactor(install): skip upstream tests by default",
+      "merged_at": "2026-06-08T09:56:26Z",
+      "merge_commit": "d7014c75123ec59c236a54918bf5081f43fa32c1",
+      "docs_update": "not-needed",
+      "affected_docs": [
+        "docs/product/raw/project-installer.md"
+      ],
+      "source_context": [
+        "PR #253",
+        "docs/product/raw/project-installer.md",
+        "install.sh"
+      ],
+      "proposed_patch": "No additional product docs patch is needed because `docs/product/raw/project-installer.md` already records that `.github/aicodingflow-tests/` is an upstream-managed test directory and is not installed by default.",
+      "reason": "PR #253 changed the project installer sync boundary by excluding `.github/aicodingflow-tests/` from default target-repository installs. The merged PR already updated the authoritative product documentation to describe the current default sync scope and the upstream-test-directory boundary.",
+      "recorded_at": "2026-06-09T20:37:22Z"
+    },
+    {
+      "pr": 255,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/255",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-09T08:05:48Z",
+      "merge_commit": "f858d456621156e389611b2ceb90022f9afcb58f",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #255",
+        "docs/product/raw/",
+        "docs/product/wiki/"
+      ],
+      "proposed_patch": "No product docs patch is needed; the PR updates generated wiki summaries and concepts from existing authoritative raw sources.",
+      "reason": "PR #255 only recompiles derived files under docs/product/wiki/ from existing docs/product/raw/ sources. It does not introduce or change authoritative product behavior, workflow contracts, configuration semantics, or public user-facing rules that require a raw product docs update.",
+      "recorded_at": "2026-06-09T22:15:43Z"
+    },
+    {
+      "pr": 254,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/254",
+      "title": "feat: 新增 update-triage 自进化流程",
+      "merged_at": "2026-06-09T10:30:13Z",
+      "merge_commit": "1bb0263052515fd8d3d99a570ce87c1812eaa4a2",
+      "docs_update": "required",
+      "affected_docs": [
+        "docs/product/raw/update-triage-workflow.md"
+      ],
+      "source_context": [
+        "PR #254",
+        "Issue #134",
+        "specs/issue-134/product.md",
+        "specs/issue-134/tech.md"
+      ],
+      "proposed_patch": "新增 docs/product/raw/update-triage-workflow.md，记录 update-triage 的触发输入、维护者修正信号学习规则、允许写入范围和固定 PR 行为。",
+      "reason": "PR #254 新增了可由维护者手动触发的 update-triage 自进化 workflow，并定义了 triage 反馈学习规则、写入边界和 PR 行为。这是长期产品行为变更，现有产品文档只覆盖 issue triage、update-dedupe 和 update-pr-review，未覆盖该新流程。",
+      "recorded_at": "2026-06-10T00:01:02Z"
     }
   ]
 }
