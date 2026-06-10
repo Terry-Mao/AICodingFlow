@@ -2201,6 +2201,22 @@
       "proposed_patch": "Updated the authoritative update-triage raw product doc to state that explicit maintainer logins add another maintainer source without replacing OWNER, MEMBER, COLLABORATOR, or organization-member fallback detection.",
       "reason": "PR #261 changed the long-term update-triage maintainer identity semantics: configured maintainer login values are additive, not an exclusive allowlist. Existing product docs covered OWNER/MEMBER/COLLABORATOR and organization-member fallback detection but did not record how explicit maintainer logins interact with those sources.",
       "recorded_at": "2026-06-10T16:51:14Z"
+    },
+    {
+      "pr": 263,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/263",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-10T08:54:41Z",
+      "merge_commit": "9de36f2ffc00c4cb57780b56c781cbcad410c6b9",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #263",
+        "docs/product/raw/update-triage-workflow.md"
+      ],
+      "proposed_patch": "No product docs patch is needed; the merged changes are generated wiki artifacts derived from existing raw product documentation.",
+      "reason": "PR #263 only compiles existing authoritative raw product docs into derived docs/product/wiki pages and updates the wiki index/log. It does not introduce or change product behavior, workflow rules, permissions, lifecycle semantics, API/configuration behavior, or public error semantics beyond content already present in docs/product/raw/update-triage-workflow.md.",
+      "recorded_at": "2026-06-10T19:59:19Z"
     }
   ]
 }
