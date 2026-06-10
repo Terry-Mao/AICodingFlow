@@ -2146,6 +2146,26 @@
       "proposed_patch": "新增 docs/product/raw/update-triage-workflow.md，记录 update-triage 的触发输入、维护者修正信号学习规则、允许写入范围和固定 PR 行为。",
       "reason": "PR #254 新增了可由维护者手动触发的 update-triage 自进化 workflow，并定义了 triage 反馈学习规则、写入边界和 PR 行为。这是长期产品行为变更，现有产品文档只覆盖 issue triage、update-dedupe 和 update-pr-review，未覆盖该新流程。",
       "recorded_at": "2026-06-10T00:01:02Z"
+    },
+    {
+      "pr": 256,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/256",
+      "title": "Update triage guidance",
+      "merged_at": "2026-06-09T10:46:43Z",
+      "merge_commit": "c4ee864e6c3150bc59e11ee6ac811c6c6c628826",
+      "docs_update": "uncertain",
+      "affected_docs": [
+        "docs/product/raw/issue-triage-workflow.md"
+      ],
+      "source_context": [
+        "PR #256",
+        ".agents/skills/triage-issue-repo/SKILL.md",
+        ".agents/skills/triage-issue/SKILL.md",
+        "docs/product/raw/issue-triage-workflow.md"
+      ],
+      "proposed_patch": "已在 docs/product/raw/issue-triage-workflow.md 中保守记录 PR #256 的 repo companion 生命周期标签 guidance，并明确标注 ready-to-spec / ready-to-implement 输出边界仍需产品确认。",
+      "reason": "PR #256 更新了 repo-local triage companion，新增 ready-to-spec 与 ready-to-implement 的生命周期标签判断规则，属于长期 triage workflow 行为。该规则与 core triage-issue skill 当前的 reserved label 禁止输出规则存在冲突，因此需要产品确认后才能写成确定行为。",
+      "recorded_at": "2026-06-10T05:08:46Z"
     }
   ]
 }
