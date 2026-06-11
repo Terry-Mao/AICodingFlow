@@ -162,7 +162,7 @@ cleanup_legacy_agent_skills() {
 sync_skills() {
   local skills_src="$script_dir/.agents/skills"
   local skills_dest="$target_dir/.agents/skills"
-  copy_dir "$skills_src" "$skills_dest"
+  copy_dir "$skills_src" "$skills_dest" --exclude '*-repo'
 }
 
 sync_github_skills() {
@@ -203,9 +203,9 @@ sync_github_dirs() {
   done
 }
 
+cleanup_legacy_agent_skills
 sync_skills
 copy_dir "$script_dir/.agents/contracts" "$target_dir/.agents/contracts"
-cleanup_legacy_agent_skills
 sync_github_skills
 sync_github_dirs
 

@@ -28,6 +28,21 @@ class InstallScriptTest(unittest.TestCase):
             stderr=subprocess.PIPE,
         )
 
+    def run_install_from_source(
+        self,
+        source: Path,
+        target: Path,
+        *args: str,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["bash", str(source / "install.sh"), "--target", str(target), *args],
+            cwd=source,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
     def run_raw_install(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["bash", str(INSTALL), *args],
@@ -149,6 +164,29 @@ class InstallScriptTest(unittest.TestCase):
                 "target repo guidance\n",
             )
             self.assertTrue((target / ".github/skills/review-pr/SKILL.md").is_file())
+
+    def test_legacy_source_companion_is_not_installed_or_migrated(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            target = root / "target"
+            source.mkdir()
+            target.mkdir()
+
+            shutil.copy2(INSTALL, source / "install.sh")
+            shutil.copy2(ROOT / "AGENTS.md", source / "AGENTS.md")
+            shutil.copytree(ROOT / ".agents/skills", source / ".agents/skills")
+            shutil.copytree(ROOT / ".agents/contracts", source / ".agents/contracts")
+            shutil.copytree(ROOT / ".github/skills", source / ".github/skills")
+            shutil.copytree(ROOT / ".github/workflows", source / ".github/workflows")
+            stale_source_companion = source / ".agents/skills/review-pr-repo/SKILL.md"
+            stale_source_companion.parent.mkdir(parents=True)
+            stale_source_companion.write_text("stale source companion\n", encoding="utf-8")
+
+            self.run_install_from_source(source, target)
+
+            self.assertFalse((target / ".agents/skills/review-pr-repo").exists())
+            self.assertFalse((target / ".github/skills/review-pr-repo/SKILL.md").exists())
 
     def test_preserves_unrelated_github_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
