@@ -1,12 +1,12 @@
 ---
 type: concept
 title: Issue triage 结果契约
-status: current
-confidence: high
-source_status: verified
+status: needs-review
+confidence: medium
+source_status: conflict
 owner: product-docs
-last_reviewed: 2026-06-01
-review_due: 2026-08-30
+last_reviewed: 2026-06-11
+review_due: 2026-09-09
 sources:
   - docs/product/raw/issue-triage-workflow.md
 ---
@@ -30,10 +30,14 @@ sources:
 - `follow_up_questions` 与 `duplicate_of` 互斥。
 - 重复判断优先；发现重复 issue 时问题列表必须为空。
 - 需要 reporter 补充信息时，`duplicate_of` 必须为空。
-- `plan-approved`、`ready-to-implement` 和 `ready-to-spec` 是受保护 labels，结果不得请求添加。
+- `plan-approved` 是受保护 label，结果不得请求添加。
 - 重复结果在配置存在 `duplicate` 时必须带 `duplicate`，且不能带 `triaged`。
 - 无重复且无 follow-up questions 时，配置存在 `triaged` 则应带 `triaged`。
 - 存在 follow-up questions 时，配置存在 `needs-info` 则应带 `needs-info`。
+
+## 待确认
+
+- 待确认：`ready-to-implement` 和 `ready-to-spec` 的最终输出边界需要产品确认。当前 raw source 同时记录 core skill 的 reserved-label 规则和 repo companion 的 lifecycle label guidance，不能把这些 labels 的 triage 输出行为写成 `current` + `verified`。
 
 ## Supporting Summaries
 
@@ -43,4 +47,3 @@ sources:
 
 - [Issue triage workflow](issue-triage-workflow.md)
 - [Repo-specific duplicate guidance](repo-specific-duplicate-guidance.md)
-
