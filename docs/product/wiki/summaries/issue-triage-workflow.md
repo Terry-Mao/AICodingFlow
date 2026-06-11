@@ -1,12 +1,12 @@
 ---
 type: summary
 title: Issue triage workflow 摘要
-status: current
-confidence: high
-source_status: verified
+status: needs-review
+confidence: medium
+source_status: conflict
 owner: product-docs
-last_reviewed: 2026-06-02
-review_due: 2026-08-31
+last_reviewed: 2026-06-11
+review_due: 2026-09-09
 sources:
   - docs/product/raw/issue-triage-workflow.md
 ---
@@ -40,9 +40,13 @@ Issue triage workflow 在 issue 创建、重新打开、维护者显式请求或
 - agent 的唯一 handoff 是 `triage_result.json`。
 - 结果包含 labels、repro、confidence、related_files、root_cause、summary、follow_up_questions、duplicate_of 和 issue_body。
 - `follow_up_questions` 与 `duplicate_of` 互斥；重复判断优先于补充问题。
-- `plan-approved`、`ready-to-implement` 和 `ready-to-spec` 是受保护 labels，分诊结果不得请求添加。
+- `plan-approved` 是受保护 label，分诊结果不得请求添加。
 - agent 不直接修改 GitHub；apply 阶段用写权限 job 再次校验后同步 labels，并按需创建或更新 triage comment。
 - label 同步只管理 triage config 中定义且非受保护的 labels，保留 issue 上不属于 managed label set 的其他 labels。
+
+## 待确认
+
+- 待确认：`ready-to-implement` 和 `ready-to-spec` 的最终 triage 输出边界需要产品确认。raw source 记录 core `triage-issue` 仍把这些 lifecycle labels 作为 human-maintainer reserved labels，而 repo companion 已记录维护者反复补加这些 lifecycle labels 的仓库级 guidance。
 
 ## 支持的概念
 

@@ -1,5 +1,21 @@
 # Compile Log
 
+## 2026-06-11
+
+按 `docs/product/raw/` 作为权威来源复核 Product LLM Wiki，并修正 issue triage lifecycle label 的来源状态：
+
+- 更新 [Issue triage workflow 摘要](summaries/issue-triage-workflow.md) 与 [Issue triage 结果契约](concepts/issue-triage-result-contract.md)：不再把 `ready-to-spec` / `ready-to-implement` 的 triage 输出边界写成已确认受保护规则，改为 `needs-review` + `source_status: conflict` 并放入专门 `待确认` 章节。
+- 复核 22 个 raw source 均有对应 source summary，现有 Ingest、Query、Linter、schema 和 index 结构保持齐全。
+
+## 待确认 / 开放问题
+
+- 待确认：`ready-to-implement` 和 `ready-to-spec` 的最终 triage 输出边界需要产品确认；core skill reserved-label 规则与 repo companion lifecycle label guidance 仍需统一。
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- `docs/product/raw/issue-triage-workflow.md` 记录 `ready-to-implement` / `ready-to-spec` 的输出边界存在 core skill 规则与 repo companion guidance 之间的待确认差异。
+
 ## 2026-06-10
 
 按 `docs/product/raw/` 作为权威来源同步 Product LLM Wiki 的产品文档同步行为：
