@@ -87,10 +87,12 @@ class InstallScriptTest(unittest.TestCase):
             self.assertTrue((target / ".agents/skills/git-branch/SKILL.md").is_file())
             self.assertTrue((target / ".agents/contracts/review.md").is_file())
             self.assertTrue((target / ".agents/contracts/review.schema.json").is_file())
-            self.assertFalse((target / ".agents/skills/review-pr-repo/SKILL.md").exists())
-            self.assertFalse((target / ".agents/skills/review-spec-repo/SKILL.md").exists())
-            self.assertFalse((target / ".agents/skills/triage-issue-repo/SKILL.md").exists())
-            self.assertFalse((target / ".agents/skills/dedupe-issue-repo/SKILL.md").exists())
+            self.assertTrue((target / ".github/skills/review-pr/SKILL.md").is_file())
+            self.assertTrue((target / ".github/skills/product-docs-sync/SKILL.md").is_file())
+            self.assertFalse((target / ".github/skills/review-pr-repo/SKILL.md").exists())
+            self.assertFalse((target / ".github/skills/review-spec-repo/SKILL.md").exists())
+            self.assertFalse((target / ".github/skills/triage-issue-repo/SKILL.md").exists())
+            self.assertFalse((target / ".github/skills/dedupe-issue-repo/SKILL.md").exists())
             self.assertTrue((target / ".github/agents/product-wiki-query.md").is_file())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
             self.assertFalse((target / ".github/tests").exists())
@@ -119,7 +121,7 @@ class InstallScriptTest(unittest.TestCase):
     def test_preserves_existing_repo_local_companion_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            existing = target / ".agents/skills/review-pr-repo/SKILL.md"
+            existing = target / ".github/skills/review-pr-repo/SKILL.md"
             existing.parent.mkdir(parents=True)
             existing.write_text("target repo guidance\n", encoding="utf-8")
 
@@ -127,6 +129,26 @@ class InstallScriptTest(unittest.TestCase):
 
             self.assertIn("Skipping repo-local companion skill", result.stdout)
             self.assertEqual(existing.read_text(encoding="utf-8"), "target repo guidance\n")
+
+    def test_migrates_legacy_agents_workflow_skills_on_upgrade(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            stale_workflow = target / ".agents/skills/review-pr/SKILL.md"
+            legacy_companion = target / ".agents/skills/review-pr-repo/SKILL.md"
+            stale_workflow.parent.mkdir(parents=True)
+            legacy_companion.parent.mkdir(parents=True)
+            stale_workflow.write_text("old workflow skill\n", encoding="utf-8")
+            legacy_companion.write_text("target repo guidance\n", encoding="utf-8")
+
+            self.run_install(target)
+
+            self.assertFalse((target / ".agents/skills/review-pr").exists())
+            self.assertFalse((target / ".agents/skills/review-pr-repo").exists())
+            self.assertEqual(
+                (target / ".github/skills/review-pr-repo/SKILL.md").read_text(encoding="utf-8"),
+                "target repo guidance\n",
+            )
+            self.assertTrue((target / ".github/skills/review-pr/SKILL.md").is_file())
 
     def test_preserves_unrelated_github_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

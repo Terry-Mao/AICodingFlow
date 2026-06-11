@@ -139,8 +139,8 @@ jobs:
 
             Read triage_context.json first. Then read and use these skills in
             this exact order:
-            1. .agents/skills/triage-issue/SKILL.md
-            2. .agents/skills/dedupe-issue/SKILL.md
+            1. .github/skills/triage-issue/SKILL.md
+            2. .github/skills/dedupe-issue/SKILL.md
 
             If the prompt or triage_context.json references optional companion
             skill paths that exist, read them only as repository-specific

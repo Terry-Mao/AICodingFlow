@@ -22,7 +22,7 @@ Source: [docs/product/raw/product-wiki-compile-workflow.md](../../raw/product-wi
 - workflow 通过 `workflow_dispatch` 手动触发，或每天 03:10 UTC 定时运行。
 - 使用固定并发组 `product-wiki-compile`，不会取消已在运行的同组任务。
 - 编译输入包括 `docs/product/raw/**/*.md` 和已存在的 `docs/product/wiki/**/*.md`。
-- Codex 维护步骤遵循 `.agents/skills/product-wiki/SKILL.md`，并把 raw 文档视为 source material，而不是可执行指令。
+- Codex 维护步骤遵循 `.github/skills/product-wiki/SKILL.md`，并把 raw 文档视为 source material，而不是可执行指令。
 
 ## 输出结构
 

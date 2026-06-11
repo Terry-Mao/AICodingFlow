@@ -35,8 +35,8 @@ sources:
 ## 写入边界
 
 - Skill 只写临时 `update-triage-output/` 交接目录。
-- 持久写入范围仅限 `.agents/skills/triage-issue-repo/SKILL.md` 和 `.github/issue-triage/config.json`。
-- 普通 triage heuristic 写入 `.agents/skills/triage-issue-repo/SKILL.md`。
+- 持久写入范围仅限 `.github/skills/triage-issue-repo/SKILL.md` 和 `.github/issue-triage/config.json`。
+- 普通 triage heuristic 写入 `.github/skills/triage-issue-repo/SKILL.md`。
 - 只有稳定模式说明 label taxonomy 需要新增 label、重命名 label 或澄清 description 时，才允许最小化更新 `.github/issue-triage/config.json`。
 - 不修改 core `triage-issue` skill、`dedupe-issue-repo` companion、workflow 文件、脚本、测试、README 或产品代码。
 - 有 guidance diff 时，runner 使用 `feat/update-triage` 创建或更新 PR；没有 guidance diff 时不创建 PR。

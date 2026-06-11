@@ -20,7 +20,7 @@ sources:
 ## 当前规则
 
 - Agent profile 位于 `.github/agents/product-wiki-query.md`。
-- 查询前读取 `.agents/skills/product-wiki/SKILL.md`，并只应用 Query、Staged Review、Style 和查询相关规则。
+- 查询前读取 `.github/skills/product-wiki/SKILL.md`，并只应用 Query、Staged Review、Style 和查询相关规则。
 - 默认从 `docs/product/wiki/index.md` 开始，再沿 concept、summary 和 raw source 链接追溯。
 - 面向产品行为、workflow、边界、状态和规则问答。
 - 除非用户明确要求维护类工作，否则不维护或重新编译 wiki。

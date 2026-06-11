@@ -30,7 +30,7 @@ cd AICodingFlow
 ./install.sh --target /path/to/target-repo --dry-run
 ```
 
-安装脚本依赖 `bash`、`git`、`rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/`、`.agents/contracts/`、`.github/agents/`、`.github/scripts/` 和受管 workflow，不会同步 AICodingFlow 上游测试目录 `.github/aicodingflow-tests/`、仓库自用 `.github/tests/` 与 `.github/workflows/ci.yml`。
+安装脚本依赖 `bash`、`git`、`rsync`；使用一行安装命令时还需要 `curl`。它会同步 `.agents/skills/`、`.agents/contracts/`、`.github/skills/`、`.github/agents/`、`.github/scripts/` 和受管 workflow，不会同步 AICodingFlow 上游测试目录 `.github/aicodingflow-tests/`、仓库自用 `.github/tests/` 与 `.github/workflows/ci.yml`。
 
 安装后，在目标仓库配置：
 
@@ -92,10 +92,11 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 
 ```text
 .agents/                         # 多工具共享的 agent 配置入口
-.agents/skills/                  # Codex SKILL
+.agents/skills/                  # 本地开发和共享 Codex SKILL
 .codex/                          # Codex 入口目录
 .claude/                         # Claude 入口目录
 .cursor/rules/                   # Cursor rules
+.github/skills/                  # GitHub workflow 专用 Codex SKILL
 .github/agents/                  # GitHub Copilot custom agents
 .github/workflows/               # GitHub Actions workflow
 .github/scripts/                 # workflow 使用的 Python helper

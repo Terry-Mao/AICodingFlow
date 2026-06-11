@@ -26,15 +26,15 @@ Source: [docs/product/raw/update-pr-review-workflow.md](../../raw/update-pr-revi
 
 ## 规则学习
 
-- Code review feedback 更新 `.agents/skills/review-pr-repo/SKILL.md`。
-- Spec review feedback 更新 `.agents/skills/review-spec-repo/SKILL.md`。
+- Code review feedback 更新 `.github/skills/review-pr-repo/SKILL.md`。
+- Spec review feedback 更新 `.github/skills/review-spec-repo/SKILL.md`。
 - 证据不足、没有人类反馈或既有 guidance 已覆盖时，产出 `no_change`，不修改 companion guidance，也不创建更新 PR。
 - 证据无法安全解释时，流程应产出错误，由外层 workflow 停止应用。
 
 ## 写入与 PR 边界
 
 - Skill 只写临时 `update-pr-review-output/` 交接目录。
-- 持久写入范围仅限 `.agents/skills/review-pr-repo/` 和 `.agents/skills/review-spec-repo/`。
+- 持久写入范围仅限 `.github/skills/review-pr-repo/` 和 `.github/skills/review-spec-repo/`。
 - 不得修改 core review skills、workflow 文件、脚本、测试或产品代码，也不得改变 core review contract。
 - 有 guidance diff 时，runner 使用固定分支 `feat/update-pr-review` 创建或更新 PR，并在 PR body 中包含来源输入摘要。
 - 创建或更新 PR 只复用同一 head branch 上的 open PR；没有 guidance diff 时不创建 PR。

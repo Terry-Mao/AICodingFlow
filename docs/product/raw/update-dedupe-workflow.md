@@ -29,11 +29,11 @@ issue 的 duplicate。
 ## 写入边界
 
 `update-dedupe` skill 本身只写临时 `update-dedupe-output/` 交接目录。需要更新 guidance 时，
-它输出 `.agents/skills/dedupe-issue-repo/SKILL.md` 的完整 replacement 内容；外层 runner
+它输出 `.github/skills/dedupe-issue-repo/SKILL.md` 的完整 replacement 内容；外层 runner
 负责应用输出、校验写入范围、提交、推送以及创建或更新 PR。
 
-持久写入范围仅限 `.agents/skills/dedupe-issue-repo/`。流程不得修改
-`.agents/skills/dedupe-issue/SKILL.md`，也不得放宽 2-candidate minimum、similarity
+持久写入范围仅限 `.github/skills/dedupe-issue-repo/`。流程不得修改
+`.github/skills/dedupe-issue/SKILL.md`，也不得放宽 2-candidate minimum、similarity
 threshold、输出 schema、候选来源或 precision-over-recall 原则。
 
 ## PR 行为

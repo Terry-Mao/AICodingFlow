@@ -253,9 +253,9 @@ def build_skipped_context(reason: str) -> dict[str, Any]:
         "triggering_comment": None,
         "coauthor_directives": [],
         "skill_paths": [
-            ".agents/skills/implement-specs/SKILL.md",
+            ".github/skills/implement-specs/SKILL.md",
             ".agents/skills/spec-driven-implementation/SKILL.md",
-            ".agents/skills/implement-issue/SKILL.md",
+            ".github/skills/implement-issue/SKILL.md",
         ],
         "progress_start_line": "",
         "should_run": False,
@@ -343,9 +343,9 @@ def build_implementation_context(
         "triggering_comment": trigger_comment,
         "coauthor_directives": coauthor_directives,
         "skill_paths": [
-            ".agents/skills/implement-specs/SKILL.md",
+            ".github/skills/implement-specs/SKILL.md",
             ".agents/skills/spec-driven-implementation/SKILL.md",
-            ".agents/skills/implement-issue/SKILL.md",
+            ".github/skills/implement-issue/SKILL.md",
         ],
         "progress_start_line": f"Implementation run started for issue #{issue_number}.",
         "should_run": should_run_flag,

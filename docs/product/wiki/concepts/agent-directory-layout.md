@@ -5,7 +5,7 @@ status: current
 confidence: high
 source_status: verified
 owner: product-docs
-last_reviewed: 2026-06-07
+last_reviewed: 2026-06-11
 review_due: 2026-09-05
 sources:
   - docs/product/raw/agent-directory-layout.md
@@ -13,24 +13,25 @@ sources:
 
 # Agent 目录布局
 
-Agent 目录布局定义 AICodingFlow 如何用根目录 `AGENTS.md` 作为共享仓库级 guidance、用 `.agents/` 保存共享 workflow skills，并向不同 AI coding 工具提供它们期望的本地入口。
+Agent 目录布局定义 AICodingFlow 如何用根目录 `AGENTS.md` 作为共享仓库级 guidance、用 `.agents/skills/` 保存本地开发与共享 skills、用 `.github/skills/` 保存 GitHub workflow-only skills，并向不同 AI coding 工具提供它们期望的入口。
 
 ## 当前规则
 
 - `AGENTS.md` 是 Codex 默认加载的仓库级 agent guidance 权威入口。
 - `CLAUDE.md -> AGENTS.md` 让 Claude Code 加载同一份仓库级 guidance。
-- `.agents/skills/` 是可复用 workflow skills 的共享目录。
+- `.agents/skills/` 是本地开发和共享 skills 的目录，并暴露给本地工具默认发现。
+- `.github/skills/` 是 GitHub Actions workflow-only skills 的目录，由 workflow prompt 显式读取。
 - `.agents/contracts/` 保存 skills 与 workflows 共享的稳定 artifact 和边界合同。
 - Claude skills 入口通过 `.claude/skills -> ../.agents/skills` 指向共享 skills。
 - Codex skills 入口通过 `.codex/skills -> ../.agents/skills` 指向共享 skills。
 - Cursor 使用 `.cursor/rules/agents.mdc` 作为专用规则文件。
-- 该布局让 Claude、Codex 和 Cursor 读取同一组仓库规则与 workflow skills，而不是维护独立副本。
+- 该布局让 Claude、Codex 和 Cursor 读取同一组仓库规则与本地/共享 skills，同时把 workflow-only skills 从本地默认发现面中隔离出来。
 
 ## GitHub Copilot custom agents
 
 - `.github/agents/` 存放随 AICodingFlow 模板交付的 GitHub Copilot custom agent profile。
 - Custom agent profile 用于把已有产品知识或 workflow 能力暴露为 GitHub Copilot 可调用入口。
-- GitHub Copilot custom agents 不替代 `.agents/skills/` 中的共享 skill 定义。
+- GitHub Copilot custom agents 不替代 `.github/skills/` 中的 workflow skill 定义。
 - `Product Wiki Query` agent 是面向产品知识库问答的 custom agent；查询应从 Product LLM Wiki index 进入相关 concept、summary 和 raw source。
 
 ## Windows symlink 规则

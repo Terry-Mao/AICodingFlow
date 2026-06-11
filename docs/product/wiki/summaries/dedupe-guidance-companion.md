@@ -19,7 +19,7 @@ Source: [docs/product/raw/dedupe-guidance-companion.md](../../raw/dedupe-guidanc
 
 ## 作用范围
 
-- companion 文件位于 `.agents/skills/dedupe-issue-repo/SKILL.md`。
+- companion 文件位于 `.github/skills/dedupe-issue-repo/SKILL.md`。
 - 只能 specialize core `dedupe-issue` 声明可覆盖的 categories。
 - 不重新定义 duplicate-detection algorithm、similarity thresholds、candidate requirements、safety rules 或 output contract。
 - issue triage 仍使用 workflow 提供的 `dedupe_candidates.json` 作为权威候选列表。
@@ -35,8 +35,8 @@ Source: [docs/product/raw/dedupe-guidance-companion.md](../../raw/dedupe-guidanc
 ## 更新边界
 
 - companion 只应由受控 self-improvement flows 基于强维护者 duplicate 证据更新。
-- 这些流程可以更新 `.agents/skills/dedupe-issue-repo/SKILL.md`。
-- 不得修改 `.agents/skills/dedupe-issue/SKILL.md` 或削弱 core precision-over-recall 行为。
+- 这些流程可以更新 `.github/skills/dedupe-issue-repo/SKILL.md`。
+- 不得修改 `.github/skills/dedupe-issue/SKILL.md` 或削弱 core precision-over-recall 行为。
 
 ## 支持的概念
 

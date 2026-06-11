@@ -38,7 +38,7 @@ update-pr-review
 
 - 聚合人类对 bot review 的反馈。
 - 判断哪些反馈反映了稳定、可复用的仓库规则。
-- 更新 `.agents/skills/review-pr-repo/SKILL.md` 和 `.agents/skills/review-spec-repo/SKILL.md`。
+- 更新 `.github/skills/review-pr-repo/SKILL.md` 和 `.github/skills/review-spec-repo/SKILL.md`。
 
 适合沉淀的规则：
 
@@ -70,7 +70,7 @@ update-dedupe
 
 - 学习最近维护者关闭为 duplicate 的 issue。
 - 总结目标仓库常见重复问题簇。
-- 更新 `.agents/skills/dedupe-issue-repo/SKILL.md`。
+- 更新 `.github/skills/dedupe-issue-repo/SKILL.md`。
 
 适合沉淀的规则：
 
@@ -104,7 +104,10 @@ update-dedupe
 
 ## 安装和升级时的关系
 
-`install.sh` 会同步核心 `.agents/skills/`。AICodingFlow 仓库自带的 `*-repo` companion 不会安装到目标项目；目标项目已有的 companion skills 会保留不动，并由 `update-*` 系列 SKILL 在有证据时创建或更新。
+`install.sh` 会同步 `.agents/skills/` 中的本地/共享 skills 和 `.github/skills/`
+中的 workflow skills。AICodingFlow 仓库自带的 `.github/skills/*-repo/SKILL.md`
+companion 不会安装到目标项目；目标项目已有的 companion skills 会保留不动，并由
+`update-*` 系列 SKILL 在有证据时创建或更新。
 
 升级时的建议顺序：
 

@@ -1,5 +1,21 @@
 # Compile Log
 
+## 2026-06-11
+
+按 `docs/product/raw/` 作为权威来源同步 agent 目录布局：
+
+- 更新 [Agent 目录布局摘要](summaries/agent-directory-layout.md) 与 [Agent 目录布局](concepts/agent-directory-layout.md)：记录 `.agents/skills/` 只承载本地开发与共享 skills，`.github/skills/` 承载 GitHub Actions workflow-only skills，并由 workflow prompt 显式读取。
+- 更新 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)：记录安装同步 `.github/skills/`，但不安装 repo-specific `*-repo` companion skills。
+- 更新 review、product wiki、dedupe 和 update workflow 相关 summary/concept，统一 workflow-only skill 路径为 `.github/skills/`。
+
+## 待确认 / 开放问题
+
+- 待确认：raw source 未详细描述 spec agent 的全部输出文件契约，只说明外层 workflow 创建或更新 spec PR。
+
+## 冲突
+
+- 未发现 raw source 之间的明确冲突。
+
 ## 2026-06-10
 
 按 `docs/product/raw/` 作为权威来源同步 Product LLM Wiki 的产品文档同步行为：

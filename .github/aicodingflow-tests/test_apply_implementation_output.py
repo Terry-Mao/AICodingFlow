@@ -34,16 +34,16 @@ class ApplyImplementationOutputTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             output = root / "implementation-output"
-            source = output / ".agents/skills/update-dedupe/SKILL.md"
+            source = output / ".github/skills/update-dedupe/SKILL.md"
             source.parent.mkdir(parents=True)
             source.write_text("new skill\n", encoding="utf-8")
-            metadata = self.write_metadata(root, [".agents/skills/update-dedupe/SKILL.md"])
+            metadata = self.write_metadata(root, [".github/skills/update-dedupe/SKILL.md"])
 
             applied = apply_impl.apply_output(output, root, metadata)
 
-            self.assertEqual(applied, [".agents/skills/update-dedupe/SKILL.md"])
+            self.assertEqual(applied, [".github/skills/update-dedupe/SKILL.md"])
             self.assertEqual(
-                (root / ".agents/skills/update-dedupe/SKILL.md").read_text(encoding="utf-8"),
+                (root / ".github/skills/update-dedupe/SKILL.md").read_text(encoding="utf-8"),
                 "new skill\n",
             )
 
@@ -66,17 +66,17 @@ class ApplyImplementationOutputTest(unittest.TestCase):
             source.write_text("name: test\n", encoding="utf-8")
             metadata = self.write_metadata(root, [".github/workflows/new.yml"])
 
-            with self.assertRaisesRegex(SystemExit, "only contain .agents/"):
+            with self.assertRaisesRegex(SystemExit, "only contain .agents/, .github/skills/"):
                 apply_impl.apply_output(output, root, metadata)
 
     def test_rejects_output_not_listed_in_intended_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             output = root / "implementation-output"
-            source = output / ".agents/skills/update-dedupe/SKILL.md"
+            source = output / ".github/skills/update-dedupe/SKILL.md"
             source.parent.mkdir(parents=True)
             source.write_text("new skill\n", encoding="utf-8")
-            metadata = self.write_metadata(root, [".agents/skills/other/SKILL.md"])
+            metadata = self.write_metadata(root, [".github/skills/other/SKILL.md"])
 
             with self.assertRaisesRegex(SystemExit, "not listed"):
                 apply_impl.apply_output(output, root, metadata)

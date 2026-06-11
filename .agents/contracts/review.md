@@ -149,5 +149,5 @@ python3 .github/scripts/validate_review_json.py pr_diff.txt review.json
 Local skill validation may use:
 
 ```bash
-python3 .agents/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
+python3 .github/skills/review-pr/scripts/validate_review_json.py pr_diff.txt review.json
 ```

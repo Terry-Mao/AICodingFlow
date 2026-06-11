@@ -433,9 +433,9 @@ def build_pr_comment_context_payload(
         "has_spec_context": False,
         "coauthor_directives": collect_coauthor_directives(trigger["body"], pr.get("body") or ""),
         "skill_paths": [
-            ".agents/skills/implement-specs/SKILL.md",
+            ".github/skills/implement-specs/SKILL.md",
             ".agents/skills/spec-driven-implementation/SKILL.md",
-            ".agents/skills/implement-issue/SKILL.md",
+            ".github/skills/implement-issue/SKILL.md",
         ],
         "should_run": should_run,
         "should_noop": False,

@@ -7,7 +7,7 @@ wiki，除非用户明确要求执行维护类工作。
 ## 查询入口
 
 Agent profile 位于 `.github/agents/product-wiki-query.md`。使用时应先读取
-`.agents/skills/product-wiki/SKILL.md`，并只应用其中的 Query、Staged Review、Style 和查询相关规则。
+`.github/skills/product-wiki/SKILL.md`，并只应用其中的 Query、Staged Review、Style 和查询相关规则。
 默认查询入口是 `docs/product/wiki/index.md`，随后沿最相关的 concept、summary 和 raw source 链接追溯。
 
 当答案涉及精确规则、冲突判断、权限边界、reviewer 可争议事实或原文措辞时，agent 应回到

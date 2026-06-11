@@ -11,7 +11,7 @@ def compact(text: str) -> str:
 
 class ImplementationSkillGuidanceTest(unittest.TestCase):
     def test_implement_specs_prefers_stable_workflow_context_over_fetching(self) -> None:
-        text = (ROOT / ".agents/skills/implement-specs/SKILL.md").read_text(encoding="utf-8")
+        text = (ROOT / ".github/skills/implement-specs/SKILL.md").read_text(encoding="utf-8")
         compact_text = compact(text)
 
         self.assertIn("workflow-provided files as the authoritative GitHub context snapshot", compact_text)
@@ -20,7 +20,7 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
         self.assertNotIn("Fetch any additional GitHub issue or PR content on demand", text)
 
     def test_implement_issue_does_not_require_fetching_in_workflows(self) -> None:
-        text = (ROOT / ".agents/skills/implement-issue/SKILL.md").read_text(encoding="utf-8")
+        text = (ROOT / ".github/skills/implement-issue/SKILL.md").read_text(encoding="utf-8")
         compact_text = compact(text)
 
         self.assertIn("Workflow-provided files are the authoritative context snapshot", compact_text)
@@ -30,10 +30,10 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
 
     def test_non_review_workflow_skills_do_not_require_root_handoff_paths(self) -> None:
         skill_paths = [
-            ".agents/skills/create-product-spec/SKILL.md",
-            ".agents/skills/create-tech-spec/SKILL.md",
-            ".agents/skills/implement-issue/SKILL.md",
-            ".agents/skills/implement-specs/SKILL.md",
+            ".github/skills/create-product-spec/SKILL.md",
+            ".github/skills/create-tech-spec/SKILL.md",
+            ".github/skills/implement-issue/SKILL.md",
+            ".github/skills/implement-specs/SKILL.md",
         ]
 
         for path in skill_paths:
@@ -46,7 +46,7 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
                 self.assertNotIn("at the repository root", compact_text)
 
     def test_implement_issue_documents_resolved_review_comments_contract(self) -> None:
-        text = (ROOT / ".agents/skills/implement-issue/SKILL.md").read_text(encoding="utf-8")
+        text = (ROOT / ".github/skills/implement-issue/SKILL.md").read_text(encoding="utf-8")
         compact_text = compact(text)
 
         self.assertIn('"resolved_review_comments"', text)

@@ -48,7 +48,7 @@ class ProductWikiCompileScriptTest(unittest.TestCase):
     def test_write_surface_rejects_workflow_skill_specs_and_code_changes(self) -> None:
         invalid_paths = [
             ".github/workflows/product-wiki-compile.yml",
-            ".agents/skills/product-wiki/SKILL.md",
+            ".github/skills/product-wiki/SKILL.md",
             "specs/issue-1/product.md",
             "src/app.py",
         ]
@@ -486,7 +486,7 @@ class ProductWikiCompileWorkflowTest(unittest.TestCase):
         codex_step = next(step for step in steps if step.get("name") == "Compile product wiki")
         prompt = codex_step["with"]["prompt"]
 
-        self.assertIn(".agents/skills/product-wiki/SKILL.md", prompt)
+        self.assertIn(".github/skills/product-wiki/SKILL.md", prompt)
         self.assertIn("docs/product/wiki/AGENTS.md", prompt)
         self.assertIn("docs/product/wiki/summaries/*.md", prompt)
         self.assertIn("docs/product/wiki/concepts/*.md", prompt)

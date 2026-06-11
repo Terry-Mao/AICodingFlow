@@ -84,10 +84,10 @@ This skill produces two files:
 
 The reusable agent roles that support a repo-specific companion are:
 
-- `.agents/skills/review-pr-repo/SKILL.md`
-- `.agents/skills/review-spec-repo/SKILL.md`
-- `.agents/skills/triage-issue-repo/SKILL.md`
-- `.agents/skills/dedupe-issue-repo/SKILL.md`
+- `.github/skills/review-pr-repo/SKILL.md`
+- `.github/skills/review-spec-repo/SKILL.md`
+- `.github/skills/triage-issue-repo/SKILL.md`
+- `.github/skills/dedupe-issue-repo/SKILL.md`
 
 Do **not** create these files during bootstrap. The prompt-construction layer treats a missing companion file and a body-only frontmatter stub the same way, so there is no value in materializing an empty file during bootstrap. Each file gets created on-demand by the matching `update-<agent>` self-improvement loop (or by a maintainer) the first time there is evidence-backed content to add. Bootstrap only needs to ensure the directory convention is documented; the files themselves stay absent until a real rule lands.
 

@@ -40,8 +40,8 @@ Source: [docs/product/raw/update-triage-workflow.md](../../raw/update-triage-wor
 
 - Skill 本身只写临时 `update-triage-output/` 交接目录。
 - 需要更新 guidance 时，skill 输出完整 replacement file，外层 runner 负责应用输出、校验写入范围、提交、推送以及创建或更新 PR。
-- 持久写入范围仅限 `.agents/skills/triage-issue-repo/SKILL.md` 和 `.github/issue-triage/config.json`。
-- 普通 triage heuristic 应写入 `.agents/skills/triage-issue-repo/SKILL.md`。
+- 持久写入范围仅限 `.github/skills/triage-issue-repo/SKILL.md` 和 `.github/issue-triage/config.json`。
+- 普通 triage heuristic 应写入 `.github/skills/triage-issue-repo/SKILL.md`。
 - 只有稳定模式表明 label taxonomy 需要新增 label、重命名 label 或澄清 description 时，才允许最小化更新 `.github/issue-triage/config.json`。
 - 流程不得修改 core `triage-issue` skill、`dedupe-issue-repo` companion、workflow 文件、脚本、测试、README 或产品代码。
 - 有 guidance diff 时，runner 使用固定分支 `feat/update-triage` 创建或更新 PR；没有 guidance diff 时不创建 PR。

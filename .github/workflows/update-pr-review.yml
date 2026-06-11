@@ -70,7 +70,7 @@ jobs:
             args+=(--include-bots)
           fi
 
-          python3 .agents/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
+          python3 .github/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
 
       - name: Install Codex sandbox prerequisites
         run: |
@@ -104,7 +104,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
-            Read .agents/skills/update-pr-review/SKILL.md and follow it exactly.
+            Read .github/skills/update-pr-review/SKILL.md and follow it exactly.
             Use feedback.json as the aggregated review feedback.
             Do not edit .agents directly; it may be read-only in this sandbox.
             Write only under update-pr-review-output/.
@@ -117,18 +117,18 @@ jobs:
             Do not modify core skills, workflow files, scripts, tests, or product code.
 
       - name: Apply guidance output
-        run: python3 .agents/skills/update-pr-review/scripts/apply_guidance_output.py
+        run: python3 .github/skills/update-pr-review/scripts/apply_guidance_output.py
 
       - name: Remove temporary feedback
         run: rm -rf feedback.json update-pr-review-output
 
       - name: Validate write surface
-        run: python3 .agents/skills/update-pr-review/scripts/validate_write_surface.py
+        run: python3 .github/skills/update-pr-review/scripts/validate_write_surface.py
 
       - name: Check for guidance changes
         id: changes
         run: |
-          if git diff --quiet -- .agents/skills/review-pr-repo .agents/skills/review-spec-repo; then
+          if git diff --quiet -- .github/skills/review-pr-repo .github/skills/review-spec-repo; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -146,7 +146,7 @@ jobs:
 
           git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
           git switch -C "$branch"
-          git add .agents/skills/review-pr-repo .agents/skills/review-spec-repo
+          git add .github/skills/review-pr-repo .github/skills/review-spec-repo
           git commit -m "docs(skill): update PR review guidance"
           git push --force-with-lease origin "$branch"
 

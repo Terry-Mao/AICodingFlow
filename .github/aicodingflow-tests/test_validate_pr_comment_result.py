@@ -117,7 +117,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                 validator.validate_metadata(
                     metadata,
                     context,
-                    ["app.py", ".agents/skills/implement-specs/SKILL.md"],
+                    ["app.py", ".github/skills/implement-specs/SKILL.md"],
                 )
 
             metadata.write_text(

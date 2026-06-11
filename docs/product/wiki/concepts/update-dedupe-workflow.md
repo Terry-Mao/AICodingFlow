@@ -33,8 +33,8 @@ sources:
 ## 写入边界
 
 - skill 只写 `update-dedupe-output/` 交接目录。
-- 需要更新时，输出 `.agents/skills/dedupe-issue-repo/SKILL.md` 的完整 replacement 内容。
-- 持久写入范围仅限 `.agents/skills/dedupe-issue-repo/`。
+- 需要更新时，输出 `.github/skills/dedupe-issue-repo/SKILL.md` 的完整 replacement 内容。
+- 持久写入范围仅限 `.github/skills/dedupe-issue-repo/`。
 - 不修改 core `dedupe-issue` skill，不放宽 2-candidate minimum、similarity threshold、输出 schema、候选来源或 precision-over-recall 原则。
 - 有 guidance diff 时，runner 使用 `feat/update-dedupe` 创建或更新 PR；没有 guidance diff 时不创建 PR。
 

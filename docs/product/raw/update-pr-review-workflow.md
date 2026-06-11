@@ -12,8 +12,8 @@
 
 `update-pr-review` skill 会寻找重复的人类反馈模式或稳定仓库偏好，并按 review type 路由到 repo-local companion skills：
 
-- code review feedback 更新 `.agents/skills/review-pr-repo/SKILL.md`。
-- spec review feedback 更新 `.agents/skills/review-spec-repo/SKILL.md`。
+- code review feedback 更新 `.github/skills/review-pr-repo/SKILL.md`。
+- spec review feedback 更新 `.github/skills/review-spec-repo/SKILL.md`。
 
 证据不足、没有人类反馈，或现有 guidance 已覆盖该模式时，流程产出 `no_change`，不修改 companion guidance，也不创建无意义更新 PR。证据无法安全解释时，流程应产出错误，由外层 workflow 停止应用。
 
@@ -21,7 +21,7 @@
 
 `update-pr-review` skill 本身只写临时 `update-pr-review-output/` 交接目录。需要更新 guidance 时，它输出对应 companion skill 的完整 replacement 内容；外层 runner 负责应用输出、校验写入范围、提交、推送以及创建或更新 PR。
 
-持久写入范围仅限 `.agents/skills/review-pr-repo/` 和 `.agents/skills/review-spec-repo/`。流程不得修改 core review skills、workflow 文件、脚本、测试或产品代码，也不得改变 core review contract，包括输出 schema、severity labels、diff-line targeting、snapshot rules、validation rules 或 safety rules。
+持久写入范围仅限 `.github/skills/review-pr-repo/` 和 `.github/skills/review-spec-repo/`。流程不得修改 core review skills、workflow 文件、脚本、测试或产品代码，也不得改变 core review contract，包括输出 schema、severity labels、diff-line targeting、snapshot rules、validation rules 或 safety rules。
 
 ## PR 行为
 

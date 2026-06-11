@@ -123,7 +123,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
-            Read .agents/skills/product-docs-sync/SKILL.md and follow it exactly.
+            Read .github/skills/product-docs-sync/SKILL.md and follow it exactly.
 
             Inputs:
             - product-docs-sync-context.json

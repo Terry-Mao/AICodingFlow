@@ -24,15 +24,15 @@ sources:
 
 ## 学习与路由
 
-- Code review feedback 更新 `.agents/skills/review-pr-repo/SKILL.md`。
-- Spec review feedback 更新 `.agents/skills/review-spec-repo/SKILL.md`。
+- Code review feedback 更新 `.github/skills/review-pr-repo/SKILL.md`。
+- Spec review feedback 更新 `.github/skills/review-spec-repo/SKILL.md`。
 - 证据不足、没有人类反馈或已有 guidance 覆盖时，输出 `no_change`。
 - 证据无法安全解释时，流程应输出错误并由外层 workflow 停止应用。
 
 ## 写入边界
 
 - Skill 只写临时 `update-pr-review-output/` 交接目录。
-- 持久写入范围仅限 `.agents/skills/review-pr-repo/` 和 `.agents/skills/review-spec-repo/`。
+- 持久写入范围仅限 `.github/skills/review-pr-repo/` 和 `.github/skills/review-spec-repo/`。
 - 不得修改 core review skills、workflow 文件、脚本、测试或产品代码。
 - 不得改变 core review contract，包括输出 schema、severity labels、diff-line targeting、snapshot rules、validation rules 或 safety rules。
 

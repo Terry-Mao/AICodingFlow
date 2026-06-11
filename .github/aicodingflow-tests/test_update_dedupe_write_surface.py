@@ -7,10 +7,10 @@ from script_imports import import_script
 
 
 def script_path() -> str:
-    target = Path(".agents/skills/update-dedupe/scripts/validate_write_surface.py")
+    target = Path(".github/skills/update-dedupe/scripts/validate_write_surface.py")
     if target.exists():
         return str(target)
-    return "implementation-output/.agents/skills/update-dedupe/scripts/validate_write_surface.py"
+    return "implementation-output/.github/skills/update-dedupe/scripts/validate_write_surface.py"
 
 
 validator = import_script(script_path(), "validate_update_dedupe_write_surface")
@@ -19,14 +19,14 @@ validator = import_script(script_path(), "validate_update_dedupe_write_surface")
 class UpdateDedupeWriteSurfaceTest(unittest.TestCase):
     def test_allows_dedupe_companion_skill(self) -> None:
         self.assertEqual(
-            validator.invalid_paths([".agents/skills/dedupe-issue-repo/SKILL.md"]),
+            validator.invalid_paths([".github/skills/dedupe-issue-repo/SKILL.md"]),
             [],
         )
 
     def test_blocks_core_dedupe_skill(self) -> None:
         self.assertEqual(
-            validator.invalid_paths([".agents/skills/dedupe-issue/SKILL.md"]),
-            [".agents/skills/dedupe-issue/SKILL.md"],
+            validator.invalid_paths([".github/skills/dedupe-issue/SKILL.md"]),
+            [".github/skills/dedupe-issue/SKILL.md"],
         )
 
     def test_blocks_workflow_file(self) -> None:

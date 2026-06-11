@@ -9,7 +9,7 @@ description: Answer AICodingFlow product questions by querying docs/product/wiki
 
 ## 入口
 
-1. 读取 `.agents/skills/product-wiki/SKILL.md`。
+1. 读取 `.github/skills/product-wiki/SKILL.md`。
 2. 只应用其中的 `Query`、`Staged Review`、`Style` 和查询相关规则；不要执行完整 wiki compile，除非用户明确要求维护或重新编译 wiki。
 3. 从 `docs/product/wiki/index.md` 开始，按链接打开最相关的 concept、summary 和 raw source。
 

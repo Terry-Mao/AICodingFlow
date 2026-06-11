@@ -26,9 +26,9 @@ AICodingFlow 提供仓库级安装脚本 `install.sh`，用于把 workflow autom
 
 ## 同步范围
 
-- 安装同步 `.agents/skills/`、`.agents/contracts/`、`.github/agents/`、`.github/scripts/` 和 `.github/workflows/`。
-- 普通 skills 可以复制或更新。
-- `.agents/skills/*-repo/SKILL.md` 这类仓库本地 companion skills 不会安装到目标项目；目标项目已有 companion skills 会保留。
+- 安装同步 `.agents/skills/`、`.agents/contracts/`、`.github/skills/`、`.github/agents/`、`.github/scripts/` 和 `.github/workflows/`。
+- `.agents/skills/` 中的本地/共享 skills 和 `.github/skills/` 中的普通 workflow skills 可以复制或更新。
+- `.github/skills/*-repo/SKILL.md` 这类仓库本地 companion skills 不会安装到目标项目；目标项目已有 companion skills 会保留。
 - 目标项目 `.github` 下不属于同步目录的文件不会被删除。
 - `.github/aicodingflow-tests/` 是 AICodingFlow 上游托管的 workflow/script 测试目录，默认不会安装到目标项目；目标项目自己的 `.github` 相关测试应优先放在 `.github/tests/`。
 - AICodingFlow 源仓库中的 `.github/workflows/ci.yml` 是参考最小 CI，不会同步到目标项目；目标项目应保留自己的 CI 编排，并在 CI 成功路径中 dispatch 已安装的 `review-pr.yml`。

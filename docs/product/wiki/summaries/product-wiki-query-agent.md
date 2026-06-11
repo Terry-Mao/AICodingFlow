@@ -20,7 +20,7 @@ Source: [docs/product/raw/product-wiki-query-agent.md](../../raw/product-wiki-qu
 ## 查询入口
 
 - Agent profile 位于 `.github/agents/product-wiki-query.md`。
-- 使用时先读取 `.agents/skills/product-wiki/SKILL.md`，并只应用其中的 Query、Staged Review、Style 和查询相关规则。
+- 使用时先读取 `.github/skills/product-wiki/SKILL.md`，并只应用其中的 Query、Staged Review、Style 和查询相关规则。
 - 默认从 `docs/product/wiki/index.md` 进入，再沿最相关的 concept、summary 和 raw source 链接追溯。
 - 涉及精确规则、冲突判断、权限边界、reviewer 可争议事实或原文措辞时，应回到 `docs/product/raw/` 校验权威来源。
 - wiki 与 raw source 冲突时，以 raw source 为准，并在回答中说明冲突；只有用户要求编辑 wiki 时才修改文件。

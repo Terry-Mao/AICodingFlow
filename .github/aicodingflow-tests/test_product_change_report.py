@@ -737,7 +737,7 @@ class ProductChangeReportWorkflowTest(unittest.TestCase):
         codex_step = next(step for step in steps if step.get("name") == "Generate product change report")
         prompt = codex_step["with"]["prompt"]
 
-        self.assertIn(".agents/skills/product-change-report/SKILL.md", prompt)
+        self.assertIn(".github/skills/product-change-report/SKILL.md", prompt)
         self.assertIn("Generate or update only:", prompt)
         self.assertNotIn("automatic language selection rules", prompt)
         self.assertIn("Do not modify .agents, .github, specs, product code, docs/product, or docs/product/wiki.", prompt)

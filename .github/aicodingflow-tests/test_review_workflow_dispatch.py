@@ -293,7 +293,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertNotIn("${{ steps.guidance.outputs.reason }}", create_pr["run"])
 
         changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
-        self.assertIn("git status --porcelain -- .agents/skills/dedupe-issue-repo", changes["run"])
+        self.assertIn("git status --porcelain -- .github/skills/dedupe-issue-repo", changes["run"])
 
     def test_update_triage_pr_requires_changed_status_and_allowed_file_diff(self) -> None:
         data = workflow(".github/workflows/update-triage.yml")
@@ -306,7 +306,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("status={guidance_status}", capture["run"])
 
         changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
-        self.assertIn(".agents/skills/triage-issue-repo/SKILL.md", changes["run"])
+        self.assertIn(".github/skills/triage-issue-repo/SKILL.md", changes["run"])
         self.assertIn(".github/issue-triage/config.json", changes["run"])
 
         create_pr = next(step for step in update_steps if step.get("name") == "Create or update pull request")
@@ -433,7 +433,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("or call GitHub APIs", compact_prompt)
         self.assertIn(".codex-runtime/skills/implement-specs/SKILL.md", compact_prompt)
         self.assertNotIn(".codex-runtime/skills/implement-specs/scripts/fetch_github_context.py", prompt)
-        self.assertNotIn(".agents/skills/implement-specs/SKILL.md", prompt)
+        self.assertNotIn(".github/skills/implement-specs/SKILL.md", prompt)
         self.assertNotIn("GH_TOKEN", ai_step.get("env", {}))
         self.assertNotIn("GITHUB_TOKEN", ai_step.get("env", {}))
 

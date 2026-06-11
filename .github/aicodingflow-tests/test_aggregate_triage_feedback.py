@@ -7,10 +7,10 @@ from script_imports import import_script
 
 
 def script_path() -> str:
-    target = Path(".agents/skills/update-triage/scripts/aggregate_triage_feedback.py")
+    target = Path(".github/skills/update-triage/scripts/aggregate_triage_feedback.py")
     if target.exists():
         return str(target)
-    return ".codex-runtime/handoff/implementation-output/.agents/skills/update-triage/scripts/aggregate_triage_feedback.py"
+    return ".codex-runtime/handoff/implementation-output/.github/skills/update-triage/scripts/aggregate_triage_feedback.py"
 
 
 aggregate = import_script(script_path(), "aggregate_triage_feedback")
