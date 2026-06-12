@@ -2234,6 +2234,28 @@
       "proposed_patch": "无需修改 docs/product/；本次变更属于产品 wiki 派生层编译结果，不是新的长期产品事实。",
       "reason": "PR #267 仅编译并修正 docs/product/wiki/ 下的派生知识层内容，未改变权威 raw 产品文档、产品行为、workflow 契约或用户可见语义。该 PR 本身说明 docs/product/raw/ 仍是 source of truth，因此不需要新的长期产品文档更新。",
       "recorded_at": "2026-06-11T09:55:48Z"
+    },
+    {
+      "pr": 268,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268",
+      "title": "refactor: split workflow-only skills from local skills",
+      "merged_at": "2026-06-12T06:03:23Z",
+      "merge_commit": "e8fe9a66b39761de857476bc3554a2f6ea0927af",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #268",
+        "Issue #266",
+        "docs/product/raw/agent-directory-layout.md",
+        "docs/product/raw/project-installer.md",
+        "docs/product/raw/dedupe-guidance-companion.md",
+        "docs/product/raw/update-pr-review-workflow.md",
+        "docs/product/raw/update-dedupe-workflow.md",
+        "docs/product/raw/update-triage-workflow.md"
+      ],
+      "proposed_patch": "No patch needed; product docs already reflect the merged directory-layout and installer behavior.",
+      "reason": "PR #268 changed long-term product behavior by splitting local/shared skills from GitHub workflow-only skills and updating installer semantics, but the merged PR already updated the relevant product raw and wiki documentation. Existing docs now cover `.agents/skills/` as the local/shared entry, `.github/skills/` as the workflow-only entry, installer synchronization of `.github/skills/`, and preservation of repo-local `*-repo` companion skills.",
+      "recorded_at": "2026-06-12T07:09:26Z"
     }
   ]
 }
