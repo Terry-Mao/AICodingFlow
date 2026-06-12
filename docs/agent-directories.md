@@ -17,7 +17,8 @@ repository guidance centralized in `.agents`.
 Important shared files:
 
 - `.agents/AGENTS.md` is the canonical repository guidance.
-- `.agents/skills/` contains reusable workflow skills.
+- `.agents/skills/` contains local and shared skills exposed to local tools.
+- `.github/skills/` contains GitHub Actions workflow-only skills.
 - `.cursor/rules/agents.mdc` contains Cursor-specific rule guidance.
 
 ## Windows Symlinks

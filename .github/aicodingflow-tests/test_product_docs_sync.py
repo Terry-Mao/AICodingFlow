@@ -534,7 +534,7 @@ class ProductDocsSyncWorkflowTest(unittest.TestCase):
         codex_step = next(step for step in steps if step.get("name") == "Run product docs sync")
         prompt = codex_step["with"]["prompt"]
 
-        self.assertIn(".agents/skills/product-docs-sync/SKILL.md", prompt)
+        self.assertIn(".github/skills/product-docs-sync/SKILL.md", prompt)
         self.assertIn("product-docs-sync-result.json", prompt)
         self.assertIn("modify only files under docs/product/", prompt)
         self.assertIn("If docs_update is not-needed, do not modify docs/product/.", prompt)

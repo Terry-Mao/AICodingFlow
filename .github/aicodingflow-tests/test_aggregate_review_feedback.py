@@ -6,7 +6,7 @@ from script_imports import import_script
 
 
 aggregate = import_script(
-    ".agents/skills/update-pr-review/scripts/aggregate_review_feedback.py",
+    ".github/skills/update-pr-review/scripts/aggregate_review_feedback.py",
     "aggregate_review_feedback",
 )
 

@@ -123,11 +123,11 @@ jobs:
                - Overall workflow: decide and organize spec-first work.
             2. .agents/skills/write-product-spec/SKILL.md
                - General product spec writing rules.
-            3. .agents/skills/create-product-spec/SKILL.md
+            3. .github/skills/create-product-spec/SKILL.md
                - GitHub issue wrapper for product specs.
             4. .agents/skills/write-tech-spec/SKILL.md
                - General tech spec writing rules.
-            5. .agents/skills/create-tech-spec/SKILL.md
+            5. .github/skills/create-tech-spec/SKILL.md
                - GitHub issue wrapper for tech specs.
 
             Required outputs:

@@ -2,12 +2,14 @@
 
 AICodingFlow is a workflow template for AI-assisted coding. This file should
 only hold repository-specific guidance; detailed procedures live in
-`.agents/skills/*/SKILL.md` and should be used when a request names them or
-matches their purpose.
+`.agents/skills/*/SKILL.md` for local/shared skills or
+`.github/skills/*/SKILL.md` for GitHub workflow-only skills, and should be used
+when a request names them or matches their purpose.
 
 ## Repository Map
 
-- `.agents/skills/`: local and workflow Codex skills.
+- `.agents/skills/`: local and shared Codex skills exposed to local agent tools.
+- `.github/skills/`: GitHub Actions workflow-only Codex skills.
 - `.agents/contracts/`: shared artifact schemas, validator contracts, and
   workflow/skill boundary contracts.
 - `.github/workflows/`: GitHub Actions entrypoints for issue triage, spec

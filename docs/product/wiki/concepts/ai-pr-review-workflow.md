@@ -38,7 +38,7 @@ AI PR Review 负责在 PR 满足可评审条件时运行机器评审，并根据
 
 - spec-only PR 主入口使用 `review-spec`。
 - 其他 code PR 主入口使用 `review-pr`。
-- review workspace 会复制 `.agents/skills/` 与 `.agents/contracts/`，其中 `.agents/contracts/review.md` 是共享 review contract。
+- review workspace 会复制 `.github/skills/` 与 `.agents/contracts/`，其中 `.agents/contracts/review.md` 是共享 review contract。
 - `review-pr` 与 `review-spec` 会读取对应的 `review-pr-repo` 或 `review-spec-repo` companion，用于补充本仓库评审偏好，不改变共享输出契约。
 - Code PR review 会应用 `security-review-pr` 补充安全检查。
 - Spec-only PR review 会应用 `security-review-spec` 补充设计层安全检查。

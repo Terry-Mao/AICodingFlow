@@ -36,9 +36,9 @@ Source: [docs/product/raw/update-dedupe-workflow.md](../../raw/update-dedupe-wor
 ## 写入与 PR 边界
 
 - skill 本身只写临时 `update-dedupe-output/` 交接目录。
-- 需要更新 guidance 时，输出 `.agents/skills/dedupe-issue-repo/SKILL.md` 的完整 replacement 内容。
-- 持久写入范围仅限 `.agents/skills/dedupe-issue-repo/`。
-- 不得修改 `.agents/skills/dedupe-issue/SKILL.md`，也不得放宽 2-candidate minimum、similarity threshold、输出 schema、候选来源或 precision-over-recall 原则。
+- 需要更新 guidance 时，输出 `.github/skills/dedupe-issue-repo/SKILL.md` 的完整 replacement 内容。
+- 持久写入范围仅限 `.github/skills/dedupe-issue-repo/`。
+- 不得修改 `.github/skills/dedupe-issue/SKILL.md`，也不得放宽 2-candidate minimum、similarity threshold、输出 schema、候选来源或 precision-over-recall 原则。
 - 有 guidance diff 时，runner 使用固定分支 `feat/update-dedupe` 创建或更新 PR，并在 PR body 中包含 evidence summary。
 - 没有 guidance diff 时，不创建 PR。
 

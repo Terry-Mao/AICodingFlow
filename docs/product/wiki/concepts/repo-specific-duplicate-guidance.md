@@ -19,7 +19,7 @@ Repo-specific duplicate guidance 为 issue triage 保存仓库本地重复模式
 
 ## 当前规则
 
-- companion 位于 `.agents/skills/dedupe-issue-repo/SKILL.md`。
+- companion 位于 `.github/skills/dedupe-issue-repo/SKILL.md`。
 - 只能 specialize core skill 明确允许覆盖的 categories。
 - 不重新定义算法、阈值、候选要求、安全规则或输出契约。
 - triage 使用 workflow 提供的 `dedupe_candidates.json` 作为权威候选列表。
@@ -33,7 +33,7 @@ Repo-specific duplicate guidance 为 issue triage 保存仓库本地重复模式
 - 只能由受控 self-improvement flows 基于强维护者 duplicate 证据更新 companion。
 - 不得修改 core `dedupe-issue` skill 或削弱 precision-over-recall 行为。
 - `update-dedupe` workflow 只从维护者确认的 repeated duplicate clusters 学习规则；证据不足、没有 repeated cluster 或已有 guidance 覆盖时产出 `no_change`。
-- update flow 的持久写入范围仅限 `.agents/skills/dedupe-issue-repo/`，不能修改 core `dedupe-issue`。
+- update flow 的持久写入范围仅限 `.github/skills/dedupe-issue-repo/`，不能修改 core `dedupe-issue`。
 
 ## Supporting Summaries
 

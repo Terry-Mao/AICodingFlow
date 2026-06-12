@@ -11,7 +11,7 @@ from typing import Any
 
 
 OUTPUT_DIR = "implementation-output"
-ALLOWED_PREFIX = ".agents/"
+ALLOWED_PREFIXES = (".agents/", ".github/skills/")
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -46,8 +46,9 @@ def output_files(output_dir: Path) -> list[Path]:
 
 
 def validate_target(rel_path: str, intended: set[str]) -> None:
-    if not rel_path.startswith(ALLOWED_PREFIX):
-        raise SystemExit(f"implementation-output may only contain {ALLOWED_PREFIX} files: {rel_path}")
+    if not rel_path.startswith(ALLOWED_PREFIXES):
+        allowed = ", ".join(ALLOWED_PREFIXES)
+        raise SystemExit(f"implementation-output may only contain {allowed} files: {rel_path}")
     if rel_path not in intended:
         raise SystemExit(f"implementation-output file is not listed in pr-metadata.json intended_files: {rel_path}")
 

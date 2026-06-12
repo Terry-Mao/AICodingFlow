@@ -38,13 +38,13 @@
 
 持久写入范围仅限：
 
-- `.agents/skills/triage-issue-repo/SKILL.md`
+- `.github/skills/triage-issue-repo/SKILL.md`
 - `.github/issue-triage/config.json`
 
-普通 triage heuristic 应写入 `.agents/skills/triage-issue-repo/SKILL.md`。只有稳定模式表明 label
+普通 triage heuristic 应写入 `.github/skills/triage-issue-repo/SKILL.md`。只有稳定模式表明 label
 taxonomy 需要新增 label、重命名 label 或澄清 description 时，才允许最小化更新
-`.github/issue-triage/config.json`。流程不得修改 `.agents/skills/triage-issue/SKILL.md`、
-`.agents/skills/dedupe-issue-repo/SKILL.md`、workflow 文件、脚本、测试、README 或产品代码。
+`.github/issue-triage/config.json`。流程不得修改 `.github/skills/triage-issue/SKILL.md`、
+`.github/skills/dedupe-issue-repo/SKILL.md`、workflow 文件、脚本、测试、README 或产品代码。
 
 ## PR 行为
 

@@ -7,7 +7,7 @@ detection contract.
 
 ## Scope
 
-The companion file lives at `.agents/skills/dedupe-issue-repo/SKILL.md`.
+The companion file lives at `.github/skills/dedupe-issue-repo/SKILL.md`.
 It may specialize only the categories that the core `dedupe-issue` skill
 declares overridable. It does not redefine the duplicate-detection algorithm,
 similarity thresholds, candidate requirements, safety rules, or output
@@ -34,8 +34,8 @@ GitHub history or one-off cases.
 
 The companion is intended for controlled self-improvement flows that learn only
 from strong maintainer duplicate evidence. Such flows may update
-`.agents/skills/dedupe-issue-repo/SKILL.md` when repeated duplicate clusters are
-confirmed, but they must not modify `.agents/skills/dedupe-issue/SKILL.md` or
+`.github/skills/dedupe-issue-repo/SKILL.md` when repeated duplicate clusters are
+confirmed, but they must not modify `.github/skills/dedupe-issue/SKILL.md` or
 weaken the core precision-over-recall behavior.
 
 来源：PR #128，Issue #125。

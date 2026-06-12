@@ -160,9 +160,12 @@ jobs:
         run: |
           rm -rf pr-worktree/.agents/skills
           rm -rf pr-worktree/.agents/contracts
+          rm -rf pr-worktree/.github/skills
           mkdir -p pr-worktree/.agents
+          mkdir -p pr-worktree/.github
           cp -R .agents/skills pr-worktree/.agents/skills
           cp -R .agents/contracts pr-worktree/.agents/contracts
+          cp -R .github/skills pr-worktree/.github/skills
 
       - name: Install Codex sandbox prerequisites
         run: |

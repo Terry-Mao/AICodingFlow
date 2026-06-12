@@ -116,7 +116,7 @@ python3 -m unittest discover -s .github/aicodingflow-tests
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/aicodingflow-pycache python3 -m py_compile \
   .github/scripts/*.py \
-  .agents/skills/implement-specs/scripts/*.py \
-  .agents/skills/review-pr/scripts/validate_review_json.py \
-  .agents/skills/update-pr-review/scripts/*.py
+  .github/skills/implement-specs/scripts/*.py \
+  .github/skills/review-pr/scripts/validate_review_json.py \
+  .github/skills/update-pr-review/scripts/*.py
 ```

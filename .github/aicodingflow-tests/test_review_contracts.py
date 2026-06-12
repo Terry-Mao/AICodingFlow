@@ -18,10 +18,10 @@ class ReviewContractsTest(unittest.TestCase):
 
     def test_core_and_security_review_skills_reference_shared_contract(self) -> None:
         skill_paths = [
-            ".agents/skills/review-pr/SKILL.md",
-            ".agents/skills/review-spec/SKILL.md",
-            ".agents/skills/security-review-pr/SKILL.md",
-            ".agents/skills/security-review-spec/SKILL.md",
+            ".github/skills/review-pr/SKILL.md",
+            ".github/skills/review-spec/SKILL.md",
+            ".github/skills/security-review-pr/SKILL.md",
+            ".github/skills/security-review-spec/SKILL.md",
         ]
 
         for path in skill_paths:
@@ -31,8 +31,8 @@ class ReviewContractsTest(unittest.TestCase):
 
     def test_repo_review_companions_are_not_primary_entrypoints(self) -> None:
         companion_paths = [
-            ".agents/skills/review-pr-repo/SKILL.md",
-            ".agents/skills/review-spec-repo/SKILL.md",
+            ".github/skills/review-pr-repo/SKILL.md",
+            ".github/skills/review-spec-repo/SKILL.md",
         ]
 
         for path in companion_paths:

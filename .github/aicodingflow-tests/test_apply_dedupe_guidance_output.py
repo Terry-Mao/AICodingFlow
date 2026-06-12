@@ -9,10 +9,10 @@ from script_imports import import_script
 
 
 def script_path() -> str:
-    target = Path(".agents/skills/update-dedupe/scripts/apply_guidance_output.py")
+    target = Path(".github/skills/update-dedupe/scripts/apply_guidance_output.py")
     if target.exists():
         return str(target)
-    return "implementation-output/.agents/skills/update-dedupe/scripts/apply_guidance_output.py"
+    return "implementation-output/.github/skills/update-dedupe/scripts/apply_guidance_output.py"
 
 
 apply_guidance = import_script(script_path(), "apply_dedupe_guidance_output")
@@ -24,7 +24,7 @@ class ApplyDedupeGuidanceOutputTest(unittest.TestCase):
             root = Path(tmp)
             output = root / "out"
             proposed = output / "dedupe-issue-repo"
-            target = root / ".agents/skills/dedupe-issue-repo/SKILL.md"
+            target = root / ".github/skills/dedupe-issue-repo/SKILL.md"
             proposed.mkdir(parents=True)
             (proposed / "SKILL.md").write_text("new\n", encoding="utf-8")
             (output / "status.json").write_text(
@@ -32,7 +32,7 @@ class ApplyDedupeGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/dedupe-issue-repo/SKILL.md"],
+                        "updated_files": [".github/skills/dedupe-issue-repo/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",
@@ -78,7 +78,7 @@ class ApplyDedupeGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/dedupe-issue/SKILL.md"],
+                        "updated_files": [".github/skills/dedupe-issue/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",
@@ -96,7 +96,7 @@ class ApplyDedupeGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/dedupe-issue-repo/SKILL.md"],
+                        "updated_files": [".github/skills/dedupe-issue-repo/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",
@@ -119,7 +119,7 @@ class ApplyDedupeGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/dedupe-issue-repo/SKILL.md"],
+                        "updated_files": [".github/skills/dedupe-issue-repo/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",

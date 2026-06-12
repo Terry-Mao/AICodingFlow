@@ -15,22 +15,23 @@ sources:
 
 Source: [docs/product/raw/agent-directory-layout.md](../../raw/agent-directory-layout.md)
 
-AICodingFlow 使用根目录 `AGENTS.md` 作为共享仓库级 agent guidance，并使用 `.agents/` 保存共享 workflow skills。Claude、Codex 和 Cursor 通过各自期望的入口读取同一组仓库规则、skills 和工具规则，避免在多个工具目录中维护重复配置。
+AICodingFlow 使用根目录 `AGENTS.md` 作为共享仓库级 agent guidance，使用 `.agents/skills/` 保存本地开发与共享 skills，并使用 `.github/skills/` 保存 GitHub workflow 专用 skills。Claude、Codex 和 Cursor 通过各自期望的入口读取同一组仓库规则、本地 skills 和工具规则，避免在多个工具目录中维护重复配置。
 
 ## 共享入口
 
 - `AGENTS.md` 是 Codex 默认加载的仓库级 agent guidance 权威入口。
 - `CLAUDE.md -> AGENTS.md` 让 Claude Code 加载同一份仓库级 guidance。
-- `.agents/skills/` 存放可复用 workflow skills。
+- `.agents/skills/` 存放本地开发和共享 skills。
+- `.github/skills/` 存放 GitHub Actions workflow-only skills，由 workflow prompt 显式读取。
 - `.claude/skills` 指向 `../.agents/skills`。
 - `.codex/skills` 指向 `../.agents/skills`。
 - `.cursor/rules/agents.mdc` 是 Cursor 专用规则文件。
-- 产品目标是让 Claude、Codex 和 Cursor 使用同一组仓库规则与 workflow skills。
+- 产品目标是让 Claude、Codex 和 Cursor 使用同一组仓库规则与本地/共享 skills，同时把 workflow-only skills 从本地默认发现面中隔离出来。
 
 ## GitHub Copilot custom agents
 
 - `.github/agents/` 存放随 AICodingFlow 模板交付的 GitHub Copilot custom agent profile。
-- 该目录把已有产品知识或 workflow 能力暴露为 GitHub Copilot 可调用的 agent 入口，而不是替代 `.agents/skills/` 中的共享 skill 定义。
+- 该目录把已有产品知识或 workflow 能力暴露为 GitHub Copilot 可调用的 agent 入口，而不是替代 `.github/skills/` 中的 workflow skill 定义。
 - `Product Wiki Query` agent 面向产品知识库问答，基于 product wiki 的查询、暂存评审和风格规则回答产品行为、workflow、边界、状态和规则问题。
 
 ## Windows symlink 支持

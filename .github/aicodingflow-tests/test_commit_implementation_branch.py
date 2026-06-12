@@ -31,17 +31,17 @@ class CommitImplementationBranchTest(unittest.TestCase):
                     "resolved_review_comments.json",
                     ".local_review_baseline.status",
                     ".codex-runtime/skills/implement-specs/SKILL.md",
-                    "implementation-output/.agents/skills/update-dedupe/SKILL.md",
+                    "implementation-output/.github/skills/update-dedupe/SKILL.md",
                     ".github/scripts/post_pr_review.py",
                     ".github/scripts/__pycache__/post_pr_review.cpython-312.pyc",
-                    ".agents/skills/review-pr-repo/SKILL.md",
+                    ".github/skills/review-pr-repo/SKILL.md",
                     "tests/test_post_pr_review.py",
                     "tests/__pycache__/test_post_pr_review.cpython-312.pyc",
                 ]
             ),
             [
-                ".agents/skills/review-pr-repo/SKILL.md",
                 ".github/scripts/post_pr_review.py",
+                ".github/skills/review-pr-repo/SKILL.md",
                 "tests/test_post_pr_review.py",
             ],
         )
@@ -124,12 +124,12 @@ class CommitImplementationBranchTest(unittest.TestCase):
             mock.patch.object(commit_impl, "existing_temp_workflow_paths", return_value=["pr-metadata.json"]),
             mock.patch.object(commit_impl, "run", side_effect=lambda args, **_: calls.append(args) or ""),
         ):
-            commit_impl.stage_implementation_changes([".agents/skills/review-pr-repo/SKILL.md", "tests/test_file.py"])
+            commit_impl.stage_implementation_changes([".github/skills/review-pr-repo/SKILL.md", "tests/test_file.py"])
 
         self.assertEqual(
             calls,
             [
-                ["git", "add", "-A", "--", ".agents/skills/review-pr-repo/SKILL.md", "tests/test_file.py"],
+                ["git", "add", "-A", "--", ".github/skills/review-pr-repo/SKILL.md", "tests/test_file.py"],
                 ["git", "reset", "--", "pr-metadata.json"],
             ],
         )
@@ -170,9 +170,9 @@ class CommitImplementationBranchTest(unittest.TestCase):
         )
 
     def test_validate_intended_files_rejects_missing_and_unexpected_files(self) -> None:
-        commit_impl.validate_intended_files([".agents/skills/review-pr-repo/SKILL.md", "app.py"], ["app.py", ".agents/skills/review-pr-repo/SKILL.md"])
+        commit_impl.validate_intended_files([".github/skills/review-pr-repo/SKILL.md", "app.py"], ["app.py", ".github/skills/review-pr-repo/SKILL.md"])
         with self.assertRaisesRegex(SystemExit, "without implementation changes"):
-            commit_impl.validate_intended_files(["app.py"], ["app.py", ".agents/skills/review-pr-repo/SKILL.md"])
+            commit_impl.validate_intended_files(["app.py"], ["app.py", ".github/skills/review-pr-repo/SKILL.md"])
         with self.assertRaisesRegex(SystemExit, "not listed in intended_files"):
             commit_impl.validate_intended_files(["app.py", "tests/test_app.py"], ["app.py"])
 

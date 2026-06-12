@@ -15,14 +15,14 @@ class WriteUpdateTriagePrBodyTest(unittest.TestCase):
             days="7",
             issue="all recent triaged issues",
             repo="owner/repo",
-            changed_files=".agents/skills/triage-issue-repo/SKILL.md\n.github/issue-triage/config.json\n",
+            changed_files=".github/skills/triage-issue-repo/SKILL.md\n.github/issue-triage/config.json\n",
         )
 
         self.assertIn("Evidence summary:\nTwo issues moved from bug to enhancement.", body)
         self.assertIn("- days: 7", body)
         self.assertIn("- issue: all recent triaged issues", body)
         self.assertIn("- repo: owner/repo", body)
-        self.assertIn("- .agents/skills/triage-issue-repo/SKILL.md", body)
+        self.assertIn("- .github/skills/triage-issue-repo/SKILL.md", body)
         self.assertNotIn("Closes #", body)
 
     def test_build_body_neutralizes_closing_keywords_in_reason(self) -> None:

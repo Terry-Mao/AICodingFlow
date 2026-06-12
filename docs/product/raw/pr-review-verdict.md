@@ -59,7 +59,7 @@ AI PR Review 会先按 changed files 判断 PR 类型，再选择核心 review s
 - spec-only PR 主入口使用 `review-spec`。
 - 其他 code PR 主入口使用 `review-pr`。
 
-Review workspace 会复制 `.agents/skills/` 与 `.agents/contracts/`。其中
+Review workspace 会复制 `.github/skills/` 与 `.agents/contracts/`。其中
 `.agents/contracts/review.md` 是共享 review contract，定义 snapshot 信任边界、
 `PR_DIFF_V1` 行定位、`review.json` 结构、severity labels、suggestion blocks、校验规则和
 GitHub/API 边界。Review skills 可以补充评审重点，但不得覆盖该合同。

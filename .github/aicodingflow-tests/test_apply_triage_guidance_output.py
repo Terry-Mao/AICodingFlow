@@ -9,10 +9,10 @@ from script_imports import import_script
 
 
 def script_path() -> str:
-    target = Path(".agents/skills/update-triage/scripts/apply_guidance_output.py")
+    target = Path(".github/skills/update-triage/scripts/apply_guidance_output.py")
     if target.exists():
         return str(target)
-    return ".codex-runtime/handoff/implementation-output/.agents/skills/update-triage/scripts/apply_guidance_output.py"
+    return ".codex-runtime/handoff/implementation-output/.github/skills/update-triage/scripts/apply_guidance_output.py"
 
 
 apply_guidance = import_script(script_path(), "apply_triage_guidance_output")
@@ -30,10 +30,10 @@ class ApplyTriageGuidanceOutputTest(unittest.TestCase):
             root = Path(tmp)
             output = root / "out"
             proposed = output / "triage-issue-repo"
-            target = root / ".agents/skills/triage-issue-repo/SKILL.md"
+            target = root / ".github/skills/triage-issue-repo/SKILL.md"
             proposed.mkdir(parents=True)
             (proposed / "SKILL.md").write_text("new\n", encoding="utf-8")
-            self.write_status(output, [".agents/skills/triage-issue-repo/SKILL.md"])
+            self.write_status(output, [".github/skills/triage-issue-repo/SKILL.md"])
 
             status = apply_guidance.apply_output(output, root)
 
@@ -79,7 +79,7 @@ class ApplyTriageGuidanceOutputTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "out"
             output.mkdir()
-            self.write_status(output, [".agents/skills/triage-issue/SKILL.md"])
+            self.write_status(output, [".github/skills/triage-issue/SKILL.md"])
 
             with self.assertRaises(SystemExit):
                 apply_guidance.apply_output(output, Path(tmp))
@@ -93,7 +93,7 @@ class ApplyTriageGuidanceOutputTest(unittest.TestCase):
             outside = root / "outside.md"
             outside.write_text("outside\n", encoding="utf-8")
             (proposed / "SKILL.md").symlink_to(outside)
-            self.write_status(output, [".agents/skills/triage-issue-repo/SKILL.md"])
+            self.write_status(output, [".github/skills/triage-issue-repo/SKILL.md"])
 
             with self.assertRaisesRegex(SystemExit, "refusing to apply symlink output"):
                 apply_guidance.apply_output(output, root)
@@ -107,7 +107,7 @@ class ApplyTriageGuidanceOutputTest(unittest.TestCase):
             outside.mkdir()
             (outside / "SKILL.md").write_text("outside\n", encoding="utf-8")
             (output / "triage-issue-repo").symlink_to(outside, target_is_directory=True)
-            self.write_status(output, [".agents/skills/triage-issue-repo/SKILL.md"])
+            self.write_status(output, [".github/skills/triage-issue-repo/SKILL.md"])
 
             with self.assertRaisesRegex(SystemExit, "outside output dir"):
                 apply_guidance.apply_output(output, root)

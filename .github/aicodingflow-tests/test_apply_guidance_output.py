@@ -9,7 +9,7 @@ from script_imports import import_script
 
 
 apply_guidance = import_script(
-    ".agents/skills/update-pr-review/scripts/apply_guidance_output.py",
+    ".github/skills/update-pr-review/scripts/apply_guidance_output.py",
     "apply_guidance_output",
 )
 
@@ -20,7 +20,7 @@ class ApplyGuidanceOutputTest(unittest.TestCase):
             root = Path(tmp)
             output = root / "out"
             proposed = output / "review-pr-repo"
-            target = root / ".agents/skills/review-pr-repo/SKILL.md"
+            target = root / ".github/skills/review-pr-repo/SKILL.md"
             proposed.mkdir(parents=True)
             target.parent.mkdir(parents=True)
             target.write_text("old\n", encoding="utf-8")
@@ -30,7 +30,7 @@ class ApplyGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/review-pr-repo/SKILL.md"],
+                        "updated_files": [".github/skills/review-pr-repo/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",
@@ -76,7 +76,7 @@ class ApplyGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/review-pr/SKILL.md"],
+                        "updated_files": [".github/skills/review-pr/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",
@@ -94,7 +94,7 @@ class ApplyGuidanceOutputTest(unittest.TestCase):
                     {
                         "status": "changed",
                         "reason": "test",
-                        "updated_files": [".agents/skills/review-spec-repo/SKILL.md"],
+                        "updated_files": [".github/skills/review-spec-repo/SKILL.md"],
                     }
                 ),
                 encoding="utf-8",

@@ -28,6 +28,21 @@ class InstallScriptTest(unittest.TestCase):
             stderr=subprocess.PIPE,
         )
 
+    def run_install_from_source(
+        self,
+        source: Path,
+        target: Path,
+        *args: str,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["bash", str(source / "install.sh"), "--target", str(target), *args],
+            cwd=source,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
     def run_raw_install(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["bash", str(INSTALL), *args],
@@ -87,10 +102,12 @@ class InstallScriptTest(unittest.TestCase):
             self.assertTrue((target / ".agents/skills/git-branch/SKILL.md").is_file())
             self.assertTrue((target / ".agents/contracts/review.md").is_file())
             self.assertTrue((target / ".agents/contracts/review.schema.json").is_file())
-            self.assertFalse((target / ".agents/skills/review-pr-repo/SKILL.md").exists())
-            self.assertFalse((target / ".agents/skills/review-spec-repo/SKILL.md").exists())
-            self.assertFalse((target / ".agents/skills/triage-issue-repo/SKILL.md").exists())
-            self.assertFalse((target / ".agents/skills/dedupe-issue-repo/SKILL.md").exists())
+            self.assertTrue((target / ".github/skills/review-pr/SKILL.md").is_file())
+            self.assertTrue((target / ".github/skills/product-docs-sync/SKILL.md").is_file())
+            self.assertFalse((target / ".github/skills/review-pr-repo/SKILL.md").exists())
+            self.assertFalse((target / ".github/skills/review-spec-repo/SKILL.md").exists())
+            self.assertFalse((target / ".github/skills/triage-issue-repo/SKILL.md").exists())
+            self.assertFalse((target / ".github/skills/dedupe-issue-repo/SKILL.md").exists())
             self.assertTrue((target / ".github/agents/product-wiki-query.md").is_file())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
             self.assertFalse((target / ".github/tests").exists())
@@ -119,7 +136,7 @@ class InstallScriptTest(unittest.TestCase):
     def test_preserves_existing_repo_local_companion_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            existing = target / ".agents/skills/review-pr-repo/SKILL.md"
+            existing = target / ".github/skills/review-pr-repo/SKILL.md"
             existing.parent.mkdir(parents=True)
             existing.write_text("target repo guidance\n", encoding="utf-8")
 
@@ -127,6 +144,49 @@ class InstallScriptTest(unittest.TestCase):
 
             self.assertIn("Skipping repo-local companion skill", result.stdout)
             self.assertEqual(existing.read_text(encoding="utf-8"), "target repo guidance\n")
+
+    def test_migrates_legacy_agents_workflow_skills_on_upgrade(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            stale_workflow = target / ".agents/skills/review-pr/SKILL.md"
+            legacy_companion = target / ".agents/skills/review-pr-repo/SKILL.md"
+            stale_workflow.parent.mkdir(parents=True)
+            legacy_companion.parent.mkdir(parents=True)
+            stale_workflow.write_text("old workflow skill\n", encoding="utf-8")
+            legacy_companion.write_text("target repo guidance\n", encoding="utf-8")
+
+            self.run_install(target)
+
+            self.assertFalse((target / ".agents/skills/review-pr").exists())
+            self.assertFalse((target / ".agents/skills/review-pr-repo").exists())
+            self.assertEqual(
+                (target / ".github/skills/review-pr-repo/SKILL.md").read_text(encoding="utf-8"),
+                "target repo guidance\n",
+            )
+            self.assertTrue((target / ".github/skills/review-pr/SKILL.md").is_file())
+
+    def test_legacy_source_companion_is_not_installed_or_migrated(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            target = root / "target"
+            source.mkdir()
+            target.mkdir()
+
+            shutil.copy2(INSTALL, source / "install.sh")
+            shutil.copy2(ROOT / "AGENTS.md", source / "AGENTS.md")
+            shutil.copytree(ROOT / ".agents/skills", source / ".agents/skills")
+            shutil.copytree(ROOT / ".agents/contracts", source / ".agents/contracts")
+            shutil.copytree(ROOT / ".github/skills", source / ".github/skills")
+            shutil.copytree(ROOT / ".github/workflows", source / ".github/workflows")
+            stale_source_companion = source / ".agents/skills/review-pr-repo/SKILL.md"
+            stale_source_companion.parent.mkdir(parents=True)
+            stale_source_companion.write_text("stale source companion\n", encoding="utf-8")
+
+            self.run_install_from_source(source, target)
+
+            self.assertFalse((target / ".agents/skills/review-pr-repo").exists())
+            self.assertFalse((target / ".github/skills/review-pr-repo/SKILL.md").exists())
 
     def test_preserves_unrelated_github_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

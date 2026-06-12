@@ -2,7 +2,12 @@
 
 ## 2026-06-11
 
-按 `docs/product/raw/` 作为权威来源复核 Product LLM Wiki，并修正 issue triage lifecycle label 的来源状态：
+按 `docs/product/raw/` 作为权威来源同步 agent 目录布局：
+
+- 更新 [Agent 目录布局摘要](summaries/agent-directory-layout.md) 与 [Agent 目录布局](concepts/agent-directory-layout.md)：记录 `.agents/skills/` 只承载本地开发与共享 skills，`.github/skills/` 承载 GitHub Actions workflow-only skills，并由 workflow prompt 显式读取。
+- 更新 [项目安装脚本摘要](summaries/project-installer.md) 与 [项目安装脚本](concepts/project-installer.md)：记录安装同步 `.github/skills/`，但不安装 repo-specific `*-repo` companion skills。
+- 更新 review、product wiki、dedupe 和 update workflow 相关 summary/concept，统一 workflow-only skill 路径为 `.github/skills/`。
+- 复核 Product LLM Wiki，并修正 issue triage lifecycle label 的来源状态。
 
 - 更新 [Issue triage workflow 摘要](summaries/issue-triage-workflow.md) 与 [Issue triage 结果契约](concepts/issue-triage-result-contract.md)：不再把 `ready-to-spec` / `ready-to-implement` 的 triage 输出边界写成已确认受保护规则，改为 `needs-review` + `source_status: conflict` 并放入专门 `待确认` 章节。
 - 复核 22 个 raw source 均有对应 source summary，现有 Ingest、Query、Linter、schema 和 index 结构保持齐全。
