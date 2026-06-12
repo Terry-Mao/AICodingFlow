@@ -2217,6 +2217,23 @@
       "proposed_patch": "No product docs patch is needed; the merged changes are generated wiki artifacts derived from existing raw product documentation.",
       "reason": "PR #263 only compiles existing authoritative raw product docs into derived docs/product/wiki pages and updates the wiki index/log. It does not introduce or change product behavior, workflow rules, permissions, lifecycle semantics, API/configuration behavior, or public error semantics beyond content already present in docs/product/raw/update-triage-workflow.md.",
       "recorded_at": "2026-06-10T19:59:19Z"
+    },
+    {
+      "pr": 267,
+      "url": "https://github.com/Terry-Mao/AICodingFlow/pull/267",
+      "title": "Compile product wiki",
+      "merged_at": "2026-06-11T08:19:56Z",
+      "merge_commit": "1d1bff5684fa1eb3becd2ab5309a04f6bfa0df7f",
+      "docs_update": "not-needed",
+      "affected_docs": [],
+      "source_context": [
+        "PR #267",
+        "product-docs-sync-context.md",
+        "product-docs-sync-diff.md"
+      ],
+      "proposed_patch": "无需修改 docs/product/；本次变更属于产品 wiki 派生层编译结果，不是新的长期产品事实。",
+      "reason": "PR #267 仅编译并修正 docs/product/wiki/ 下的派生知识层内容，未改变权威 raw 产品文档、产品行为、workflow 契约或用户可见语义。该 PR 本身说明 docs/product/raw/ 仍是 source of truth，因此不需要新的长期产品文档更新。",
+      "recorded_at": "2026-06-11T09:55:48Z"
     }
   ]
 }
