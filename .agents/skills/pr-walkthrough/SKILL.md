@@ -9,7 +9,7 @@ description: Generate a local static interactive D3 walkthrough of a pull reques
 
 ## 输出
 
-生成文件到临时目录下的统一 slug 目录。默认本地产物根目录为 `${TMPDIR%/}/pr-walkthrough`（`TMPDIR` 为空时使用 `/tmp/pr-walkthrough`）；如果用户明确指定其他目录，可改用指定目录。
+生成文件到临时目录下的统一 slug 目录。默认本地产物根目录为 `${TMPDIR:-/tmp}/pr-walkthrough`（并去掉末尾 `/`）；如果用户明确指定其他目录，可改用指定目录。
 
 优先使用 PR number；无 PR number 时使用当前分支名：
 
