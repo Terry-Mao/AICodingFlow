@@ -8,4 +8,6 @@ __pycache__/
 .coverage
 htmlcov/
 
+.aicodingflow/
+
 /.worktrees/
