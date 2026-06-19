@@ -1,0 +1,331 @@
+{
+  "meta": {
+    "title": "PR #270: chore: remove codex skills symlink",
+    "prUrl": "https://github.com/Terry-Mao/AICodingFlow/pull/270",
+    "baseRef": "main",
+    "headRef": "chore/remove-codex-skills-symlink",
+    "summary": "Deletes the legacy .codex/skills symlink so local skills are addressed through the repository's .agents/skills directory."
+  },
+  "graphs": [
+    {
+      "id": "system-overview",
+      "label": "System overview",
+      "color": "#b7791f",
+      "summary": "Stable local skill layout used by AICodingFlow.",
+      "nodes": [
+        {
+          "id": "local-skills",
+          "title": "Local skill catalog",
+          "kind": "architecture",
+          "x": -260,
+          "y": -120,
+          "width": 360,
+          "height": 190,
+          "summaryLines": 5,
+          "summary": "AICodingFlow keeps repository-local Codex skills under .agents/skills. Each skill is a self-contained directory with a required SKILL.md and optional scripts or references.",
+          "details": [
+            "This directory is the stable source of local workflow knowledge for branch creation, PR creation, review helpers, issue handling, and related automation."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "skill-invocation",
+          "title": "Skill invocation path",
+          "kind": "runtime",
+          "x": 170,
+          "y": -120,
+          "width": 360,
+          "height": 190,
+          "summaryLines": 5,
+          "summary": "Codex loads skill metadata and instructions from explicit skill paths or discovered local skill directories. Repository guidance tells agents where those paths live.",
+          "details": [
+            "The important architectural boundary is that discoverability should point at the canonical skill directory rather than a compatibility alias."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        }
+      ],
+      "edges": [],
+      "tour": [
+        {
+          "nodeId": "local-skills",
+          "title": "Start with the catalog",
+          "body": "The stable skill source is .agents/skills, where each local workflow skill lives in its own directory."
+        },
+        {
+          "nodeId": "skill-invocation",
+          "title": "Then understand discovery",
+          "body": "Skill discovery and explicit invocation should resolve to the canonical directory rather than relying on compatibility aliases."
+        }
+      ]
+    },
+    {
+      "id": "data-flow",
+      "label": "Data flow graph",
+      "color": "#0f7b5f",
+      "summary": "How the local skill path resolves after the symlink is removed.",
+      "nodes": [
+        {
+          "id": "agent-request",
+          "title": "Agent asks for a skill",
+          "kind": "input",
+          "x": -360,
+          "y": -80,
+          "summary": "A user or workflow invokes a local skill such as git-branch or review-pr-local.",
+          "details": [
+            "The request names a skill; the path resolution should use the repository's documented local skill directory."
+          ],
+          "files": [],
+          "comments": [],
+          "links": [
+            {
+              "label": "PR",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/270"
+            }
+          ]
+        },
+        {
+          "id": "canonical-directory",
+          "title": ".agents/skills",
+          "kind": "source",
+          "x": -40,
+          "y": -80,
+          "summary": "The canonical local skills directory receives skill lookups.",
+          "details": [
+            "This directory contains the actual SKILL.md files and helper scripts used by local agents."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "removed-alias",
+          "title": "Removed .codex/skills alias",
+          "kind": "deleted path",
+          "x": 290,
+          "y": 80,
+          "summary": "The compatibility symlink is deleted and no longer participates in resolution.",
+          "details": [
+            "The PR removes a single symlink whose content pointed to ../.agents/skills.",
+            "No PR-changed specs found."
+          ],
+          "files": [
+            {
+              "path": ".codex/skills",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/270/files#diff-a45a05679929766414e88cd91cdda813eaf624b6e81dfdd2a3815b4e00f8d62d"
+            }
+          ],
+          "comments": [],
+          "links": []
+        }
+      ],
+      "edges": [
+        {
+          "source": "agent-request",
+          "target": "canonical-directory",
+          "label": "resolves through"
+        },
+        {
+          "source": "canonical-directory",
+          "target": "removed-alias",
+          "label": "replaces compatibility alias"
+        }
+      ],
+      "tour": [
+        {
+          "nodeId": "agent-request",
+          "title": "Start at skill usage",
+          "body": "A workflow or user invokes a skill; the walkthrough follows how that path should now resolve."
+        },
+        {
+          "nodeId": "canonical-directory",
+          "title": "Use the canonical source",
+          "body": ".agents/skills is the real data source for local skills."
+        },
+        {
+          "nodeId": "removed-alias",
+          "title": "The alias leaves the flow",
+          "body": "The deleted symlink is the only changed path in the PR."
+        }
+      ]
+    },
+    {
+      "id": "code-dependency",
+      "label": "Code dependency graph",
+      "color": "#2563eb",
+      "summary": "Which repository paths and review context depend on the local skill layout.",
+      "nodes": [
+        {
+          "id": "repo-guidance",
+          "title": "Repository guidance",
+          "kind": "documentation",
+          "x": -330,
+          "y": -120,
+          "summary": "Repository-level guidance describes where local and shared skills live.",
+          "details": [
+            "Reviewer attention should go to any docs or workflow metadata that still mention the removed alias."
+          ],
+          "files": [],
+          "comments": [
+            {
+              "author": "github-actions",
+              "body": "Review noted that current directory layout documentation still defined .codex/skills -> ../.agents/skills as the Codex default shared skills entry.",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/270"
+            }
+          ],
+          "links": []
+        },
+        {
+          "id": "deleted-symlink",
+          "title": ".codex/skills",
+          "kind": "deleted file",
+          "x": 0,
+          "y": -20,
+          "summary": "The PR removes the symlink file from the repository tree.",
+          "details": [
+            "Patch summary: delete mode 120000 .codex/skills; removed content: ../.agents/skills."
+          ],
+          "files": [
+            {
+              "path": ".codex/skills",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/270/files#diff-a45a05679929766414e88cd91cdda813eaf624b6e81dfdd2a3815b4e00f8d62d"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "actual-skills",
+          "title": ".agents/skills/*",
+          "kind": "dependency",
+          "x": 330,
+          "y": -120,
+          "summary": "The actual skill directories remain the dependency target.",
+          "details": [
+            "The PR does not alter individual skill implementations; it only removes the alias pointing to them."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        }
+      ],
+      "edges": [
+        {
+          "source": "repo-guidance",
+          "target": "deleted-symlink",
+          "label": "may still reference"
+        },
+        {
+          "source": "deleted-symlink",
+          "target": "actual-skills",
+          "label": "formerly pointed at"
+        }
+      ],
+      "tour": [
+        {
+          "nodeId": "repo-guidance",
+          "title": "Check the written contract",
+          "body": "The existing review discussion flagged documentation that may still describe the deleted alias."
+        },
+        {
+          "nodeId": "deleted-symlink",
+          "title": "Inspect the only diff",
+          "body": "The code change itself is a one-line symlink deletion."
+        },
+        {
+          "nodeId": "actual-skills",
+          "title": "Confirm the target remains",
+          "body": "The real local skills remain under .agents/skills."
+        }
+      ]
+    },
+    {
+      "id": "user-action",
+      "label": "User action graph",
+      "color": "#7c3aed",
+      "summary": "What changes for someone invoking repository-local skills.",
+      "nodes": [
+        {
+          "id": "user-invokes",
+          "title": "User invokes a local skill",
+          "kind": "user action",
+          "x": -300,
+          "y": -80,
+          "summary": "The user asks Codex to use a repository skill such as $git-branch.",
+          "details": [
+            "The expected experience is that repository-local skill guidance remains available."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "agent-follows-docs",
+          "title": "Agent follows repo paths",
+          "kind": "agent behavior",
+          "x": 20,
+          "y": -80,
+          "summary": "The agent should read .agents/skills directly instead of relying on .codex/skills.",
+          "details": [
+            "This is the user-visible behavior implied by removing the alias."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "review-note",
+          "title": "Review note to reconcile docs",
+          "kind": "feedback",
+          "x": 330,
+          "y": 70,
+          "summary": "Existing review discussion asks readers to verify docs no longer promise the removed alias.",
+          "details": [
+            "This is represented as orientation context, not a new review finding."
+          ],
+          "files": [],
+          "comments": [
+            {
+              "author": "github-actions",
+              "body": "The PR deletes the local skills entry, while layout docs still described it as the default discovery entry.",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/270"
+            }
+          ],
+          "links": []
+        }
+      ],
+      "edges": [
+        {
+          "source": "user-invokes",
+          "target": "agent-follows-docs",
+          "label": "expects"
+        },
+        {
+          "source": "agent-follows-docs",
+          "target": "review-note",
+          "label": "should be checked against"
+        }
+      ],
+      "tour": [
+        {
+          "nodeId": "user-invokes",
+          "title": "Begin with the user action",
+          "body": "A user invokes a local skill and expects the repository instructions to lead to it."
+        },
+        {
+          "nodeId": "agent-follows-docs",
+          "title": "Follow the canonical path",
+          "body": "After this PR, the path to reason about is .agents/skills."
+        },
+        {
+          "nodeId": "review-note",
+          "title": "Notice the feedback loop",
+          "body": "The existing review comment highlights documentation consistency as the thing to inspect."
+        }
+      ]
+    }
+  ]
+}
