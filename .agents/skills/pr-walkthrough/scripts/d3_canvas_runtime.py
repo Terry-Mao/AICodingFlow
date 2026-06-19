@@ -8,9 +8,23 @@ import html
 import json
 from pathlib import Path
 from textwrap import dedent
+from urllib.parse import urlsplit
 
 D3_VERSION = "7.9.0"
 D3_CDN_URL = f"https://cdn.jsdelivr.net/npm/d3@{D3_VERSION}/dist/d3.min.js"
+SAFE_LINK_SCHEMES = {"http", "https", "file"}
+
+
+def safe_href(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "#"
+    parsed = urlsplit(raw)
+    if parsed.scheme and parsed.scheme.lower() not in SAFE_LINK_SCHEMES:
+        return "#"
+    if parsed.netloc and not parsed.scheme:
+        return "#"
+    return raw
 
 
 def d3_canvas_css() -> str:
@@ -130,6 +144,17 @@ def d3_canvas_runtime_script() -> str:
           function escapeHtml(value) {{
             return String(value ?? '').replace(/[&<>"']/g, (char) => ({{ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }}[char]));
           }}
+          function safeHref(value) {{
+            const raw = String(value ?? '').trim();
+            if (!raw || raw.startsWith('//')) return '#';
+            try {{
+              const url = new URL(raw, document.baseURI);
+              if (['http:', 'https:', 'file:'].includes(url.protocol)) return raw;
+            }} catch (error) {{
+              return '#';
+            }}
+            return '#';
+          }}
           function listItems(items, render) {{
             if (!items || items.length === 0) return '<p class="d3-empty">None attached.</p>';
             return `<ul class="d3-detail-list">${{items.map(render).join('')}}</ul>`;
@@ -165,9 +190,9 @@ def d3_canvas_runtime_script() -> str:
               <p class="d3-detail-summary">${{escapeHtml(node.summary || '')}}</p>
               ${{step?.nodeId === node.id ? `<section class="d3-detail-section"><h3>Tour context</h3><ul class="d3-detail-list"><li>${{escapeHtml(step.body || '')}}</li></ul></section>` : ''}}
               <section class="d3-detail-section"><h3>Explanation</h3>${{details.length ? `<ul class="d3-detail-list">${{details.map((item) => `<li>${{escapeHtml(item)}}</li>`).join('')}}</ul>` : '<p class="d3-empty">No additional detail provided.</p>'}}</section>
-              <section class="d3-detail-section"><h3>Changed files</h3>${{listItems(files, (file) => `<li><a class="d3-file-link" href="${{escapeHtml(file.url || '#')}}" target="_blank" rel="noreferrer">${{escapeHtml(file.path || file.label || 'file')}}</a>${{file.note ? `<p>${{escapeHtml(file.note)}}</p>` : ''}}</li>`)}}</section>
-              <section class="d3-detail-section"><h3>Existing review discussion</h3>${{listItems(comments, (comment) => `<li><span class="d3-comment-author">${{escapeHtml(comment.author || 'reviewer')}}</span>${{escapeHtml(comment.body || '')}}${{comment.url ? `<br><a href="${{escapeHtml(comment.url)}}" target="_blank" rel="noreferrer">Open comment</a>` : ''}}</li>`)}}</section>
-              <section class="d3-detail-section"><h3>Links</h3>${{listItems(links, (link) => `<li><a href="${{escapeHtml(link.url || '#')}}" target="_blank" rel="noreferrer">${{escapeHtml(link.label || link.url || 'link')}}</a></li>`)}}</section>
+              <section class="d3-detail-section"><h3>Changed files</h3>${{listItems(files, (file) => `<li><a class="d3-file-link" href="${{escapeHtml(safeHref(file.url))}}" target="_blank" rel="noreferrer">${{escapeHtml(file.path || file.label || 'file')}}</a>${{file.note ? `<p>${{escapeHtml(file.note)}}</p>` : ''}}</li>`)}}</section>
+              <section class="d3-detail-section"><h3>Existing review discussion</h3>${{listItems(comments, (comment) => `<li><span class="d3-comment-author">${{escapeHtml(comment.author || 'reviewer')}}</span>${{escapeHtml(comment.body || '')}}${{comment.url ? `<br><a href="${{escapeHtml(safeHref(comment.url))}}" target="_blank" rel="noreferrer">Open comment</a>` : ''}}</li>`)}}</section>
+              <section class="d3-detail-section"><h3>Links</h3>${{listItems(links, (link) => `<li><a href="${{escapeHtml(safeHref(link.url))}}" target="_blank" rel="noreferrer">${{escapeHtml(link.label || link.url || 'link')}}</a></li>`)}}</section>
             `;
           }}
 
@@ -444,7 +469,7 @@ def html_template(data: dict) -> str:
             <header class="d3-walkthrough-header">
               <div class="d3-kicker">AICodingFlow PR walkthrough</div>
               <h1>{html.escape(title)}</h1>
-              <div class="d3-meta-row"><span>{html.escape(base)} ← {html.escape(head)}</span>{f'<a href="{html.escape(pr_url)}" target="_blank" rel="noreferrer">Open PR</a>' if pr_url else ''}</div>
+              <div class="d3-meta-row"><span>{html.escape(base)} ← {html.escape(head)}</span>{f'<a href="{html.escape(safe_href(pr_url))}" target="_blank" rel="noreferrer">Open PR</a>' if pr_url else ''}</div>
               <p class="d3-summary">{html.escape(summary)}</p>
             </header>
             <section class="d3-canvas-layout">
@@ -472,11 +497,11 @@ def sample_data() -> dict:
             {
                 "id": "system-overview", "label": "System overview", "color": "#b7791f", "summary": "Major touched components.",
                 "nodes": [
-                    {"id": "surface", "title": "User-facing surface", "kind": "overview card", "x": -220, "y": -80, "width": 360, "height": 220, "summaryLines": 7, "summary": "Use a full paragraph here to define the surface, what code owns it, and why a reviewer needs that concept before reading the PR. Keep this scoped to orientation, not implementation deltas.", "details": ["Explain the stable component."], "files": [], "comments": [], "links": []},
-                    {"id": "component", "title": "State or action owner", "kind": "overview card", "x": 220, "y": -80, "width": 360, "height": 220, "summaryLines": 7, "summary": "Use another full paragraph for the next essential concept. If a concept is not needed to understand the review surface, leave it out of the system overview.", "details": ["Explain what this component owns."], "files": [], "comments": [], "links": []},
+                    {"id": "surface", "title": "User-facing surface", "kind": "overview card", "x": -220, "y": -80, "width": 360, "height": 220, "summaryLines": 7, "summary": "Use a full paragraph here to define the surface, what code owns it, and why that concept matters for understanding the subsystem. Keep this scoped to stable architecture orientation.", "details": ["Explain the stable component."], "files": [], "comments": [], "links": []},
+                    {"id": "component", "title": "State or action owner", "kind": "overview card", "x": 220, "y": -80, "width": 360, "height": 220, "summaryLines": 7, "summary": "Use another full paragraph for the next essential concept. If a concept is not needed to understand the subsystem, leave it out of the system overview.", "details": ["Explain what this component owns."], "files": [], "comments": [], "links": []},
                 ],
                 "edges": [],
-                "tour": [{"nodeId": "surface", "title": "Start with the surface", "body": "The system overview starts with the smallest useful orientation concept."}, {"nodeId": "component", "title": "Name the owner", "body": "Then identify the state or action owner a reviewer needs to know."}],
+                "tour": [{"nodeId": "surface", "title": "Start with the surface", "body": "The system overview starts with the smallest useful orientation concept."}, {"nodeId": "component", "title": "Name the owner", "body": "Then identify the state or action owner for the subsystem."}],
             },
             {
                 "id": "data-flow", "label": "Data flow graph", "color": "#0f7b5f", "summary": "How state moves.",
