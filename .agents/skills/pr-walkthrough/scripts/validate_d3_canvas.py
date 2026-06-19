@@ -23,6 +23,49 @@ REQUIRED_CONTROLS = (
     "Next tour step",
     "Restart tour",
 )
+OVERVIEW_FORBIDDEN_TEXT = re.compile(
+    r"\b(pr|pull request|diff|review|reviewer|comment|comments|spec|specs)\b|changed files|files changed",
+    re.I,
+)
+
+
+def iter_text_values(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        parts: list[str] = []
+        for item in value:
+            parts.extend(iter_text_values(item))
+        return parts
+    if isinstance(value, dict):
+        parts = []
+        for item in value.values():
+            parts.extend(iter_text_values(item))
+        return parts
+    return []
+
+
+def validate_system_overview(graph: dict) -> list[str]:
+    errors: list[str] = []
+    for key in ("files", "comments", "links"):
+        if graph.get(key):
+            errors.append(f"Graph system-overview must not include PR attachment field `{key}`")
+    for node in graph.get("nodes", []):
+        node_id = node.get("id")
+        for key in ("files", "comments", "links"):
+            if node.get(key):
+                errors.append(f"Graph system-overview node {node_id} must not include PR attachment field `{key}`")
+        searchable = " ".join(iter_text_values(node))
+        if OVERVIEW_FORBIDDEN_TEXT.search(searchable):
+            errors.append(f"Graph system-overview node {node_id} contains PR-specific wording")
+    overview_text = " ".join(
+        str(graph.get(key, ""))
+        for key in ("label", "summary")
+    )
+    overview_text += " " + " ".join(iter_text_values(graph.get("tour", [])))
+    if OVERVIEW_FORBIDDEN_TEXT.search(overview_text):
+        errors.append("Graph system-overview contains PR-specific wording")
+    return errors
 
 
 class DataScriptExtractor(HTMLParser):
@@ -101,6 +144,8 @@ def static_validate(html_text: str, data: dict) -> list[str]:
             errors.append(f"Graph {graph_id} has no edges")
         if not tour:
             errors.append(f"Graph {graph_id} has no guided tour")
+        if graph_id == "system-overview":
+            errors.extend(validate_system_overview(graph))
         node_ids = {node.get("id") for node in nodes}
         for node in nodes:
             if not node.get("id"):
