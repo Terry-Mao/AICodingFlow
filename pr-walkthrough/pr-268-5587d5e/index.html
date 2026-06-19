@@ -1,0 +1,413 @@
+<!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>PR #268: refactor: split workflow-only skills from local skills</title>
+          <style>:root {
+  --walkthrough-bg: #f6f7f9;
+  --walkthrough-panel: #ffffff;
+  --walkthrough-panel-2: #eef1f5;
+  --walkthrough-border: #d7dce2;
+  --walkthrough-text: #17202a;
+  --walkthrough-muted: #52606d;
+  --walkthrough-dim: #7b8794;
+  --walkthrough-accent: #2563eb;
+  --walkthrough-green: #0f7b5f;
+  --walkthrough-blue: #2563eb;
+  --walkthrough-purple: #7c3aed;
+  --walkthrough-yellow: #b7791f;
+  --walkthrough-font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --walkthrough-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--walkthrough-bg); color: var(--walkthrough-text); font-family: var(--walkthrough-font-sans); }
+a { color: var(--walkthrough-text); text-decoration-color: var(--walkthrough-accent); text-underline-offset: 3px; }
+button, input { font: inherit; }
+.d3-walkthrough-shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+.d3-walkthrough-header { display: grid; gap: 10px; padding: 28px 32px 20px; border-bottom: 1px solid var(--walkthrough-border); background: #ffffff; }
+.d3-kicker { color: var(--walkthrough-accent); font-family: var(--walkthrough-font-mono); font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
+.d3-walkthrough-header h1 { margin: 0; max-width: 1080px; font-size: 42px; line-height: 1.05; letter-spacing: 0; }
+.d3-meta-row { display: flex; flex-wrap: wrap; gap: 8px; color: var(--walkthrough-muted); font-family: var(--walkthrough-font-mono); font-size: 12px; }
+.d3-summary { max-width: 920px; margin: 0; color: var(--walkthrough-muted); font-size: 17px; line-height: 1.45; }
+.d3-canvas-layout { min-height: 0; display: grid; grid-template-columns: 310px minmax(560px, 1fr) 390px; gap: 0; }
+.d3-control-panel, .d3-detail-panel { min-height: 0; overflow: auto; background: var(--walkthrough-panel); border-right: 1px solid var(--walkthrough-border); padding: 18px; }
+.d3-detail-panel { border-right: 0; border-left: 1px solid var(--walkthrough-border); }
+.d3-panel-title { margin: 0 0 12px; font-size: 12px; color: var(--walkthrough-muted); font-family: var(--walkthrough-font-mono); letter-spacing: 0; text-transform: uppercase; }
+.d3-control-stack { display: grid; gap: 10px; margin-bottom: 18px; }
+.d3-control-button, .d3-graph-toggle { border: 1px solid var(--walkthrough-border); background: var(--walkthrough-panel-2); color: var(--walkthrough-text); border-radius: 10px; padding: 10px 12px; cursor: pointer; text-align: left; }
+.d3-control-button:hover, .d3-graph-toggle:hover, .d3-control-button:focus, .d3-graph-toggle:focus { border-color: var(--walkthrough-accent); outline: none; }
+.d3-graph-toggle[aria-pressed="true"] { border-color: var(--graph-color, var(--walkthrough-accent)); box-shadow: inset 3px 0 0 var(--graph-color, var(--walkthrough-accent)); }
+.d3-tour-card { border: 1px solid var(--walkthrough-border); background: #ffffff; border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+.d3-tour-step-label { color: var(--walkthrough-accent); font-family: var(--walkthrough-font-mono); font-size: 11px; letter-spacing: 0; text-transform: uppercase; }
+.d3-tour-title { margin: 6px 0; font-size: 18px; line-height: 1.15; }
+.d3-tour-body { color: var(--walkthrough-muted); line-height: 1.4; margin: 0; }
+.d3-search { width: 100%; border: 1px solid var(--walkthrough-border); background: #ffffff; color: var(--walkthrough-text); border-radius: 8px; padding: 10px 12px; }
+.d3-search:focus { border-color: var(--walkthrough-accent); outline: none; }
+.d3-help { color: var(--walkthrough-dim); font-family: var(--walkthrough-font-mono); font-size: 11px; line-height: 1.5; }
+.d3-canvas-stage { min-height: 0; position: relative; overflow: hidden; background: #f8fafc; }
+#pr-walkthrough-canvas { width: 100%; height: 100%; min-height: 700px; display: block; }
+.d3-canvas-error { position: absolute; inset: 18px; display: none; place-items: center; border: 1px solid var(--walkthrough-border); background: #fffffff2; color: var(--walkthrough-text); padding: 24px; z-index: 2; }
+body.d3-canvas-error .d3-canvas-error { display: grid; }
+.d3-graph-title { fill: #17202a; opacity: 0.42; font-family: var(--walkthrough-font-mono); font-size: 13px; letter-spacing: 0; text-transform: uppercase; }
+.d3-edge path { fill: none; stroke: var(--edge-color, #868584); stroke-width: 2; stroke-opacity: 0.68; }
+.d3-edge-arrow path { fill: var(--edge-color, #868584); }
+.d3-edge text { fill: #3e4c59; font-family: var(--walkthrough-font-mono); font-size: 11px; paint-order: stroke; stroke: #f8fafc; stroke-width: 4px; stroke-linejoin: round; }
+.d3-node { cursor: pointer; }
+.d3-node rect { fill: #ffffff; stroke: var(--node-color, var(--walkthrough-accent)); stroke-width: 2; filter: drop-shadow(0 10px 24px #0000001f); }
+.d3-node.is-selected rect { stroke: var(--walkthrough-accent); stroke-width: 4; }
+.d3-node.is-tour-node rect { stroke: var(--walkthrough-accent); stroke-width: 4; filter: drop-shadow(0 0 16px #2563eb66); }
+.d3-node.is-dimmed, .d3-edge.is-dimmed { opacity: 0.18; }
+.d3-node-title { fill: #17202a; font-family: var(--walkthrough-font-sans); font-size: 15px; font-weight: 700; pointer-events: none; }
+.d3-node-kind { fill: #52606d; font-family: var(--walkthrough-font-mono); font-size: 10px; letter-spacing: 0; text-transform: uppercase; pointer-events: none; }
+.d3-node-summary { fill: #3e4c59; font-family: var(--walkthrough-font-sans); font-size: 12px; pointer-events: none; }
+.d3-detail-title { margin: 0 0 6px; font-size: 24px; line-height: 1.1; }
+.d3-detail-kind { color: var(--walkthrough-accent); font-family: var(--walkthrough-font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.d3-detail-summary { color: var(--walkthrough-muted); line-height: 1.45; }
+.d3-detail-section { margin-top: 18px; }
+.d3-detail-section h3 { margin: 0 0 8px; color: var(--walkthrough-muted); font-family: var(--walkthrough-font-mono); font-size: 12px; letter-spacing: 0; text-transform: uppercase; }
+.d3-detail-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.d3-detail-list li { border: 1px solid var(--walkthrough-border); background: #ffffff; border-radius: 8px; padding: 10px; color: var(--walkthrough-muted); line-height: 1.35; }
+.d3-file-link { display: block; overflow-wrap: anywhere; color: var(--walkthrough-text); font-family: var(--walkthrough-font-mono); font-size: 12px; }
+.d3-comment-author { display: block; color: var(--walkthrough-accent); font-family: var(--walkthrough-font-mono); font-size: 11px; margin-bottom: 4px; }
+.d3-empty { color: var(--walkthrough-dim); }
+@media (max-width: 1180px) { .d3-canvas-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(680px, 1fr) auto; } .d3-control-panel, .d3-detail-panel { border: 0; border-bottom: 1px solid var(--walkthrough-border); max-height: 360px; } }</style>
+        </head>
+        <body>
+          <main class="d3-walkthrough-shell">
+            <header class="d3-walkthrough-header">
+              <div class="d3-kicker">AICodingFlow PR walkthrough</div>
+              <h1>PR #268: refactor: split workflow-only skills from local skills</h1>
+              <div class="d3-meta-row"><span>main ← refactor/split-local-workflow-skills-266</span><a href="https://github.com/Terry-Mao/AICodingFlow/pull/268" target="_blank" rel="noreferrer">Open PR</a></div>
+              <p class="d3-summary">Splits GitHub workflow-only skills into .github/skills while keeping .agents/skills as the local/shared skill surface, then updates workflows, installers, tests, and product docs around that boundary.</p>
+            </header>
+            <section class="d3-canvas-layout">
+              <aside class="d3-control-panel" aria-label="Canvas controls">
+          <p class="d3-panel-title">View</p>
+          <div class="d3-control-stack"><button class="d3-graph-toggle" type="button" data-graph-id="system-overview" aria-pressed="false" style="--graph-color: #b7791f">System overview</button>
+<button class="d3-graph-toggle" type="button" data-graph-id="data-flow" aria-pressed="false" style="--graph-color: #0f7b5f">Data flow graph</button>
+<button class="d3-graph-toggle" type="button" data-graph-id="code-dependency" aria-pressed="false" style="--graph-color: #2563eb">Code dependency graph</button>
+<button class="d3-graph-toggle" type="button" data-graph-id="user-action" aria-pressed="false" style="--graph-color: #7c3aed">User action graph</button></div>
+          <p class="d3-panel-title">Tour</p>
+          <div class="d3-tour-card" aria-live="polite">
+            <div class="d3-tour-step-label">Step 0 / 0</div>
+            <h2 class="d3-tour-title">View tour</h2>
+            <p class="d3-tour-body">Use Next tour step to start.</p>
+          </div>
+          <div class="d3-control-stack">
+            <button class="d3-control-button" type="button" data-d3-action="tour-prev">Previous tour step</button>
+            <button class="d3-control-button" type="button" data-d3-action="tour-next">Next tour step</button>
+            <button class="d3-control-button" type="button" data-d3-action="tour-restart">Restart tour</button>
+          </div>
+          <p class="d3-panel-title">Canvas</p>
+          <div class="d3-control-stack">
+            <button class="d3-control-button" type="button" data-d3-action="fit">Fit to view</button>
+            <button class="d3-control-button" type="button" data-d3-action="reset">Reset zoom</button>
+          </div>
+          <label class="d3-panel-title" for="d3-node-search">Search active graph</label>
+          <input id="d3-node-search" class="d3-search" type="search" placeholder="Search nodes, files, comments" />
+          <p class="d3-help">Keyboard: n/→ next, p/← previous, 1 overview, 2 data, 3 code, 4 user, + zoom in, - zoom out, 0 reset, f fit, / search, Esc clear.</p>
+        </aside>
+              <section class="d3-canvas-stage">
+                <svg id="pr-walkthrough-canvas" role="img" aria-label="Interactive PR walkthrough graph"></svg>
+                <div class="d3-canvas-error" role="alert"></div>
+              </section>
+              <aside id="pr-walkthrough-details" class="d3-detail-panel" aria-label="Selected point details"></aside>
+            </section>
+            <script>window.PR_WALKTHROUGH_D3_DATA = {"meta": {"title": "PR #268: refactor: split workflow-only skills from local skills", "prUrl": "https://github.com/Terry-Mao/AICodingFlow/pull/268", "baseRef": "main", "headRef": "refactor/split-local-workflow-skills-266", "summary": "Splits GitHub workflow-only skills into .github/skills while keeping .agents/skills as the local/shared skill surface, then updates workflows, installers, tests, and product docs around that boundary."}, "graphs": [{"id": "system-overview", "label": "System overview", "color": "#b7791f", "summary": "Stable directory roles for AICodingFlow agent assets.", "nodes": [{"id": "local-shared-skills", "title": ".agents/skills", "kind": "local surface", "x": -520, "y": -150, "width": 360, "height": 205, "summaryLines": 5, "summary": "Repository-local and shared skills live in .agents/skills. These skills support interactive local agent work and reusable repository guidance.", "details": ["This directory remains the stable local entry point for skills a developer can invoke while working in the repository."], "files": [], "comments": [], "links": []}, {"id": "workflow-skills", "title": ".github/skills", "kind": "workflow surface", "x": -95, "y": -150, "width": 360, "height": 205, "summaryLines": 5, "summary": "GitHub Actions workflow-only skills live under .github/skills. Workflow prompts read them explicitly instead of relying on local skill discovery.", "details": ["This separation keeps CI/workflow-only instructions out of the local default skill surface."], "files": [], "comments": [], "links": []}, {"id": "workflow-entrypoints", "title": ".github/workflows + scripts", "kind": "automation", "x": 330, "y": -150, "width": 360, "height": 205, "summaryLines": 5, "summary": "Workflow YAML and Python helpers assemble prompts, choose skill paths, validate artifacts, and apply generated output.", "details": ["They form the execution layer that must point at the correct skill directory for each workflow."], "files": [], "comments": [], "links": []}, {"id": "installer-docs-tests", "title": "Installer, tests, docs", "kind": "supporting contract", "x": -95, "y": 145, "width": 380, "height": 210, "summaryLines": 5, "summary": "The installer propagates the template to target repos, tests defend the migration behavior, and product docs explain the directory contract.", "details": ["These supporting surfaces keep the new boundary stable across upgrades and user-facing documentation."], "files": [], "comments": [], "links": []}], "edges": [], "tour": [{"nodeId": "local-shared-skills", "title": "Start with local skills", "body": ".agents/skills remains the local/shared skill catalog."}, {"nodeId": "workflow-skills", "title": "Separate workflow-only skills", "body": ".github/skills becomes the dedicated home for GitHub workflow-only instructions."}, {"nodeId": "workflow-entrypoints", "title": "Wire workflow entrypoints", "body": "Workflows and helper scripts must read the new workflow skill paths explicitly."}, {"nodeId": "installer-docs-tests", "title": "Lock the contract", "body": "Installer behavior, tests, and product docs keep the directory split consistent."}]}, {"id": "data-flow", "label": "Data flow graph", "color": "#0f7b5f", "summary": "How skill guidance flows from source directories into workflow execution and installed target repositories.", "nodes": [{"id": "source-boundary", "title": "Source directory boundary", "kind": "input", "x": -520, "y": -120, "summary": "The PR classifies skills into local/shared .agents/skills and workflow-only .github/skills.", "details": ["This is the core data model change: skill path encodes whether a skill is local-facing or workflow-only."], "files": [{"path": "docs/product/raw/agent-directory-layout.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-20e1d3486415869acf4360f925d43f7d898e73423f2abc8e1dc1655789152be6"}], "comments": [], "links": []}, {"id": "workflow-prompts", "title": "Workflow prompts read .github/skills", "kind": "prompt context", "x": -180, "y": -190, "summary": "GitHub workflow YAML and custom agent prompts update references from .agents/skills to .github/skills.", "details": ["This moves workflow-only instructions into explicit workflow prompt context instead of local discovery."], "files": [{"path": ".github/workflows/create-implementation-from-issue.yml", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-16a7559c99ce4753eb226cc976ae93de096ee22bc12736296c28c5cbc96a04db"}], "comments": [], "links": []}, {"id": "helpers-select-paths", "title": "Helpers select new paths", "kind": "script behavior", "x": 170, "y": -90, "summary": "Python helpers and validators now point at .github/skills for workflow-owned review, triage, dedupe, spec, and implementation skills.", "details": ["The implementation changes prompt preparation, output application, review skill selection, and contract validation references."], "files": [{"path": ".github/scripts/select_review_skill.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"}], "comments": [], "links": []}, {"id": "installer-sync", "title": "Installer syncs both surfaces", "kind": "install flow", "x": 520, "y": -10, "summary": "install.sh syncs .agents/contracts, local/shared skills, workflow skills, scripts, agents, and workflows into target repositories.", "details": ["The installer also cleans legacy workflow skills from .agents/skills and migrates allowed legacy companions when appropriate."], "files": [{"path": "install.sh", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"}], "comments": [{"author": "github-actions", "body": "Review flagged that cleanup order could migrate repo-local companions into target .github/skills if source .agents/skills still contained stale companions.", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}], "links": []}, {"id": "target-repo-result", "title": "Target repo receives clean layout", "kind": "output", "x": 780, "y": 150, "summary": "Installed repositories receive local/shared skills under .agents/skills and workflow-only skills under .github/skills, excluding repo-local companions from upstream source trees.", "details": ["The second commit fixes installation order and excludes *-repo companions from .agents/skills sync."], "files": [{"path": ".github/tests/test_install_script.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"}], "comments": [], "links": []}], "edges": [{"source": "source-boundary", "target": "workflow-prompts", "label": "defines prompt source"}, {"source": "workflow-prompts", "target": "helpers-select-paths", "label": "is reinforced by"}, {"source": "helpers-select-paths", "target": "installer-sync", "label": "aligns install behavior"}, {"source": "installer-sync", "target": "target-repo-result", "label": "produces"}], "tour": [{"nodeId": "source-boundary", "title": "Start with the split", "body": "The PR first creates a clearer data boundary between local/shared and workflow-only skills."}, {"nodeId": "workflow-prompts", "title": "Workflow prompts consume the new location", "body": "Workflow YAML and agent prompts are updated so CI reads .github/skills explicitly."}, {"nodeId": "helpers-select-paths", "title": "Helper scripts follow the same path", "body": "Python helpers and validators are updated to keep generated inputs and outputs aligned."}, {"nodeId": "installer-sync", "title": "Installer propagates the split", "body": "install.sh becomes the place where existing target repositories are cleaned and upgraded."}, {"nodeId": "target-repo-result", "title": "End with target repo layout", "body": "The result is a cleaner installed repository with workflow skills isolated under .github/skills."}]}, {"id": "code-dependency", "label": "Code dependency graph", "color": "#2563eb", "summary": "Main implementation dependencies changed by the migration.", "nodes": [{"id": "skill-tree-move", "title": "Skill tree rename", "kind": "file move", "x": -520, "y": -120, "summary": "Workflow-only skill directories are renamed from .agents/skills to .github/skills.", "details": ["The diff contains many zero-content renames plus targeted path wording updates inside workflow skills."], "files": [{"path": ".github/skills/review-pr/SKILL.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-76fd9958aac951cd702bc16a6057e6e782dc35ce671f41a6720388535a905990"}], "comments": [], "links": []}, {"id": "workflow-yaml", "title": "Workflow YAML", "kind": "entrypoint", "x": -180, "y": -210, "summary": "Workflow entrypoints update skill paths in prompts and validation steps.", "details": ["Affected workflows include issue implementation, spec creation, PR review, triage, product docs, wiki compile, and update workflows."], "files": [{"path": ".github/workflows/create-implementation-from-issue.yml", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-16a7559c99ce4753eb226cc976ae93de096ee22bc12736296c28c5cbc96a04db"}], "comments": [], "links": []}, {"id": "python-helpers", "title": "Python helpers", "kind": "shared code", "x": -180, "y": 40, "summary": "Helper scripts update hard-coded workflow skill paths and output boundaries.", "details": ["These scripts prepare context, apply implementation outputs, prepare PR comments, and select review skills."], "files": [{"path": ".github/scripts/select_review_skill.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"}], "comments": [], "links": []}, {"id": "install-script", "title": "install.sh migration logic", "kind": "installer", "x": 220, "y": -90, "summary": "The installer adds .github/skills sync and legacy cleanup for target repositories.", "details": ["The first commit introduced cleanup and sync logic; the follow-up commit moved cleanup before sync and excluded *-repo companions from local skill sync."], "files": [{"path": "install.sh", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"}], "comments": [{"author": "github-actions", "body": "发现 1 个需要合并前修复的问题：安装脚本在同步本地 skills 后才清理 legacy workflow skills，会把本仓库自带的 repo-local companion 误迁移进目标仓库的 .github/skills。", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}], "links": []}, {"id": "tests", "title": "Regression tests", "kind": "test coverage", "x": 560, "y": -180, "summary": "Tests update expected paths and add coverage for stale source companion handling.", "details": ["The important new test proves a stale source .agents/skills/*-repo companion is not installed or migrated into a target repo."], "files": [{"path": ".github/tests/test_install_script.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"}], "comments": [], "links": []}, {"id": "product-docs", "title": "Product docs and wiki", "kind": "documentation", "x": 560, "y": 80, "summary": "Raw product docs, wiki concepts, summaries, and log entries are updated to describe the new directory contract.", "details": ["The documentation changes explain .agents/skills as local/shared and .github/skills as workflow-only."], "files": [{"path": "docs/product/raw/agent-directory-layout.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-20e1d3486415869acf4360f925d43f7d898e73423f2abc8e1dc1655789152be6"}], "comments": [], "links": []}], "edges": [{"source": "skill-tree-move", "target": "workflow-yaml", "label": "requires path updates in"}, {"source": "skill-tree-move", "target": "python-helpers", "label": "requires path updates in"}, {"source": "skill-tree-move", "target": "install-script", "label": "requires install migration"}, {"source": "install-script", "target": "tests", "label": "is defended by"}, {"source": "skill-tree-move", "target": "product-docs", "label": "is explained by"}], "tour": [{"nodeId": "skill-tree-move", "title": "Start with the structural move", "body": "Most changed files follow from moving workflow-only skills into .github/skills."}, {"nodeId": "workflow-yaml", "title": "Then follow workflow entrypoints", "body": "Workflow prompts are the first code path that must read the new skill location."}, {"nodeId": "python-helpers", "title": "Helpers keep artifacts consistent", "body": "Context preparation and output application scripts need the same path model."}, {"nodeId": "install-script", "title": "Installer is the migration hotspot", "body": "install.sh has the most behavioral risk because it mutates target repositories."}, {"nodeId": "tests", "title": "Tests capture the fix", "body": "The regression test guards the review-discovered companion migration issue."}, {"nodeId": "product-docs", "title": "Docs close the loop", "body": "Product docs and wiki pages align the written contract with the implementation."}]}, {"id": "user-action", "label": "User action graph", "color": "#7c3aed", "summary": "Reviewer and maintainer path through the PR.", "nodes": [{"id": "reviewer-opens-pr", "title": "Reviewer opens a large migration PR", "kind": "review action", "x": -520, "y": -120, "summary": "The reviewer sees many path rewrites and renames across skills, workflows, scripts, tests, and docs.", "details": ["The quickest orientation is to group files by boundary: skill tree move, workflow wiring, installer migration, tests, and docs."], "files": [], "comments": [], "links": [{"label": "PR #268", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}]}, {"id": "reviewer-checks-installer", "title": "Reviewer checks installer safety", "kind": "risk focus", "x": -170, "y": -180, "summary": "The behavioral risk is target repository mutation during install or upgrade.", "details": ["The existing review comment identified cleanup order and stale repo-local companion handling as the key issue."], "files": [{"path": "install.sh", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"}], "comments": [{"author": "github-actions", "body": "Cleanup after syncing local skills could migrate stale repo-local companions into target .github/skills.", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}], "links": []}, {"id": "author-applies-fix", "title": "Author applies follow-up fix", "kind": "implementation feedback", "x": 180, "y": -80, "summary": "A second commit changes installer order and adds a focused regression test.", "details": ["The PR discussion records that requested changes were applied on refactor/split-local-workflow-skills-266."], "files": [{"path": ".github/tests/test_install_script.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"}], "comments": [{"author": "github-actions", "body": "Applied requested changes: clean or migrate legacy workflow/companion skills before syncing current .agents/skills, exclude *-repo companions, and add install script regression coverage.", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268#issuecomment-4684347279"}], "links": []}, {"id": "maintainer-validates", "title": "Maintainer validates broad surface", "kind": "validation", "x": 530, "y": -170, "summary": "Validation spans install tests, full workflow/script tests, py_compile, diff whitespace checks, and local PR review.", "details": ["The PR body reports unittest coverage for install script and aicodingflow tests, py_compile across helper scripts, git diff --check, and $review-pr-local."], "files": [], "comments": [], "links": []}, {"id": "reader-understands-result", "title": "Reader sees the new boundary", "kind": "visible outcome", "x": 790, "y": 80, "summary": "The visible result is a clear rule: local/shared skills stay in .agents/skills; workflow-only skills live in .github/skills.", "details": ["No PR-changed specs were identified; intent is carried by PR body, code changes, tests, docs, and review discussion."], "files": [{"path": "AGENTS.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"}], "comments": [], "links": []}], "edges": [{"source": "reviewer-opens-pr", "target": "reviewer-checks-installer", "label": "focuses risk on"}, {"source": "reviewer-checks-installer", "target": "author-applies-fix", "label": "feedback leads to"}, {"source": "author-applies-fix", "target": "maintainer-validates", "label": "requires"}, {"source": "maintainer-validates", "target": "reader-understands-result", "label": "supports"}], "tour": [{"nodeId": "reviewer-opens-pr", "title": "Open the PR by grouping files", "body": "Do not read the changed file list linearly; group it into migration surfaces."}, {"nodeId": "reviewer-checks-installer", "title": "Prioritize installer behavior", "body": "The installer has the highest behavioral blast radius because it changes target repositories."}, {"nodeId": "author-applies-fix", "title": "Follow the feedback fix", "body": "The second commit and issue comment show how the review concern was addressed."}, {"nodeId": "maintainer-validates", "title": "Check validation breadth", "body": "The validation set is broad because the PR touches workflows, scripts, docs, and install behavior."}, {"nodeId": "reader-understands-result", "title": "End at the new rule", "body": "The reviewer should leave with one clean boundary: local/shared under .agents, workflow-only under .github."}]}]};</script>
+            <script id="pr-walkthrough-data" type="application/json">{"meta": {"title": "PR #268: refactor: split workflow-only skills from local skills", "prUrl": "https://github.com/Terry-Mao/AICodingFlow/pull/268", "baseRef": "main", "headRef": "refactor/split-local-workflow-skills-266", "summary": "Splits GitHub workflow-only skills into .github/skills while keeping .agents/skills as the local/shared skill surface, then updates workflows, installers, tests, and product docs around that boundary."}, "graphs": [{"id": "system-overview", "label": "System overview", "color": "#b7791f", "summary": "Stable directory roles for AICodingFlow agent assets.", "nodes": [{"id": "local-shared-skills", "title": ".agents/skills", "kind": "local surface", "x": -520, "y": -150, "width": 360, "height": 205, "summaryLines": 5, "summary": "Repository-local and shared skills live in .agents/skills. These skills support interactive local agent work and reusable repository guidance.", "details": ["This directory remains the stable local entry point for skills a developer can invoke while working in the repository."], "files": [], "comments": [], "links": []}, {"id": "workflow-skills", "title": ".github/skills", "kind": "workflow surface", "x": -95, "y": -150, "width": 360, "height": 205, "summaryLines": 5, "summary": "GitHub Actions workflow-only skills live under .github/skills. Workflow prompts read them explicitly instead of relying on local skill discovery.", "details": ["This separation keeps CI/workflow-only instructions out of the local default skill surface."], "files": [], "comments": [], "links": []}, {"id": "workflow-entrypoints", "title": ".github/workflows + scripts", "kind": "automation", "x": 330, "y": -150, "width": 360, "height": 205, "summaryLines": 5, "summary": "Workflow YAML and Python helpers assemble prompts, choose skill paths, validate artifacts, and apply generated output.", "details": ["They form the execution layer that must point at the correct skill directory for each workflow."], "files": [], "comments": [], "links": []}, {"id": "installer-docs-tests", "title": "Installer, tests, docs", "kind": "supporting contract", "x": -95, "y": 145, "width": 380, "height": 210, "summaryLines": 5, "summary": "The installer propagates the template to target repos, tests defend the migration behavior, and product docs explain the directory contract.", "details": ["These supporting surfaces keep the new boundary stable across upgrades and user-facing documentation."], "files": [], "comments": [], "links": []}], "edges": [], "tour": [{"nodeId": "local-shared-skills", "title": "Start with local skills", "body": ".agents/skills remains the local/shared skill catalog."}, {"nodeId": "workflow-skills", "title": "Separate workflow-only skills", "body": ".github/skills becomes the dedicated home for GitHub workflow-only instructions."}, {"nodeId": "workflow-entrypoints", "title": "Wire workflow entrypoints", "body": "Workflows and helper scripts must read the new workflow skill paths explicitly."}, {"nodeId": "installer-docs-tests", "title": "Lock the contract", "body": "Installer behavior, tests, and product docs keep the directory split consistent."}]}, {"id": "data-flow", "label": "Data flow graph", "color": "#0f7b5f", "summary": "How skill guidance flows from source directories into workflow execution and installed target repositories.", "nodes": [{"id": "source-boundary", "title": "Source directory boundary", "kind": "input", "x": -520, "y": -120, "summary": "The PR classifies skills into local/shared .agents/skills and workflow-only .github/skills.", "details": ["This is the core data model change: skill path encodes whether a skill is local-facing or workflow-only."], "files": [{"path": "docs/product/raw/agent-directory-layout.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-20e1d3486415869acf4360f925d43f7d898e73423f2abc8e1dc1655789152be6"}], "comments": [], "links": []}, {"id": "workflow-prompts", "title": "Workflow prompts read .github/skills", "kind": "prompt context", "x": -180, "y": -190, "summary": "GitHub workflow YAML and custom agent prompts update references from .agents/skills to .github/skills.", "details": ["This moves workflow-only instructions into explicit workflow prompt context instead of local discovery."], "files": [{"path": ".github/workflows/create-implementation-from-issue.yml", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-16a7559c99ce4753eb226cc976ae93de096ee22bc12736296c28c5cbc96a04db"}], "comments": [], "links": []}, {"id": "helpers-select-paths", "title": "Helpers select new paths", "kind": "script behavior", "x": 170, "y": -90, "summary": "Python helpers and validators now point at .github/skills for workflow-owned review, triage, dedupe, spec, and implementation skills.", "details": ["The implementation changes prompt preparation, output application, review skill selection, and contract validation references."], "files": [{"path": ".github/scripts/select_review_skill.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"}], "comments": [], "links": []}, {"id": "installer-sync", "title": "Installer syncs both surfaces", "kind": "install flow", "x": 520, "y": -10, "summary": "install.sh syncs .agents/contracts, local/shared skills, workflow skills, scripts, agents, and workflows into target repositories.", "details": ["The installer also cleans legacy workflow skills from .agents/skills and migrates allowed legacy companions when appropriate."], "files": [{"path": "install.sh", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"}], "comments": [{"author": "github-actions", "body": "Review flagged that cleanup order could migrate repo-local companions into target .github/skills if source .agents/skills still contained stale companions.", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}], "links": []}, {"id": "target-repo-result", "title": "Target repo receives clean layout", "kind": "output", "x": 780, "y": 150, "summary": "Installed repositories receive local/shared skills under .agents/skills and workflow-only skills under .github/skills, excluding repo-local companions from upstream source trees.", "details": ["The second commit fixes installation order and excludes *-repo companions from .agents/skills sync."], "files": [{"path": ".github/tests/test_install_script.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"}], "comments": [], "links": []}], "edges": [{"source": "source-boundary", "target": "workflow-prompts", "label": "defines prompt source"}, {"source": "workflow-prompts", "target": "helpers-select-paths", "label": "is reinforced by"}, {"source": "helpers-select-paths", "target": "installer-sync", "label": "aligns install behavior"}, {"source": "installer-sync", "target": "target-repo-result", "label": "produces"}], "tour": [{"nodeId": "source-boundary", "title": "Start with the split", "body": "The PR first creates a clearer data boundary between local/shared and workflow-only skills."}, {"nodeId": "workflow-prompts", "title": "Workflow prompts consume the new location", "body": "Workflow YAML and agent prompts are updated so CI reads .github/skills explicitly."}, {"nodeId": "helpers-select-paths", "title": "Helper scripts follow the same path", "body": "Python helpers and validators are updated to keep generated inputs and outputs aligned."}, {"nodeId": "installer-sync", "title": "Installer propagates the split", "body": "install.sh becomes the place where existing target repositories are cleaned and upgraded."}, {"nodeId": "target-repo-result", "title": "End with target repo layout", "body": "The result is a cleaner installed repository with workflow skills isolated under .github/skills."}]}, {"id": "code-dependency", "label": "Code dependency graph", "color": "#2563eb", "summary": "Main implementation dependencies changed by the migration.", "nodes": [{"id": "skill-tree-move", "title": "Skill tree rename", "kind": "file move", "x": -520, "y": -120, "summary": "Workflow-only skill directories are renamed from .agents/skills to .github/skills.", "details": ["The diff contains many zero-content renames plus targeted path wording updates inside workflow skills."], "files": [{"path": ".github/skills/review-pr/SKILL.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-76fd9958aac951cd702bc16a6057e6e782dc35ce671f41a6720388535a905990"}], "comments": [], "links": []}, {"id": "workflow-yaml", "title": "Workflow YAML", "kind": "entrypoint", "x": -180, "y": -210, "summary": "Workflow entrypoints update skill paths in prompts and validation steps.", "details": ["Affected workflows include issue implementation, spec creation, PR review, triage, product docs, wiki compile, and update workflows."], "files": [{"path": ".github/workflows/create-implementation-from-issue.yml", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-16a7559c99ce4753eb226cc976ae93de096ee22bc12736296c28c5cbc96a04db"}], "comments": [], "links": []}, {"id": "python-helpers", "title": "Python helpers", "kind": "shared code", "x": -180, "y": 40, "summary": "Helper scripts update hard-coded workflow skill paths and output boundaries.", "details": ["These scripts prepare context, apply implementation outputs, prepare PR comments, and select review skills."], "files": [{"path": ".github/scripts/select_review_skill.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"}], "comments": [], "links": []}, {"id": "install-script", "title": "install.sh migration logic", "kind": "installer", "x": 220, "y": -90, "summary": "The installer adds .github/skills sync and legacy cleanup for target repositories.", "details": ["The first commit introduced cleanup and sync logic; the follow-up commit moved cleanup before sync and excluded *-repo companions from local skill sync."], "files": [{"path": "install.sh", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"}], "comments": [{"author": "github-actions", "body": "发现 1 个需要合并前修复的问题：安装脚本在同步本地 skills 后才清理 legacy workflow skills，会把本仓库自带的 repo-local companion 误迁移进目标仓库的 .github/skills。", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}], "links": []}, {"id": "tests", "title": "Regression tests", "kind": "test coverage", "x": 560, "y": -180, "summary": "Tests update expected paths and add coverage for stale source companion handling.", "details": ["The important new test proves a stale source .agents/skills/*-repo companion is not installed or migrated into a target repo."], "files": [{"path": ".github/tests/test_install_script.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"}], "comments": [], "links": []}, {"id": "product-docs", "title": "Product docs and wiki", "kind": "documentation", "x": 560, "y": 80, "summary": "Raw product docs, wiki concepts, summaries, and log entries are updated to describe the new directory contract.", "details": ["The documentation changes explain .agents/skills as local/shared and .github/skills as workflow-only."], "files": [{"path": "docs/product/raw/agent-directory-layout.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-20e1d3486415869acf4360f925d43f7d898e73423f2abc8e1dc1655789152be6"}], "comments": [], "links": []}], "edges": [{"source": "skill-tree-move", "target": "workflow-yaml", "label": "requires path updates in"}, {"source": "skill-tree-move", "target": "python-helpers", "label": "requires path updates in"}, {"source": "skill-tree-move", "target": "install-script", "label": "requires install migration"}, {"source": "install-script", "target": "tests", "label": "is defended by"}, {"source": "skill-tree-move", "target": "product-docs", "label": "is explained by"}], "tour": [{"nodeId": "skill-tree-move", "title": "Start with the structural move", "body": "Most changed files follow from moving workflow-only skills into .github/skills."}, {"nodeId": "workflow-yaml", "title": "Then follow workflow entrypoints", "body": "Workflow prompts are the first code path that must read the new skill location."}, {"nodeId": "python-helpers", "title": "Helpers keep artifacts consistent", "body": "Context preparation and output application scripts need the same path model."}, {"nodeId": "install-script", "title": "Installer is the migration hotspot", "body": "install.sh has the most behavioral risk because it mutates target repositories."}, {"nodeId": "tests", "title": "Tests capture the fix", "body": "The regression test guards the review-discovered companion migration issue."}, {"nodeId": "product-docs", "title": "Docs close the loop", "body": "Product docs and wiki pages align the written contract with the implementation."}]}, {"id": "user-action", "label": "User action graph", "color": "#7c3aed", "summary": "Reviewer and maintainer path through the PR.", "nodes": [{"id": "reviewer-opens-pr", "title": "Reviewer opens a large migration PR", "kind": "review action", "x": -520, "y": -120, "summary": "The reviewer sees many path rewrites and renames across skills, workflows, scripts, tests, and docs.", "details": ["The quickest orientation is to group files by boundary: skill tree move, workflow wiring, installer migration, tests, and docs."], "files": [], "comments": [], "links": [{"label": "PR #268", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}]}, {"id": "reviewer-checks-installer", "title": "Reviewer checks installer safety", "kind": "risk focus", "x": -170, "y": -180, "summary": "The behavioral risk is target repository mutation during install or upgrade.", "details": ["The existing review comment identified cleanup order and stale repo-local companion handling as the key issue."], "files": [{"path": "install.sh", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"}], "comments": [{"author": "github-actions", "body": "Cleanup after syncing local skills could migrate stale repo-local companions into target .github/skills.", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"}], "links": []}, {"id": "author-applies-fix", "title": "Author applies follow-up fix", "kind": "implementation feedback", "x": 180, "y": -80, "summary": "A second commit changes installer order and adds a focused regression test.", "details": ["The PR discussion records that requested changes were applied on refactor/split-local-workflow-skills-266."], "files": [{"path": ".github/tests/test_install_script.py", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"}], "comments": [{"author": "github-actions", "body": "Applied requested changes: clean or migrate legacy workflow/companion skills before syncing current .agents/skills, exclude *-repo companions, and add install script regression coverage.", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268#issuecomment-4684347279"}], "links": []}, {"id": "maintainer-validates", "title": "Maintainer validates broad surface", "kind": "validation", "x": 530, "y": -170, "summary": "Validation spans install tests, full workflow/script tests, py_compile, diff whitespace checks, and local PR review.", "details": ["The PR body reports unittest coverage for install script and aicodingflow tests, py_compile across helper scripts, git diff --check, and $review-pr-local."], "files": [], "comments": [], "links": []}, {"id": "reader-understands-result", "title": "Reader sees the new boundary", "kind": "visible outcome", "x": 790, "y": 80, "summary": "The visible result is a clear rule: local/shared skills stay in .agents/skills; workflow-only skills live in .github/skills.", "details": ["No PR-changed specs were identified; intent is carried by PR body, code changes, tests, docs, and review discussion."], "files": [{"path": "AGENTS.md", "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"}], "comments": [], "links": []}], "edges": [{"source": "reviewer-opens-pr", "target": "reviewer-checks-installer", "label": "focuses risk on"}, {"source": "reviewer-checks-installer", "target": "author-applies-fix", "label": "feedback leads to"}, {"source": "author-applies-fix", "target": "maintainer-validates", "label": "requires"}, {"source": "maintainer-validates", "target": "reader-understands-result", "label": "supports"}], "tour": [{"nodeId": "reviewer-opens-pr", "title": "Open the PR by grouping files", "body": "Do not read the changed file list linearly; group it into migration surfaces."}, {"nodeId": "reviewer-checks-installer", "title": "Prioritize installer behavior", "body": "The installer has the highest behavioral blast radius because it changes target repositories."}, {"nodeId": "author-applies-fix", "title": "Follow the feedback fix", "body": "The second commit and issue comment show how the review concern was addressed."}, {"nodeId": "maintainer-validates", "title": "Check validation breadth", "body": "The validation set is broad because the PR touches workflows, scripts, docs, and install behavior."}, {"nodeId": "reader-understands-result", "title": "End at the new rule", "body": "The reviewer should leave with one clean boundary: local/shared under .agents, workflow-only under .github."}]}]}</script>
+            <script>
+(() => {
+  const D3_CDN_URL = 'https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js';
+  let attemptedLoad = false;
+  let activeGraphId = null;
+  let selectedNodeId = null;
+  let tourIndex = 0;
+  const REQUIRED_GRAPH_IDS = ['system-overview', 'data-flow', 'code-dependency', 'user-action'];
+  const DEFAULT_NODE_WIDTH = 220;
+  const DEFAULT_NODE_HEIGHT = 116;
+  const OVERVIEW_NODE_WIDTH = 360;
+  const OVERVIEW_NODE_HEIGHT = 220;
+  let zoomBehavior = null;
+  let svgSelection = null;
+  let viewportSelection = null;
+  let currentData = null;
+
+  function setError(error) {
+    console.warn('D3 canvas render unavailable.', error || 'unknown error');
+    document.body.classList.add('d3-canvas-error');
+    const errorNode = document.querySelector('.d3-canvas-error');
+    if (errorNode) errorNode.textContent = `D3 canvas failed to render: ${error?.message || error || 'unknown error'}`;
+  }
+
+  function readInlineData() {
+    if (window.PR_WALKTHROUGH_D3_DATA) return window.PR_WALKTHROUGH_D3_DATA;
+    const script = document.getElementById('pr-walkthrough-data');
+    if (!script) throw new Error('Missing pr-walkthrough-data script tag');
+    return JSON.parse(script.textContent || '{}');
+  }
+
+  function activeGraph() {
+    return (currentData.graphs || []).find((graph) => graph.id === activeGraphId) || (currentData.graphs || [])[0];
+  }
+
+  function nodeMap(graph) { return new Map((graph.nodes || []).map((node) => [node.id, node])); }
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  }
+  function listItems(items, render) {
+    if (!items || items.length === 0) return '<p class="d3-empty">None attached.</p>';
+    return `<ul class="d3-detail-list">${items.map(render).join('')}</ul>`;
+  }
+
+  function renderTour(graph) {
+    const step = (graph.tour || [])[tourIndex];
+    const label = document.querySelector('.d3-tour-step-label');
+    const title = document.querySelector('.d3-tour-title');
+    const body = document.querySelector('.d3-tour-body');
+    const card = document.querySelector('.d3-tour-card');
+    if (card) card.dataset.tourIndex = String(tourIndex);
+    if (label) label.textContent = `Step ${Math.min(tourIndex + 1, (graph.tour || []).length)} / ${(graph.tour || []).length || 0}`;
+    if (title) title.textContent = step?.title || graph.label || 'View tour';
+    if (body) body.textContent = step?.body || graph.summary || '';
+  }
+
+  function renderDetails(node, graph) {
+    const panel = document.getElementById('pr-walkthrough-details');
+    if (!panel) return;
+    const step = (graph.tour || [])[tourIndex];
+    if (!node) {
+      panel.innerHTML = '<p class="d3-panel-title">Selected point</p><p class="d3-empty">Select a node or use the tour controls.</p>';
+      return;
+    }
+    const details = Array.isArray(node.details) ? node.details : [];
+    const files = Array.isArray(node.files) ? node.files : [];
+    const comments = Array.isArray(node.comments) ? node.comments : [];
+    const links = Array.isArray(node.links) ? node.links : [];
+    panel.innerHTML = `
+      <span class="d3-detail-kind">${escapeHtml(graph.label)} · ${escapeHtml(node.kind || 'point of interest')}</span>
+      <h2 class="d3-detail-title">${escapeHtml(node.title)}</h2>
+      <p class="d3-detail-summary">${escapeHtml(node.summary || '')}</p>
+      ${step?.nodeId === node.id ? `<section class="d3-detail-section"><h3>Tour context</h3><ul class="d3-detail-list"><li>${escapeHtml(step.body || '')}</li></ul></section>` : ''}
+      <section class="d3-detail-section"><h3>Explanation</h3>${details.length ? `<ul class="d3-detail-list">${details.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : '<p class="d3-empty">No additional detail provided.</p>'}</section>
+      <section class="d3-detail-section"><h3>Changed files</h3>${listItems(files, (file) => `<li><a class="d3-file-link" href="${escapeHtml(file.url || '#')}" target="_blank" rel="noreferrer">${escapeHtml(file.path || file.label || 'file')}</a>${file.note ? `<p>${escapeHtml(file.note)}</p>` : ''}</li>`)}</section>
+      <section class="d3-detail-section"><h3>Existing review discussion</h3>${listItems(comments, (comment) => `<li><span class="d3-comment-author">${escapeHtml(comment.author || 'reviewer')}</span>${escapeHtml(comment.body || '')}${comment.url ? `<br><a href="${escapeHtml(comment.url)}" target="_blank" rel="noreferrer">Open comment</a>` : ''}</li>`)}</section>
+      <section class="d3-detail-section"><h3>Links</h3>${listItems(links, (link) => `<li><a href="${escapeHtml(link.url || '#')}" target="_blank" rel="noreferrer">${escapeHtml(link.label || link.url || 'link')}</a></li>`)}</section>
+    `;
+  }
+
+  function wrapText(selection, width, maxLines = 3) {
+    selection.each(function wrapEach() {
+      const text = window.d3.select(this);
+      const datum = text.datum();
+      const resolvedWidth = typeof width === 'function' ? Number(width(datum)) : Number(width);
+      const resolvedMaxLines = typeof maxLines === 'function' ? Number(maxLines(datum)) : Number(maxLines);
+      const words = text.text().split(new RegExp('\\s+')).filter(Boolean);
+      const lineHeight = 15;
+      const y = Number(text.attr('y') || 0);
+      text.text('');
+      let line = [];
+      let lineNumber = 0;
+      let tspan = text.append('tspan').attr('x', text.attr('x')).attr('y', y);
+      for (const word of words) {
+        line.push(word);
+        tspan.text(line.join(' '));
+        if (tspan.node().getComputedTextLength() > resolvedWidth && line.length > 1) {
+          line.pop();
+          tspan.text(line.join(' '));
+          line = [word];
+          lineNumber += 1;
+          if (lineNumber >= resolvedMaxLines) { tspan.text(`${tspan.text()}…`); break; }
+          tspan = text.append('tspan').attr('x', text.attr('x')).attr('y', y + lineNumber * lineHeight).text(word);
+        }
+      }
+    });
+  }
+  function nodeWidth(node, graph) {
+    return Number(node.width || (graph?.id === 'system-overview' ? OVERVIEW_NODE_WIDTH : DEFAULT_NODE_WIDTH));
+  }
+  function nodeHeight(node, graph) {
+    return Number(node.height || (graph?.id === 'system-overview' ? OVERVIEW_NODE_HEIGHT : DEFAULT_NODE_HEIGHT));
+  }
+  function nodeBoundaryPoint(from, to, padding, graph) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    if (dx === 0 && dy === 0) return { x: from.x, y: from.y };
+    const scale = 1 / Math.max(Math.abs(dx) / (nodeWidth(from, graph) / 2 + padding), Math.abs(dy) / (nodeHeight(from, graph) / 2 + padding));
+    return { x: from.x + dx * scale, y: from.y + dy * scale };
+  }
+  function pathForEdge(edge, nodes, graph) {
+    const source = nodes.get(edge.source);
+    const target = nodes.get(edge.target);
+    if (!source || !target) return '';
+    const start = nodeBoundaryPoint(source, target, 10, graph);
+    const end = nodeBoundaryPoint(target, source, 18, graph);
+    const dx = end.x - start.x;
+    const control = Math.max(80, Math.abs(dx) * 0.42);
+    return `M ${start.x} ${start.y} C ${start.x + control} ${start.y}, ${end.x - control} ${end.y}, ${end.x} ${end.y}`;
+  }
+
+  function applyFilters(graph) {
+    const query = (document.querySelector('.d3-search')?.value || '').trim().toLowerCase();
+    const tourNodeId = (graph.tour || [])[tourIndex]?.nodeId;
+    const matches = (node) => {
+      if (!query) return true;
+      const haystack = [node.title, node.kind, node.summary, ...(node.details || []), ...(node.files || []).map((file) => file.path || file.label || ''), ...(node.comments || []).map((comment) => `${comment.author || ''} ${comment.body || ''}`)].join(' ').toLowerCase();
+      return haystack.includes(query);
+    };
+    const visible = new Set((graph.nodes || []).filter(matches).map((node) => node.id));
+    window.d3.selectAll('.d3-node')
+      .classed('is-dimmed', (node) => !visible.has(node.id))
+      .classed('is-selected', (node) => node.id === selectedNodeId)
+      .classed('is-tour-node', (node) => node.id === tourNodeId);
+    window.d3.selectAll('.d3-edge').classed('is-dimmed', (edge) => !visible.has(edge.source) || !visible.has(edge.target));
+  }
+
+  function fitToView() {
+    if (!svgSelection || !viewportSelection || !zoomBehavior) return;
+    const svg = svgSelection.node();
+    const bounds = viewportSelection.node().getBBox();
+    const fullWidth = svg.clientWidth || 1000;
+    const fullHeight = svg.clientHeight || 700;
+    const width = Math.max(bounds.width, 1);
+    const height = Math.max(bounds.height, 1);
+    const scale = Math.min(1.25, 0.86 / Math.max(width / fullWidth, height / fullHeight));
+    const translate = [fullWidth / 2 - scale * (bounds.x + width / 2), fullHeight / 2 - scale * (bounds.y + height / 2)];
+    svgSelection.transition().duration(300).call(zoomBehavior.transform, window.d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+  }
+  function focusNode(node) {
+    if (!node || !svgSelection || !zoomBehavior) return;
+    const svg = svgSelection.node();
+    const scale = Math.max(0.85, window.d3.zoomTransform(svg).k || 1);
+    const translate = [(svg.clientWidth || 1000) / 2 - node.x * scale, (svg.clientHeight || 700) / 2 - node.y * scale];
+    svgSelection.transition().duration(260).call(zoomBehavior.transform, window.d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+  }
+  function resetZoom() { if (svgSelection && zoomBehavior) svgSelection.transition().duration(220).call(zoomBehavior.transform, window.d3.zoomIdentity); }
+  function zoomBy(factor) { if (svgSelection && zoomBehavior) svgSelection.transition().duration(140).call(zoomBehavior.scaleBy, factor); }
+
+  function selectTourStep(index, options = {}) {
+    const graph = activeGraph();
+    const tour = graph.tour || [];
+    if (!tour.length) return;
+    tourIndex = Math.max(0, Math.min(index, tour.length - 1));
+    const nodes = nodeMap(graph);
+    const node = nodes.get(tour[tourIndex].nodeId) || (graph.nodes || [])[0];
+    selectedNodeId = node?.id || null;
+    renderTour(graph);
+    renderDetails(node, graph);
+    applyFilters(graph);
+    if (!options.noFocus) focusNode(node);
+  }
+  function nextTourStep() { selectTourStep(tourIndex + 1); }
+  function previousTourStep() { selectTourStep(tourIndex - 1); }
+  function restartTour() { selectTourStep(0); }
+
+  function renderActiveGraph(options = {}) {
+    const graph = activeGraph();
+    if (!graph) throw new Error('No active graph');
+    const svg = window.d3.select('#pr-walkthrough-canvas');
+    if (svg.empty()) throw new Error('Missing #pr-walkthrough-canvas');
+    svg.selectAll('*').remove();
+    svgSelection = svg;
+    const nodesById = nodeMap(graph);
+    const defs = svg.append('defs');
+    defs.append('marker').attr('id', `d3-arrowhead-${graph.id}`).attr('class', 'd3-edge-arrow').attr('viewBox', '0 -6 12 12').attr('refX', 11).attr('refY', 0).attr('markerWidth', 9).attr('markerHeight', 9).attr('orient', 'auto').attr('markerUnits', 'strokeWidth').style('--edge-color', graph.color || '#868584').append('path').attr('d', 'M0,-6L12,0L0,6Z');
+    const root = svg.append('g').attr('class', 'd3-zoom-root');
+    viewportSelection = root.append('g').attr('class', 'd3-viewport');
+    viewportSelection.append('text').attr('class', 'd3-graph-title').attr('x', -420).attr('y', -300).attr('fill', graph.color || '#2563eb').text(graph.label || graph.id);
+    const edgeLayer = viewportSelection.append('g').attr('class', 'd3-edges');
+    const nodeLayer = viewportSelection.append('g').attr('class', 'd3-nodes');
+    const edges = edgeLayer.selectAll('.d3-edge').data(graph.edges || []).join('g').attr('class', 'd3-edge').attr('data-edge-id', (edge, index) => edge.id || `${edge.source}-${edge.target}-${index}`).style('--edge-color', graph.color || '#868584');
+    edges.append('path').attr('d', (edge) => pathForEdge(edge, nodesById, graph)).attr('marker-end', `url(#d3-arrowhead-${graph.id})`);
+    edges.append('text').append('textPath').attr('href', function href(_, index) { const path = window.d3.select(edges.nodes()[index]).select('path'); const id = `d3-edge-path-${graph.id}-${index}`; path.attr('id', id); return `#${id}`; }).attr('startOffset', '50%').attr('text-anchor', 'middle').text((edge) => edge.label || '');
+    const nodes = nodeLayer.selectAll('.d3-node').data(graph.nodes || []).join('g').attr('class', (node) => `d3-node${graph.id === 'system-overview' ? ' is-overview-card' : ''}`).attr('data-node-id', (node) => node.id).attr('tabindex', 0).attr('role', 'button').attr('aria-label', (node) => node.title).attr('transform', (node) => `translate(${node.x || 0}, ${node.y || 0})`).style('--node-color', graph.color || '#2563eb').on('click keydown', (event, node) => {
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+      selectedNodeId = node.id;
+      const tourPosition = (graph.tour || []).findIndex((step) => step.nodeId === node.id);
+      if (tourPosition >= 0) tourIndex = tourPosition;
+      renderTour(graph);
+      renderDetails(node, graph);
+      applyFilters(graph);
+    });
+    nodes.append('rect').attr('x', (node) => -nodeWidth(node, graph) / 2).attr('y', (node) => -nodeHeight(node, graph) / 2).attr('width', (node) => nodeWidth(node, graph)).attr('height', (node) => nodeHeight(node, graph)).attr('rx', 12);
+    nodes.append('text').attr('class', 'd3-node-kind').attr('x', (node) => -nodeWidth(node, graph) / 2 + 20).attr('y', (node) => -nodeHeight(node, graph) / 2 + 27).text((node) => node.kind || 'point');
+    nodes.append('text').attr('class', 'd3-node-title').attr('x', (node) => -nodeWidth(node, graph) / 2 + 20).attr('y', (node) => -nodeHeight(node, graph) / 2 + 53).text((node) => node.title || node.id).call(wrapText, (node) => nodeWidth(node, graph) - 40, 2);
+    nodes.append('text').attr('class', 'd3-node-summary').attr('x', (node) => -nodeWidth(node, graph) / 2 + 20).attr('y', (node) => -nodeHeight(node, graph) / 2 + 96).text((node) => node.summary || '').call(wrapText, (node) => nodeWidth(node, graph) - 40, (node) => Number(node.summaryLines || (graph.id === 'system-overview' ? 7 : 2)));
+    zoomBehavior = window.d3.zoom().scaleExtent([0.18, 3.5]).on('zoom', (event) => root.attr('transform', event.transform));
+    svg.call(zoomBehavior);
+    document.querySelectorAll('.d3-graph-toggle').forEach((button) => button.setAttribute('aria-pressed', button.dataset.graphId === graph.id ? 'true' : 'false'));
+    selectTourStep(Math.min(tourIndex, Math.max((graph.tour || []).length - 1, 0)), { noFocus: true });
+    if (!options.skipFit) window.setTimeout(fitToView, 40);
+  }
+
+  function switchGraph(graphId) {
+    activeGraphId = graphId;
+    selectedNodeId = null;
+    tourIndex = 0;
+    const search = document.querySelector('.d3-search');
+    if (search) search.value = '';
+    renderActiveGraph();
+  }
+
+  function setupControls() {
+    document.querySelector('[data-d3-action="fit"]')?.addEventListener('click', fitToView);
+    document.querySelector('[data-d3-action="reset"]')?.addEventListener('click', resetZoom);
+    document.querySelector('[data-d3-action="tour-prev"]')?.addEventListener('click', previousTourStep);
+    document.querySelector('[data-d3-action="tour-next"]')?.addEventListener('click', nextTourStep);
+    document.querySelector('[data-d3-action="tour-restart"]')?.addEventListener('click', restartTour);
+    document.querySelectorAll('.d3-graph-toggle').forEach((button) => button.addEventListener('click', () => switchGraph(button.dataset.graphId)));
+    document.querySelector('.d3-search')?.addEventListener('input', () => applyFilters(activeGraph()));
+    document.addEventListener('keydown', (event) => {
+      if (event.target?.matches?.('input, textarea')) { if (event.key === 'Escape') event.target.blur(); else return; }
+      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'n') nextTourStep();
+      else if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'p') previousTourStep();
+      else if (event.key === '1') switchGraph('system-overview');
+      else if (event.key === '2') switchGraph('data-flow');
+      else if (event.key === '3') switchGraph('code-dependency');
+      else if (event.key === '4') switchGraph('user-action');
+      else if (event.key === '+' || event.key === '=') zoomBy(1.2);
+      else if (event.key === '-') zoomBy(0.82);
+      else if (event.key === '0') resetZoom();
+      else if (event.key.toLowerCase() === 'f') fitToView();
+      else if (event.key === '/') { event.preventDefault(); document.querySelector('.d3-search')?.focus(); }
+      else if (event.key === 'Escape') { selectedNodeId = null; const search = document.querySelector('.d3-search'); if (search) search.value = ''; renderDetails(null, activeGraph()); applyFilters(activeGraph()); }
+    });
+  }
+
+  function renderD3Canvas() {
+    if (!window.d3) { setError('D3 library was not loaded'); return; }
+    currentData = readInlineData();
+    const graphIds = new Set((currentData.graphs || []).map((graph) => graph.id));
+    const missing = REQUIRED_GRAPH_IDS.filter((id) => !graphIds.has(id));
+    if (missing.length) throw new Error(`Missing required graphs: ${missing.join(', ')}`);
+    activeGraphId = activeGraphId || (currentData.graphs || [])[0]?.id;
+    setupControls();
+    renderActiveGraph();
+    document.body.classList.add('d3-canvas-ready');
+    document.body.classList.remove('d3-canvas-error');
+  }
+
+  function loadD3Runtime() {
+    if (attemptedLoad) return;
+    attemptedLoad = true;
+    if (window.d3) { try { renderD3Canvas(); } catch (error) { setError(error); } return; }
+    const script = document.createElement('script');
+    script.src = D3_CDN_URL;
+    script.async = true;
+    script.onload = () => { try { renderD3Canvas(); } catch (error) { setError(error); } };
+    script.onerror = () => setError(`Failed to load pinned D3 CDN script: ${D3_CDN_URL}`);
+    document.head.appendChild(script);
+  }
+
+  window.prWalkthroughD3Render = renderD3Canvas;
+  window.prWalkthroughD3SwitchGraph = switchGraph;
+  window.prWalkthroughD3NextTourStep = nextTourStep;
+  window.prWalkthroughD3PreviousTourStep = previousTourStep;
+  window.prWalkthroughD3FitToView = fitToView;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadD3Runtime, { once: true });
+  else loadD3Runtime();
+})();
+</script>
+          </main>
+        </body>
+        </html>

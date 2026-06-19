@@ -1,0 +1,614 @@
+{
+  "meta": {
+    "title": "PR #268: refactor: split workflow-only skills from local skills",
+    "prUrl": "https://github.com/Terry-Mao/AICodingFlow/pull/268",
+    "baseRef": "main",
+    "headRef": "refactor/split-local-workflow-skills-266",
+    "summary": "Splits GitHub workflow-only skills into .github/skills while keeping .agents/skills as the local/shared skill surface, then updates workflows, installers, tests, and product docs around that boundary."
+  },
+  "graphs": [
+    {
+      "id": "system-overview",
+      "label": "System overview",
+      "color": "#b7791f",
+      "summary": "Stable directory roles for AICodingFlow agent assets.",
+      "nodes": [
+        {
+          "id": "local-shared-skills",
+          "title": ".agents/skills",
+          "kind": "local surface",
+          "x": -520,
+          "y": -150,
+          "width": 360,
+          "height": 205,
+          "summaryLines": 5,
+          "summary": "Repository-local and shared skills live in .agents/skills. These skills support interactive local agent work and reusable repository guidance.",
+          "details": [
+            "This directory remains the stable local entry point for skills a developer can invoke while working in the repository."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "workflow-skills",
+          "title": ".github/skills",
+          "kind": "workflow surface",
+          "x": -95,
+          "y": -150,
+          "width": 360,
+          "height": 205,
+          "summaryLines": 5,
+          "summary": "GitHub Actions workflow-only skills live under .github/skills. Workflow prompts read them explicitly instead of relying on local skill discovery.",
+          "details": [
+            "This separation keeps CI/workflow-only instructions out of the local default skill surface."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "workflow-entrypoints",
+          "title": ".github/workflows + scripts",
+          "kind": "automation",
+          "x": 330,
+          "y": -150,
+          "width": 360,
+          "height": 205,
+          "summaryLines": 5,
+          "summary": "Workflow YAML and Python helpers assemble prompts, choose skill paths, validate artifacts, and apply generated output.",
+          "details": [
+            "They form the execution layer that must point at the correct skill directory for each workflow."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "installer-docs-tests",
+          "title": "Installer, tests, docs",
+          "kind": "supporting contract",
+          "x": -95,
+          "y": 145,
+          "width": 380,
+          "height": 210,
+          "summaryLines": 5,
+          "summary": "The installer propagates the template to target repos, tests defend the migration behavior, and product docs explain the directory contract.",
+          "details": [
+            "These supporting surfaces keep the new boundary stable across upgrades and user-facing documentation."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        }
+      ],
+      "edges": [],
+      "tour": [
+        {
+          "nodeId": "local-shared-skills",
+          "title": "Start with local skills",
+          "body": ".agents/skills remains the local/shared skill catalog."
+        },
+        {
+          "nodeId": "workflow-skills",
+          "title": "Separate workflow-only skills",
+          "body": ".github/skills becomes the dedicated home for GitHub workflow-only instructions."
+        },
+        {
+          "nodeId": "workflow-entrypoints",
+          "title": "Wire workflow entrypoints",
+          "body": "Workflows and helper scripts must read the new workflow skill paths explicitly."
+        },
+        {
+          "nodeId": "installer-docs-tests",
+          "title": "Lock the contract",
+          "body": "Installer behavior, tests, and product docs keep the directory split consistent."
+        }
+      ]
+    },
+    {
+      "id": "data-flow",
+      "label": "Data flow graph",
+      "color": "#0f7b5f",
+      "summary": "How skill guidance flows from source directories into workflow execution and installed target repositories.",
+      "nodes": [
+        {
+          "id": "source-boundary",
+          "title": "Source directory boundary",
+          "kind": "input",
+          "x": -520,
+          "y": -120,
+          "summary": "The PR classifies skills into local/shared .agents/skills and workflow-only .github/skills.",
+          "details": [
+            "This is the core data model change: skill path encodes whether a skill is local-facing or workflow-only."
+          ],
+          "files": [
+            {
+              "path": "docs/product/raw/agent-directory-layout.md",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-20e1d3486415869acf4360f925d43f7d898e73423f2abc8e1dc1655789152be6"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "workflow-prompts",
+          "title": "Workflow prompts read .github/skills",
+          "kind": "prompt context",
+          "x": -180,
+          "y": -190,
+          "summary": "GitHub workflow YAML and custom agent prompts update references from .agents/skills to .github/skills.",
+          "details": [
+            "This moves workflow-only instructions into explicit workflow prompt context instead of local discovery."
+          ],
+          "files": [
+            {
+              "path": ".github/workflows/create-implementation-from-issue.yml",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-16a7559c99ce4753eb226cc976ae93de096ee22bc12736296c28c5cbc96a04db"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "helpers-select-paths",
+          "title": "Helpers select new paths",
+          "kind": "script behavior",
+          "x": 170,
+          "y": -90,
+          "summary": "Python helpers and validators now point at .github/skills for workflow-owned review, triage, dedupe, spec, and implementation skills.",
+          "details": [
+            "The implementation changes prompt preparation, output application, review skill selection, and contract validation references."
+          ],
+          "files": [
+            {
+              "path": ".github/scripts/select_review_skill.py",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "installer-sync",
+          "title": "Installer syncs both surfaces",
+          "kind": "install flow",
+          "x": 520,
+          "y": -10,
+          "summary": "install.sh syncs .agents/contracts, local/shared skills, workflow skills, scripts, agents, and workflows into target repositories.",
+          "details": [
+            "The installer also cleans legacy workflow skills from .agents/skills and migrates allowed legacy companions when appropriate."
+          ],
+          "files": [
+            {
+              "path": "install.sh",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"
+            }
+          ],
+          "comments": [
+            {
+              "author": "github-actions",
+              "body": "Review flagged that cleanup order could migrate repo-local companions into target .github/skills if source .agents/skills still contained stale companions.",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"
+            }
+          ],
+          "links": []
+        },
+        {
+          "id": "target-repo-result",
+          "title": "Target repo receives clean layout",
+          "kind": "output",
+          "x": 780,
+          "y": 150,
+          "summary": "Installed repositories receive local/shared skills under .agents/skills and workflow-only skills under .github/skills, excluding repo-local companions from upstream source trees.",
+          "details": [
+            "The second commit fixes installation order and excludes *-repo companions from .agents/skills sync."
+          ],
+          "files": [
+            {
+              "path": ".github/tests/test_install_script.py",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"
+            }
+          ],
+          "comments": [],
+          "links": []
+        }
+      ],
+      "edges": [
+        {
+          "source": "source-boundary",
+          "target": "workflow-prompts",
+          "label": "defines prompt source"
+        },
+        {
+          "source": "workflow-prompts",
+          "target": "helpers-select-paths",
+          "label": "is reinforced by"
+        },
+        {
+          "source": "helpers-select-paths",
+          "target": "installer-sync",
+          "label": "aligns install behavior"
+        },
+        {
+          "source": "installer-sync",
+          "target": "target-repo-result",
+          "label": "produces"
+        }
+      ],
+      "tour": [
+        {
+          "nodeId": "source-boundary",
+          "title": "Start with the split",
+          "body": "The PR first creates a clearer data boundary between local/shared and workflow-only skills."
+        },
+        {
+          "nodeId": "workflow-prompts",
+          "title": "Workflow prompts consume the new location",
+          "body": "Workflow YAML and agent prompts are updated so CI reads .github/skills explicitly."
+        },
+        {
+          "nodeId": "helpers-select-paths",
+          "title": "Helper scripts follow the same path",
+          "body": "Python helpers and validators are updated to keep generated inputs and outputs aligned."
+        },
+        {
+          "nodeId": "installer-sync",
+          "title": "Installer propagates the split",
+          "body": "install.sh becomes the place where existing target repositories are cleaned and upgraded."
+        },
+        {
+          "nodeId": "target-repo-result",
+          "title": "End with target repo layout",
+          "body": "The result is a cleaner installed repository with workflow skills isolated under .github/skills."
+        }
+      ]
+    },
+    {
+      "id": "code-dependency",
+      "label": "Code dependency graph",
+      "color": "#2563eb",
+      "summary": "Main implementation dependencies changed by the migration.",
+      "nodes": [
+        {
+          "id": "skill-tree-move",
+          "title": "Skill tree rename",
+          "kind": "file move",
+          "x": -520,
+          "y": -120,
+          "summary": "Workflow-only skill directories are renamed from .agents/skills to .github/skills.",
+          "details": [
+            "The diff contains many zero-content renames plus targeted path wording updates inside workflow skills."
+          ],
+          "files": [
+            {
+              "path": ".github/skills/review-pr/SKILL.md",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-76fd9958aac951cd702bc16a6057e6e782dc35ce671f41a6720388535a905990"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "workflow-yaml",
+          "title": "Workflow YAML",
+          "kind": "entrypoint",
+          "x": -180,
+          "y": -210,
+          "summary": "Workflow entrypoints update skill paths in prompts and validation steps.",
+          "details": [
+            "Affected workflows include issue implementation, spec creation, PR review, triage, product docs, wiki compile, and update workflows."
+          ],
+          "files": [
+            {
+              "path": ".github/workflows/create-implementation-from-issue.yml",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-16a7559c99ce4753eb226cc976ae93de096ee22bc12736296c28c5cbc96a04db"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "python-helpers",
+          "title": "Python helpers",
+          "kind": "shared code",
+          "x": -180,
+          "y": 40,
+          "summary": "Helper scripts update hard-coded workflow skill paths and output boundaries.",
+          "details": [
+            "These scripts prepare context, apply implementation outputs, prepare PR comments, and select review skills."
+          ],
+          "files": [
+            {
+              "path": ".github/scripts/select_review_skill.py",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "install-script",
+          "title": "install.sh migration logic",
+          "kind": "installer",
+          "x": 220,
+          "y": -90,
+          "summary": "The installer adds .github/skills sync and legacy cleanup for target repositories.",
+          "details": [
+            "The first commit introduced cleanup and sync logic; the follow-up commit moved cleanup before sync and excluded *-repo companions from local skill sync."
+          ],
+          "files": [
+            {
+              "path": "install.sh",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"
+            }
+          ],
+          "comments": [
+            {
+              "author": "github-actions",
+              "body": "发现 1 个需要合并前修复的问题：安装脚本在同步本地 skills 后才清理 legacy workflow skills，会把本仓库自带的 repo-local companion 误迁移进目标仓库的 .github/skills。",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"
+            }
+          ],
+          "links": []
+        },
+        {
+          "id": "tests",
+          "title": "Regression tests",
+          "kind": "test coverage",
+          "x": 560,
+          "y": -180,
+          "summary": "Tests update expected paths and add coverage for stale source companion handling.",
+          "details": [
+            "The important new test proves a stale source .agents/skills/*-repo companion is not installed or migrated into a target repo."
+          ],
+          "files": [
+            {
+              "path": ".github/tests/test_install_script.py",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"
+            }
+          ],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "product-docs",
+          "title": "Product docs and wiki",
+          "kind": "documentation",
+          "x": 560,
+          "y": 80,
+          "summary": "Raw product docs, wiki concepts, summaries, and log entries are updated to describe the new directory contract.",
+          "details": [
+            "The documentation changes explain .agents/skills as local/shared and .github/skills as workflow-only."
+          ],
+          "files": [
+            {
+              "path": "docs/product/raw/agent-directory-layout.md",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-20e1d3486415869acf4360f925d43f7d898e73423f2abc8e1dc1655789152be6"
+            }
+          ],
+          "comments": [],
+          "links": []
+        }
+      ],
+      "edges": [
+        {
+          "source": "skill-tree-move",
+          "target": "workflow-yaml",
+          "label": "requires path updates in"
+        },
+        {
+          "source": "skill-tree-move",
+          "target": "python-helpers",
+          "label": "requires path updates in"
+        },
+        {
+          "source": "skill-tree-move",
+          "target": "install-script",
+          "label": "requires install migration"
+        },
+        {
+          "source": "install-script",
+          "target": "tests",
+          "label": "is defended by"
+        },
+        {
+          "source": "skill-tree-move",
+          "target": "product-docs",
+          "label": "is explained by"
+        }
+      ],
+      "tour": [
+        {
+          "nodeId": "skill-tree-move",
+          "title": "Start with the structural move",
+          "body": "Most changed files follow from moving workflow-only skills into .github/skills."
+        },
+        {
+          "nodeId": "workflow-yaml",
+          "title": "Then follow workflow entrypoints",
+          "body": "Workflow prompts are the first code path that must read the new skill location."
+        },
+        {
+          "nodeId": "python-helpers",
+          "title": "Helpers keep artifacts consistent",
+          "body": "Context preparation and output application scripts need the same path model."
+        },
+        {
+          "nodeId": "install-script",
+          "title": "Installer is the migration hotspot",
+          "body": "install.sh has the most behavioral risk because it mutates target repositories."
+        },
+        {
+          "nodeId": "tests",
+          "title": "Tests capture the fix",
+          "body": "The regression test guards the review-discovered companion migration issue."
+        },
+        {
+          "nodeId": "product-docs",
+          "title": "Docs close the loop",
+          "body": "Product docs and wiki pages align the written contract with the implementation."
+        }
+      ]
+    },
+    {
+      "id": "user-action",
+      "label": "User action graph",
+      "color": "#7c3aed",
+      "summary": "Reviewer and maintainer path through the PR.",
+      "nodes": [
+        {
+          "id": "reviewer-opens-pr",
+          "title": "Reviewer opens a large migration PR",
+          "kind": "review action",
+          "x": -520,
+          "y": -120,
+          "summary": "The reviewer sees many path rewrites and renames across skills, workflows, scripts, tests, and docs.",
+          "details": [
+            "The quickest orientation is to group files by boundary: skill tree move, workflow wiring, installer migration, tests, and docs."
+          ],
+          "files": [],
+          "comments": [],
+          "links": [
+            {
+              "label": "PR #268",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"
+            }
+          ]
+        },
+        {
+          "id": "reviewer-checks-installer",
+          "title": "Reviewer checks installer safety",
+          "kind": "risk focus",
+          "x": -170,
+          "y": -180,
+          "summary": "The behavioral risk is target repository mutation during install or upgrade.",
+          "details": [
+            "The existing review comment identified cleanup order and stale repo-local companion handling as the key issue."
+          ],
+          "files": [
+            {
+              "path": "install.sh",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-043df5bdbf6639d7a77e1d44c5226fd7371e5259a1e4df3a0dd5d64c30dca44f"
+            }
+          ],
+          "comments": [
+            {
+              "author": "github-actions",
+              "body": "Cleanup after syncing local skills could migrate stale repo-local companions into target .github/skills.",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268"
+            }
+          ],
+          "links": []
+        },
+        {
+          "id": "author-applies-fix",
+          "title": "Author applies follow-up fix",
+          "kind": "implementation feedback",
+          "x": 180,
+          "y": -80,
+          "summary": "A second commit changes installer order and adds a focused regression test.",
+          "details": [
+            "The PR discussion records that requested changes were applied on refactor/split-local-workflow-skills-266."
+          ],
+          "files": [
+            {
+              "path": ".github/tests/test_install_script.py",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files#diff-98c2ecb910303373321f133cd14f06bc959685e9c7817aca300f25f6e45c8f7e"
+            }
+          ],
+          "comments": [
+            {
+              "author": "github-actions",
+              "body": "Applied requested changes: clean or migrate legacy workflow/companion skills before syncing current .agents/skills, exclude *-repo companions, and add install script regression coverage.",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268#issuecomment-4684347279"
+            }
+          ],
+          "links": []
+        },
+        {
+          "id": "maintainer-validates",
+          "title": "Maintainer validates broad surface",
+          "kind": "validation",
+          "x": 530,
+          "y": -170,
+          "summary": "Validation spans install tests, full workflow/script tests, py_compile, diff whitespace checks, and local PR review.",
+          "details": [
+            "The PR body reports unittest coverage for install script and aicodingflow tests, py_compile across helper scripts, git diff --check, and $review-pr-local."
+          ],
+          "files": [],
+          "comments": [],
+          "links": []
+        },
+        {
+          "id": "reader-understands-result",
+          "title": "Reader sees the new boundary",
+          "kind": "visible outcome",
+          "x": 790,
+          "y": 80,
+          "summary": "The visible result is a clear rule: local/shared skills stay in .agents/skills; workflow-only skills live in .github/skills.",
+          "details": [
+            "No PR-changed specs were identified; intent is carried by PR body, code changes, tests, docs, and review discussion."
+          ],
+          "files": [
+            {
+              "path": "AGENTS.md",
+              "url": "https://github.com/Terry-Mao/AICodingFlow/pull/268/files"
+            }
+          ],
+          "comments": [],
+          "links": []
+        }
+      ],
+      "edges": [
+        {
+          "source": "reviewer-opens-pr",
+          "target": "reviewer-checks-installer",
+          "label": "focuses risk on"
+        },
+        {
+          "source": "reviewer-checks-installer",
+          "target": "author-applies-fix",
+          "label": "feedback leads to"
+        },
+        {
+          "source": "author-applies-fix",
+          "target": "maintainer-validates",
+          "label": "requires"
+        },
+        {
+          "source": "maintainer-validates",
+          "target": "reader-understands-result",
+          "label": "supports"
+        }
+      ],
+      "tour": [
+        {
+          "nodeId": "reviewer-opens-pr",
+          "title": "Open the PR by grouping files",
+          "body": "Do not read the changed file list linearly; group it into migration surfaces."
+        },
+        {
+          "nodeId": "reviewer-checks-installer",
+          "title": "Prioritize installer behavior",
+          "body": "The installer has the highest behavioral blast radius because it changes target repositories."
+        },
+        {
+          "nodeId": "author-applies-fix",
+          "title": "Follow the feedback fix",
+          "body": "The second commit and issue comment show how the review concern was addressed."
+        },
+        {
+          "nodeId": "maintainer-validates",
+          "title": "Check validation breadth",
+          "body": "The validation set is broad because the PR touches workflows, scripts, docs, and install behavior."
+        },
+        {
+          "nodeId": "reader-understands-result",
+          "title": "End at the new rule",
+          "body": "The reviewer should leave with one clean boundary: local/shared under .agents, workflow-only under .github."
+        }
+      ]
+    }
+  ]
+}
