@@ -9,7 +9,7 @@ description: Generate a local static interactive D3 walkthrough of a pull reques
 
 ## 输出
 
-生成文件到临时目录下的统一 slug 目录。默认本地产物根目录为 `${TMPDIR:-/tmp}/pr-walkthrough`；如果用户明确指定其他目录，可改用指定目录。下文用 `<artifact-root>` 表示该目录。
+生成文件到临时目录下的统一 slug 目录。默认本地产物根目录为 `${TMPDIR%/}/pr-walkthrough`（`TMPDIR` 为空时使用 `/tmp/pr-walkthrough`）；如果用户明确指定其他目录，可改用指定目录。下文用 `<artifact-root>` 表示该目录。
 
 优先使用 PR number；无 PR number 时使用当前分支名：
 
@@ -179,7 +179,9 @@ Tour 顺序要教 reviewer 从起点读到终点，不要只是文件顺序。
 
 ```bash
 sha="$(git rev-parse --short HEAD)"
-artifact_root="${PR_WALKTHROUGH_ARTIFACT_ROOT:-${TMPDIR:-/tmp}/pr-walkthrough}"
+tmp_root="${TMPDIR:-/tmp}"
+tmp_root="${tmp_root%/}"
+artifact_root="${PR_WALKTHROUGH_ARTIFACT_ROOT:-$tmp_root/pr-walkthrough}"
 slug="pr-walkthrough-pr-<pr-number>-$sha"
 mkdir -p "$artifact_root/$slug"
 python3 .agents/skills/pr-walkthrough/scripts/d3_canvas_runtime.py --sample-data > "$artifact_root/$slug/graph.json"
@@ -227,7 +229,9 @@ python3 .agents/skills/pr-walkthrough/scripts/validate_d3_canvas.py --html <arti
 ```bash
 repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 sha="$(git rev-parse --short HEAD)"
-artifact_root="${PR_WALKTHROUGH_ARTIFACT_ROOT:-${TMPDIR:-/tmp}/pr-walkthrough}"
+tmp_root="${TMPDIR:-/tmp}"
+tmp_root="${tmp_root%/}"
+artifact_root="${PR_WALKTHROUGH_ARTIFACT_ROOT:-$tmp_root/pr-walkthrough}"
 slug="pr-walkthrough-pr-<pr-number>-$sha"
 site_dir="/tmp/aicodingflow-pr-walkthrough-pages-$slug"
 git fetch origin gh-pages || true
