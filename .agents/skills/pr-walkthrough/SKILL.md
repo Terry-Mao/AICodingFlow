@@ -51,10 +51,19 @@ python3 .agents/skills/pr-walkthrough/scripts/validate_d3_canvas.py --html "$ind
 
 ### 1. 建立 PR 上下文
 
-识别仓库根目录、当前分支和比较 base。若当前分支已有 GitHub PR，优先使用 PR base，并记录 PR URL 生成 diff links：
+识别仓库根目录、当前分支和比较 base。若用户 Prompt 明确给出 PR number、`#<number>` 或 PR URL，先把该编号记录为 `pr_number`。否则从当前分支的 GitHub PR 获取 `pr_number`，并优先使用 PR base、记录 PR URL 生成 diff links：
 
 ```bash
-gh pr view --json baseRefName,headRefName,title,body,url,state,reviewRequests,reviews,files
+pr_number="${pr_number:-}"  # 用户 Prompt 已明确给出 PR 编号时，先由执行者设置这个变量。
+if [ -z "$pr_number" ]; then
+  pr_number="$(gh pr view --json number --jq '.number // empty' 2>/dev/null || true)"
+fi
+
+if [ -n "$pr_number" ]; then
+  gh pr view "$pr_number" --json number,baseRefName,headRefName,title,body,url,state,reviewRequests,reviews,files
+else
+  gh pr view --json number,baseRefName,headRefName,title,body,url,state,reviewRequests,reviews,files
+fi
 ```
 
 若没有 PR，从远端默认分支或仓库约定推断 base：
