@@ -1,67 +1,37 @@
 ---
 name: git-commit
-description: Create clean, repo-aware commits from real diffs with focused inspection, selective staging, and minimal tool calls.
+description: Create focused, reviewable commits from the current diff without including unrelated files.
 ---
 
 # git-commit
 
-Commit current repo changes atomically, with accurate messages and no unrelated files.
+Use this when the user asks to commit current changes or organize them into
+commits.
 
-## Inspect
+## Inspect and group
 
-Use one tool call for the common inspection:
+Review status, unstaged/staged diffs, and their stats. Check repository commit
+conventions only when they are not already clear from the task or nearby files.
+Split only genuinely separate concerns (for example behavior versus refactor,
+dependency churn, generated output, formatting-only changes, or unrelated
+docs/tests). Keep directly related tests with the change.
 
-```bash
-git status --short
-git diff --stat
-git diff
-git diff --cached --stat
-git diff --cached
-```
+Stage only intended paths, using `git add -p` when a file contains mixed
+concerns. Do not bulk-stage unrelated work.
 
-If staged output is empty, ignore it. Check repo message conventions only when unknown: prefer existing context, then obvious files such as `.gitmessage`, `CONTRIBUTING.md`, or commit config. Use recent history only when style is still unclear.
+## Message and commit
 
-## Commit Boundaries
-
-Split only for real separate concerns: behavior vs refactor, dependency churn vs code, generated output without source, formatting-only churn, or unrelated docs/tests. Keep directly related tests with the fix/feature.
-
-Stage only intended paths:
-
-```bash
-git add <specific-files>
-```
-
-Use `git add -p` only when file-level staging would mix unrelated changes.
-
-## Approval
-
-If the user asked to commit a clear current change, proceed after inspection. Ask first only when included files, boundaries, risky content, or issue semantics are ambiguous. Keep questions short: included files, excluded files, proposed message, and the ambiguity.
-
-## Message
-
-Default format unless repo conventions say otherwise:
+Unless repository conventions say otherwise, use:
 
 ```text
 type(scope): summary
 ```
 
-Types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `build`, `ci`, `chore`. Use a scope when obvious. Avoid `update`, `changes`, `misc`, and `wip`.
+Use `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `build`, `ci`, or
+`chore`. Add `Fixes #123` only for explicit closing intent or a clearly
+completed narrow issue; use `Refs #123` for partial or ambiguous work. Never
+invent issue IDs.
 
-Issue links:
-
-- Detect explicit user issue IDs first, then branch patterns like `<type>/<desc>-123`, `issue-123`, `gh-123`, or `#123`.
-- Use `Fixes #123` only for explicit closing intent or a clearly complete narrow issue.
-- Use `Refs #123` for partial, preparatory, docs-only, cleanup-only, or ambiguous work.
-- Do not invent issue IDs.
-
-## Commit
-
-Use normal Git so hooks run:
-
-```bash
-git commit -m "<subject>"
-```
-
-If hooks fail, stop and report. Do not use `--no-verify`, push, rewrite history, or force anything unless explicitly asked.
-
-Report the final commit hash and whether hooks/checks ran.
+Run normal `git commit -m` so hooks execute. If a hook fails, stop and report;
+do not use `--no-verify`, push, rewrite history, or force operations unless
+explicitly requested. Report the final hash and whether hooks ran.
