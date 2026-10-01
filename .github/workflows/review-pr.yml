@@ -62,7 +62,8 @@ jobs:
 
       - name: Report skipped review
         if: steps.pr.outputs.reviewable != 'true'
-        run: echo "PR #${{ steps.pr.outputs.number }} is not reviewable (${{ steps.pr.outputs.skip_reason }}); skipping AI review."
+        run: |
+          echo "PR #${{ steps.pr.outputs.number }} is not reviewable (${{ steps.pr.outputs.skip_reason }}); skipping AI review."
 
   review:
     needs: preflight
