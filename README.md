@@ -36,8 +36,11 @@ cd AICodingFlow
 
 | 名称 | 类型 | 用途 |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | Actions secret | Codex action 使用的 API key。 |
-| `OPENAI_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL。 |
+| `CODEX_API_KEY` | Actions secret | Codex action 使用的模型服务 API key；未设置时回退到 `OPENAI_API_KEY`。 |
+| `CODEX_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL；未设置时回退到 `OPENAI_API_ENDPOINT`。 |
+| `CODEX_MODEL` | Actions variable | Codex 使用的模型名称，例如网关暴露的 `deepseek-chat`；为空时使用 Codex 默认模型。 |
+| `OPENAI_API_KEY` | Actions secret | 兼容旧配置的 API key 名称。 |
+| `OPENAI_API_ENDPOINT` | Actions variable | 兼容旧配置的 Responses API endpoint 名称。 |
 | `AGENT_LOGIN` | Actions variable | GitHub issue / PR comment 中被分配或 mention 的 agent 登录名。 |
 | `REVIEW_BOT_LOGIN` | Actions variable | 可选。发布 PR review 的 bot 登录名；默认 `github-actions[bot]`。如果 review workflow 改用其他 token / bot 账号发 review，需要设置为实际 review 作者，用于后续 `APPROVE` 清理旧的 bot `REQUEST_CHANGES`。 |
 | `APP_CLIENT_ID` | Actions variable | GitHub App client ID；implementation/comment fix 需要更新 workflow 文件时使用。 |
@@ -50,6 +53,12 @@ $bootstrap-issue-config
 ```
 
 它会分析已有 labels、issues 和 contributors，生成或更新 `.github/issue-triage/config.json` 与 `.github/CODEOWNERS`。
+
+### 使用其他模型服务
+
+所有 Codex workflow 共享同一组模型配置。推荐设置 `CODEX_API_KEY`、`CODEX_API_ENDPOINT` 和 `CODEX_MODEL`；已有项目也可以继续使用 `OPENAI_API_KEY` 和 `OPENAI_API_ENDPOINT`，它们会作为回退配置。
+
+`openai/codex-action` 通过 Responses API 调用模型，因此 `CODEX_API_ENDPOINT` 必须指向支持 Responses API 的服务。DeepSeek 原生 API 目前使用 Chat Completions 协议，不能直接填入其 `/chat/completions` 地址；请先使用 LiteLLM、OneAPI 或其他协议转换网关，并把网关的 Responses API 地址和网关暴露的模型名称配置到上述变量中。
 
 ## 工作流概览
 
