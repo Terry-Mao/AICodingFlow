@@ -19,6 +19,30 @@ class GithubApiTests(unittest.TestCase):
 
         run.assert_called_once_with(["gh", "repo", "view"], check=True, stdout=subprocess.PIPE, text=True)
 
+    def test_run_gh_json_parses_newline_delimited_paginated_output(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='[{"number": 1}]\n[{"number": 2}]\n',
+        )
+        with mock.patch.object(github_api.subprocess, "run", return_value=completed):
+            self.assertEqual(
+                github_api.run_gh_json(["api", "issues", "--paginate"]),
+                [[{"number": 1}], [{"number": 2}]],
+            )
+
+    def test_run_gh_json_preserves_slurped_json_array(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='[[{"number": 1}], [{"number": 2}]]',
+        )
+        with mock.patch.object(github_api.subprocess, "run", return_value=completed):
+            self.assertEqual(
+                github_api.run_gh_json(["api", "issues", "--paginate", "--slurp"]),
+                [[{"number": 1}], [{"number": 2}]],
+            )
+
     def test_run_gh_text_returns_stdout(self) -> None:
         completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="body\n")
         with mock.patch.object(github_api.subprocess, "run", return_value=completed):
