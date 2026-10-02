@@ -26,28 +26,22 @@ class CodexModelProviderConfigTest(unittest.TestCase):
             with self.subTest(path=path):
                 contents = (ROOT / path).read_text(encoding="utf-8")
                 self.assertEqual(contents.count("uses: openai/codex-action@v1"), 1)
-                self.assertEqual(
-                    contents.count("openai-api-key: ${{ secrets.CODEX_API_KEY || secrets.OPENAI_API_KEY }}"),
-                    1,
-                )
+                self.assertEqual(contents.count("openai-api-key: ${{ secrets.CODEX_API_KEY }}"), 1)
                 self.assertEqual(
                     contents.count("model: ${{ vars.CODEX_MODEL }}"),
                     1,
                 )
-                self.assertEqual(
-                    contents.count("CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT || vars.OPENAI_API_ENDPOINT }}"),
-                    1,
-                )
+                self.assertEqual(contents.count("CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}"), 1)
                 self.assertIn('endpoint="${CODEX_API_ENDPOINT%/}"', contents)
                 self.assertIn("*/responses", contents)
                 self.assertIn("$endpoint/responses", contents)
-                self.assertIn("CODEX_API_ENDPOINT or OPENAI_API_ENDPOINT is not set", contents)
+                self.assertIn("CODEX_API_ENDPOINT is not set", contents)
 
     def test_workflows_do_not_read_the_legacy_endpoint_environment_directly(self) -> None:
         for path in CODEX_WORKFLOWS:
             with self.subTest(path=path):
                 contents = (ROOT / path).read_text(encoding="utf-8")
-                self.assertNotIn('endpoint="${OPENAI_API_ENDPOINT%/}"', contents)
+                self.assertNotIn("OPENAI_", contents)
 
 
 if __name__ == "__main__":

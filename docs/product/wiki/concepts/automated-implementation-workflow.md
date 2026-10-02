@@ -30,7 +30,7 @@ sources:
 
 - 普通不修改 GitHub workflow 文件的实现分支使用默认 `GITHUB_TOKEN` 推送。
 - 实现变更包含 `.github/workflows/` 下的 GitHub workflow 文件时，外层 workflow 会通过 `actions/create-github-app-token` 生成短期 GitHub App installation token，并作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。
-- 仓库需要配置 `APP_CLIENT_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret。
+- 仓库需要配置 `APP_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret。
 - 对应 GitHub App 必须安装到目标仓库，并具有 `Contents: Read and write` 与 `Workflows: Read and write` 权限。
 - 生成出来的一次性 installation token 不应存成 secret。
 

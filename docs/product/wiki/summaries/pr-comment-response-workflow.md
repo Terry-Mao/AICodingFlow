@@ -49,7 +49,7 @@ Source: [docs/product/raw/pr-comment-response-workflow.md](../../raw/pr-comment-
 - PR discussion context、diff snapshot、spec context、metadata、summary 和 validation logs 位于 `pr-worktree/.codex-runtime/handoff/`，workflow 排除 `.codex-runtime/`，不污染提交内容。
 - `push-head` 成功后不会按 metadata 改写原 PR title/body；fallback PR 会在 PR body 中说明来源 PR 和触发评论。
 - resolve review thread 失败只记录 warning，不回滚已完成的 commit、push 或 PR update。
-- 修改 `.github/workflows/` 下 GitHub workflow 文件时，外层 workflow 会通过 GitHub App installation token 设置 `WORKFLOW_UPDATE_TOKEN`；仓库需要配置 `APP_CLIENT_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret。
+- 修改 `.github/workflows/` 下 GitHub workflow 文件时，外层 workflow 会通过 GitHub App installation token 设置 `WORKFLOW_UPDATE_TOKEN`；仓库需要配置 `APP_ID` Actions variable 和 `APP_PRIVATE_KEY` Actions secret。
 
 ## 支持的概念
 

@@ -176,11 +176,11 @@ jobs:
       - name: Configure Codex API endpoint
         id: codex_endpoint
         env:
-          CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT || vars.OPENAI_API_ENDPOINT }}
+          CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
         run: |
           endpoint="${CODEX_API_ENDPOINT%/}"
           if [ -z "$endpoint" ]; then
-            echo "CODEX_API_ENDPOINT or OPENAI_API_ENDPOINT is not set" >&2
+            echo "CODEX_API_ENDPOINT is not set" >&2
             exit 1
           fi
           case "$endpoint" in
@@ -192,10 +192,10 @@ jobs:
       - name: Run AI review
         uses: openai/codex-action@v1
         with:
-          openai-api-key: ${{ secrets.CODEX_API_KEY || secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
-          allow-bot-users: github-actions[bot]
+          allow-bots: true
           prompt: |
             First change directory to pr-worktree and do all file inspection from there.
             Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.

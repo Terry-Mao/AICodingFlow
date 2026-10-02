@@ -33,10 +33,25 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", data["jobs"]["ai-review"]["if"])
 
         test_steps = steps(data, "test")
+        dependencies = next(step for step in test_steps if step.get("name") == "Install Python test dependencies")
+        self.assertIn('python3 -m venv "$RUNNER_TEMP/aicodingflow-venv"', dependencies["run"])
+        self.assertIn('aicodingflow-venv/bin/python" -m pip install', dependencies["run"])
+        self.assertIn('"PyYAML==6.0.3"', dependencies["run"])
+
         project_tests = next(step for step in test_steps if step.get("name") == "Run repository unit tests")
         delivery_tests = next(step for step in test_steps if step.get("name") == "Run delivered unit tests")
         self.assertIn("python3 -m unittest discover -s .github/tests", project_tests["run"])
         self.assertIn("python3 -m unittest discover -s .github/aicodingflow-tests", delivery_tests["run"])
+
+        install_actionlint = next(step for step in test_steps if step.get("name") == "Install actionlint")
+        self.assertEqual(install_actionlint["env"]["ACTIONLINT_VERSION"], "1.7.12")
+        self.assertIn("sha256sum --check", install_actionlint["run"])
+
+        lint_workflows = next(step for step in test_steps if step.get("name") == "Lint GitHub Actions workflows")
+        self.assertIn("find .github/workflows", lint_workflows["run"])
+        self.assertIn("-name '*.yml'", lint_workflows["run"])
+        self.assertIn("-name '*.yaml'", lint_workflows["run"])
+        self.assertIn('actionlint "${workflow_files[@]}"', lint_workflows["run"])
 
         dispatch_step = next(step for step in steps(data, "ai-review") if step.get("name") == "Dispatch AI PR Review")
         self.assertEqual(dispatch_step["env"]["GH_TOKEN"], "${{ github.token }}")
