@@ -25,11 +25,41 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Install Python test dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-venv"
+          "$RUNNER_TEMP/aicodingflow-venv/bin/python" -m pip install \
+            --disable-pip-version-check "PyYAML==6.0.3"
+          echo "$RUNNER_TEMP/aicodingflow-venv/bin" >> "$GITHUB_PATH"
+
       - name: Run repository unit tests
         run: python3 -m unittest discover -s .github/tests
 
       - name: Run delivered unit tests
         run: python3 -m unittest discover -s .github/aicodingflow-tests
+
+      - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: "1.7.12"
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          base_url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}"
+          curl --fail --silent --show-error --location "$base_url/$archive" --output "$RUNNER_TEMP/$archive"
+          curl --fail --silent --show-error --location "$base_url/actionlint_${ACTIONLINT_VERSION}_checksums.txt" \
+            --output "$RUNNER_TEMP/actionlint_checksums.txt"
+          grep "  $archive$" "$RUNNER_TEMP/actionlint_checksums.txt" > "$RUNNER_TEMP/actionlint_checksum.txt"
+          (cd "$RUNNER_TEMP" && sha256sum --check actionlint_checksum.txt)
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Lint GitHub Actions workflows
+        run: |
+          mapfile -d '' workflow_files < <(find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
+          if ((${#workflow_files[@]} == 0)); then
+            echo "No GitHub Actions workflow files found" >&2
+            exit 1
+          fi
+          actionlint "${workflow_files[@]}"
 
       - name: Compile Python scripts
         run: |

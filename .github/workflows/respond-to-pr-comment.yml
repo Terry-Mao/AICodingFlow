@@ -193,11 +193,11 @@ jobs:
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         id: codex_endpoint
         env:
-          CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT || vars.OPENAI_API_ENDPOINT }}
+          CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
         run: |
           endpoint="${CODEX_API_ENDPOINT%/}"
           if [ -z "$endpoint" ]; then
-            echo "CODEX_API_ENDPOINT or OPENAI_API_ENDPOINT is not set" >&2
+            echo "CODEX_API_ENDPOINT is not set" >&2
             exit 1
           fi
           case "$endpoint" in
@@ -210,7 +210,7 @@ jobs:
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         uses: openai/codex-action@v1
         with:
-          openai-api-key: ${{ secrets.CODEX_API_KEY || secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           prompt: |
@@ -353,7 +353,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ vars.APP_CLIENT_ID }}
+          app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           permission-contents: write
           permission-workflows: write

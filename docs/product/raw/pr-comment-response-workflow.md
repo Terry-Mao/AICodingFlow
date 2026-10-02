@@ -112,7 +112,7 @@ workflow 会先根据 `pr-metadata.json` 的 `intended_files` 判断是否需要
 installation token，并把该 token 作为 `WORKFLOW_UPDATE_TOKEN` 传给提交脚本。普通不修改 GitHub
 workflow 文件的修复提交继续使用当前 workflow 的默认写入凭据。
 
-仓库需要配置 `APP_CLIENT_ID` Actions variable 和
+仓库需要配置 `APP_ID` Actions variable 和
 `APP_PRIVATE_KEY` Actions secret。对应 GitHub App 必须安装到目标仓库，并具有
 `Contents: Read and write` 与 `Workflows: Read and write` 权限。不要把生成出来的一次性
 installation token 存成 secret；该 token 是短期凭据，会过期。

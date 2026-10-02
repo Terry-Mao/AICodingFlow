@@ -12,19 +12,17 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 
 | 名称 | 类型 | 用途 |
 | --- | --- | --- |
-| `CODEX_API_KEY` | Actions secret | Codex action 使用的模型服务 API key；未设置时回退到 `OPENAI_API_KEY`。 |
-| `CODEX_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL；未设置时回退到 `OPENAI_API_ENDPOINT`。 |
+| `CODEX_API_KEY` | Actions secret | Codex action 使用的模型服务 API key。 |
+| `CODEX_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL。 |
 | `CODEX_MODEL` | Actions variable | Codex 使用的模型名称；为空时使用 Codex 默认模型。 |
-| `OPENAI_API_KEY` | Actions secret | 兼容旧配置的 API key 名称。 |
-| `OPENAI_API_ENDPOINT` | Actions variable | 兼容旧配置的 Responses API endpoint 名称。 |
 | `AGENT_LOGIN` | Actions variable | issue / PR comment 中被分配或 mention 的 agent 登录名。 |
 | `REVIEW_BOT_LOGIN` | Actions variable | 可选。发布 PR review 的 bot 登录名；默认 `github-actions[bot]`。如果 `review-pr.yml` 改用其他 token / bot 账号发 review，需要设置为实际 review 作者。 |
-| `APP_CLIENT_ID` | Actions variable | GitHub App client ID；需要提交 workflow 文件更新时使用。 |
+| `APP_ID` | Actions variable | GitHub App ID；需要提交 workflow 文件更新时使用。 |
 | `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
 
 目标仓库已有自己的 CI 时，推荐在 CI 成功路径中 dispatch `review-pr.yml`，不要直接改 managed review workflow。这样后续升级 AICodingFlow 时可以覆盖受管 workflow，而不会丢失目标仓库自己的 CI 编排。
 
-所有 Codex workflow 使用同一组模型配置。`CODEX_*` 配置优先，未设置时回退到对应的 `OPENAI_*` 配置。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
+所有 Codex workflow 使用同一组模型配置。`CODEX_API_KEY`、`CODEX_API_ENDPOINT` 和 `CODEX_MODEL` 必须配置。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
 
 ## Label 和触发规则
 
