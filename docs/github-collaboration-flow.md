@@ -22,7 +22,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 
 目标仓库已有自己的 CI 时，推荐在 CI 成功路径中 dispatch `review-pr.yml`，不要直接改 managed review workflow。这样后续升级 AICodingFlow 时可以覆盖受管 workflow，而不会丢失目标仓库自己的 CI 编排。
 
-所有 Codex workflow 使用同一组模型配置。`CODEX_API_KEY`、`CODEX_API_ENDPOINT` 和 `CODEX_MODEL` 必须配置。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
+所有 Codex workflow 使用同一组模型配置。`CODEX_API_KEY` 和 `CODEX_API_ENDPOINT` 必须配置；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
 
 ## Label 和触发规则
 

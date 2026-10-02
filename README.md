@@ -54,7 +54,7 @@ $bootstrap-issue-config
 
 ### 使用其他模型服务
 
-所有 Codex workflow 共享同一组模型配置，必须设置 `CODEX_API_KEY`、`CODEX_API_ENDPOINT` 和 `CODEX_MODEL`。
+所有 Codex workflow 共享同一组模型配置，必须设置 `CODEX_API_KEY` 和 `CODEX_API_ENDPOINT`；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。
 
 `openai/codex-action` 通过 Responses API 调用模型，因此 `CODEX_API_ENDPOINT` 必须指向支持 Responses API 的服务。DeepSeek 原生 API 目前使用 Chat Completions 协议，不能直接填入其 `/chat/completions` 地址；请先使用 LiteLLM、OneAPI 或其他协议转换网关，并把网关的 Responses API 地址和网关暴露的模型名称配置到上述变量中。
 
