@@ -30,6 +30,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/aicodingflow-t
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/aicodingflow-tests -p 'test_<module>.py'
 PYTHONPYCACHEPREFIX=/tmp/aicodingflow-pycache python3 -m py_compile <paths>
 git diff --check
+mapfile -d '' workflow_files < <(find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -print0) && actionlint "${workflow_files[@]}"
 ```
 
 ## Repository Conventions
