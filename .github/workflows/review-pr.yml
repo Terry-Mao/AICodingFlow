@@ -195,7 +195,7 @@ jobs:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
-          allow-bot-users: github-actions[bot]
+          allow-bots: true
           prompt: |
             First change directory to pr-worktree and do all file inspection from there.
             Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.
