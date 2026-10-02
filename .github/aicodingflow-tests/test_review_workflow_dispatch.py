@@ -149,7 +149,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("cp -R .agents/contracts pr-worktree/.agents/contracts", prepare_step["run"])
 
         ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
-        self.assertEqual(ai_step["with"]["allow-bots"], "github-actions[bot]")
+        self.assertEqual(ai_step["with"]["allow-bot-users"], "github-actions[bot]")
         self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Read .agents/contracts/review.md", ai_step["with"]["prompt"])
         self.assertIn("shared review contract", ai_step["with"]["prompt"])
