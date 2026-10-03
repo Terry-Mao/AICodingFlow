@@ -189,27 +189,7 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Log AI review inputs
-        id: ai_review_start
-        run: |
-          started_at="$(date +%s)"
-          echo "started_at=$started_at" >> "$GITHUB_OUTPUT"
-          echo "AI review inputs prepared at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          echo "selected_skill=${{ steps.review_skill.outputs.path }}"
-          for path in \
-            pr-worktree/pr_description.txt \
-            pr-worktree/pr_diff.txt \
-            pr-worktree/spec_context.md \
-            pr-worktree/review_discussion_context.json; do
-            if [ -f "$path" ]; then
-              printf 'input=%s bytes=%s\n' "$path" "$(wc -c < "$path")"
-            else
-              echo "input=$path absent"
-            fi
-          done
-
       - name: Run AI review
-        id: ai_review
         uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1.11
         timeout-minutes: 20
         with:
@@ -217,7 +197,6 @@ jobs:
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           allow-bots: true
-          output-file: pr-worktree/codex-final-message.txt
           prompt: |
             First change directory to pr-worktree and do all file inspection from there.
             Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.
@@ -241,24 +220,6 @@ jobs:
             message. Do not re-read or revise review.json after it is complete.
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
-
-      - name: Log AI review result
-        if: always()
-        env:
-          STARTED_AT: ${{ steps.ai_review_start.outputs.started_at }}
-          AI_REVIEW_OUTCOME: ${{ steps.ai_review.outcome }}
-        run: |
-          finished_at="$(date +%s)"
-          started_at="${STARTED_AT:-$finished_at}"
-          duration=$((finished_at - started_at))
-          echo "AI review outcome=$AI_REVIEW_OUTCOME duration_seconds=$duration"
-          for path in pr-worktree/review.json pr-worktree/codex-final-message.txt; do
-            if [ -f "$path" ]; then
-              printf 'output=%s bytes=%s\n' "$path" "$(wc -c < "$path")"
-            else
-              echo "output=$path absent"
-            fi
-          done
 
       - name: Normalize review output path
         run: |
@@ -286,7 +247,6 @@ jobs:
             pr-worktree/spec_context.md
             pr-worktree/review_discussion_context.json
             pr-worktree/review.json
-            pr-worktree/codex-final-message.txt
 
       - name: Mark PR review status complete
         if: always() && github.event_name != 'pull_request' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository

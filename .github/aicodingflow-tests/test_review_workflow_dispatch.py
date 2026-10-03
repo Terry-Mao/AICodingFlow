@@ -149,13 +149,11 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("cp -R .agents/contracts pr-worktree/.agents/contracts", prepare_step["run"])
 
         ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
-        self.assertEqual(ai_step["id"], "ai_review")
         self.assertEqual(
             ai_step["uses"],
             "openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56",
         )
         self.assertEqual(ai_step["timeout-minutes"], 20)
-        self.assertEqual(ai_step["with"]["output-file"], "pr-worktree/codex-final-message.txt")
         self.assertIs(ai_step["with"]["allow-bots"], True)
         self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Read .agents/contracts/review.md", ai_step["with"]["prompt"])
@@ -167,25 +165,12 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("duplicate suppression only", ai_step["with"]["prompt"])
         self.assertIn("After writing review.json, stop immediately", ai_step["with"]["prompt"])
 
-        start_step = next(step for step in review_steps if step.get("name") == "Log AI review inputs")
-        self.assertEqual(start_step["id"], "ai_review_start")
-        self.assertIn("selected_skill=", start_step["run"])
-        self.assertIn("pr-worktree/pr_diff.txt", start_step["run"])
-
-        result_step = next(step for step in review_steps if step.get("name") == "Log AI review result")
-        self.assertEqual(result_step["if"], "always()")
-        self.assertIn("AI_REVIEW_OUTCOME", result_step["env"])
-        self.assertIn("duration_seconds", result_step["run"])
-
         normalize_step = next(step for step in review_steps if step.get("name") == "Normalize review output path")
         self.assertIn("[ ! -f pr-worktree/review.json ] && [ -f review.json ]", normalize_step["run"])
         self.assertIn("mv review.json pr-worktree/review.json", normalize_step["run"])
 
         validate_step = next(step for step in review_steps if step.get("name") == "Validate review output")
         self.assertIn("pr-worktree/pr_diff.txt pr-worktree/review.json", validate_step["run"])
-
-        artifact_step = next(step for step in review_steps if step.get("uses") == "actions/upload-artifact@v7")
-        self.assertIn("pr-worktree/codex-final-message.txt", artifact_step["with"]["path"])
 
         complete_status_step = next(step for step in review_steps if step.get("name") == "Mark PR review status complete")
         self.assertIn("always()", complete_status_step["if"])
