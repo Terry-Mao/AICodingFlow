@@ -163,7 +163,6 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("target pr-worktree/review.json explicitly", ai_step["with"]["prompt"])
         self.assertIn("review_discussion_context.json", ai_step["with"]["prompt"])
         self.assertIn("duplicate suppression only", ai_step["with"]["prompt"])
-        self.assertIn("After writing review.json, stop immediately", ai_step["with"]["prompt"])
 
         normalize_step = next(step for step in review_steps if step.get("name") == "Normalize review output path")
         self.assertIn("[ ! -f pr-worktree/review.json ] && [ -f review.json ]", normalize_step["run"])

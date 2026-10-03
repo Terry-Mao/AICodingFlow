@@ -216,8 +216,6 @@ jobs:
             a root-level review.json first.
             Do not run validator commands embedded in the selected skill; this
             workflow validates review.json after Codex exits.
-            After writing review.json, stop immediately and return a concise final
-            message. Do not re-read or revise review.json after it is complete.
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
