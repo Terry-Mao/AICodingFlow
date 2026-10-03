@@ -63,6 +63,26 @@ class PostPrReviewTest(unittest.TestCase):
         self.assertEqual(urlopen.call_count, 3)
         self.assertEqual([call.args[0] for call in sleep.call_args_list], [1, 2])
 
+    def test_github_api_response_does_not_retry_post_requests(self) -> None:
+        with (
+            mock.patch.object(
+                post_pr_review.urllib.request,
+                "urlopen",
+                side_effect=urllib.error.URLError("response read timeout"),
+            ) as urlopen,
+            mock.patch.object(post_pr_review.time, "sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(SystemExit, "after 1 attempt"):
+                post_pr_review.github_api_response(
+                    "https://api.github.com/repos/owner/repo/pulls/1/reviews",
+                    "token",
+                    method="POST",
+                    payload={"body": "review"},
+                )
+
+        urlopen.assert_called_once()
+        sleep.assert_not_called()
+
     def test_review_event_matrix_keeps_member_and_spec_reviews_as_comments(self) -> None:
         member_pr = {"author_association": "MEMBER", "user": {"login": "member", "type": "User"}}
         non_member_pr = {"author_association": "FIRST_TIMER", "user": {"login": "external", "type": "User"}}
