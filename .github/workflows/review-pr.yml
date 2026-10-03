@@ -249,7 +249,8 @@ jobs:
           AI_REVIEW_OUTCOME: ${{ steps.ai_review.outcome }}
         run: |
           finished_at="$(date +%s)"
-          duration=$((finished_at - STARTED_AT))
+          started_at="${STARTED_AT:-$finished_at}"
+          duration=$((finished_at - started_at))
           echo "AI review outcome=$AI_REVIEW_OUTCOME duration_seconds=$duration"
           for path in pr-worktree/review.json pr-worktree/codex-final-message.txt; do
             if [ -f "$path" ]; then
