@@ -149,6 +149,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("cp -R .agents/contracts pr-worktree/.agents/contracts", prepare_step["run"])
 
         ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
+        self.assertEqual(ai_step["timeout-minutes"], 20)
         self.assertIs(ai_step["with"]["allow-bots"], True)
         self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Read .agents/contracts/review.md", ai_step["with"]["prompt"])
@@ -158,6 +159,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("target pr-worktree/review.json explicitly", ai_step["with"]["prompt"])
         self.assertIn("review_discussion_context.json", ai_step["with"]["prompt"])
         self.assertIn("duplicate suppression only", ai_step["with"]["prompt"])
+        self.assertIn("After writing review.json, stop immediately", ai_step["with"]["prompt"])
 
         normalize_step = next(step for step in review_steps if step.get("name") == "Normalize review output path")
         self.assertIn("[ ! -f pr-worktree/review.json ] && [ -f review.json ]", normalize_step["run"])

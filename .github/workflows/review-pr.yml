@@ -191,6 +191,7 @@ jobs:
 
       - name: Run AI review
         uses: openai/codex-action@v1
+        timeout-minutes: 20
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
@@ -215,6 +216,8 @@ jobs:
             a root-level review.json first.
             Do not run validator commands embedded in the selected skill; this
             workflow validates review.json after Codex exits.
+            After writing review.json, stop immediately and return a concise final
+            message. Do not re-read or revise review.json after it is complete.
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
