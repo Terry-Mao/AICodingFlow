@@ -18,6 +18,7 @@ CODEX_WORKFLOWS = (
     ".github/workflows/update-pr-review.yml",
     ".github/workflows/update-triage.yml",
 )
+PINNED_REVIEW_ACTION = "uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56"
 
 
 class CodexModelProviderConfigTest(unittest.TestCase):
@@ -25,7 +26,10 @@ class CodexModelProviderConfigTest(unittest.TestCase):
         for path in CODEX_WORKFLOWS:
             with self.subTest(path=path):
                 contents = (ROOT / path).read_text(encoding="utf-8")
-                self.assertEqual(contents.count("uses: openai/codex-action@v1"), 1)
+                if path.endswith("/review-pr.yml"):
+                    self.assertEqual(contents.count(PINNED_REVIEW_ACTION), 1)
+                else:
+                    self.assertEqual(contents.count("uses: openai/codex-action@v1"), 1)
                 self.assertEqual(contents.count("openai-api-key: ${{ secrets.CODEX_API_KEY }}"), 1)
                 self.assertEqual(
                     contents.count("model: ${{ vars.CODEX_MODEL }}"),
