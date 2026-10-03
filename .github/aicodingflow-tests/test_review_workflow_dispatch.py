@@ -150,6 +150,10 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
 
         ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
         self.assertEqual(ai_step["id"], "ai_review")
+        self.assertEqual(
+            ai_step["uses"],
+            "openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56",
+        )
         self.assertEqual(ai_step["timeout-minutes"], 20)
         self.assertEqual(ai_step["with"]["output-file"], "pr-worktree/codex-final-message.txt")
         self.assertIs(ai_step["with"]["allow-bots"], True)
