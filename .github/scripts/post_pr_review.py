@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -19,6 +20,10 @@ FENCE_RE = re.compile(r"^\s*```")
 ORG_MEMBER_ASSOCIATIONS = {"COLLABORATOR", "MEMBER", "OWNER"}
 NON_MEMBER_ASSOCIATIONS = {"CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "NONE"}
 DEFAULT_REVIEW_BOT_LOGIN = "github-actions[bot]"
+GITHUB_API_TIMEOUT_SECONDS = 30
+GITHUB_API_MAX_ATTEMPTS = 3
+GITHUB_API_BACKOFF_SECONDS = 1
+GITHUB_API_RETRYABLE_METHODS = {"DELETE", "GET", "HEAD", "OPTIONS", "PUT"}
 
 
 class CodeownersRule(NamedTuple):
@@ -67,13 +72,23 @@ def github_api_response(
         },
         method=method,
     )
-    try:
-        with urllib.request.urlopen(request) as response:
-            body = response.read().decode("utf-8")
-            return GitHubResponse(json.loads(body) if body else {}, response.headers)
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"GitHub API request failed: {exc.code} {detail}") from exc
+    max_attempts = GITHUB_API_MAX_ATTEMPTS if method.upper() in GITHUB_API_RETRYABLE_METHODS else 1
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=GITHUB_API_TIMEOUT_SECONDS) as response:
+                body = response.read().decode("utf-8")
+                return GitHubResponse(json.loads(body) if body else {}, response.headers)
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise SystemExit(f"GitHub API request failed: {exc.code} {detail}") from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            if attempt == max_attempts:
+                attempt_label = "attempt" if max_attempts == 1 else "attempts"
+                raise SystemExit(
+                    "GitHub API request failed after "
+                    f"{max_attempts} {attempt_label}: {exc}"
+                ) from exc
+            time.sleep(GITHUB_API_BACKOFF_SECONDS * (2 ** (attempt - 1)))
 
 
 def request_json(url: str, token: str, payload: dict[str, Any]) -> dict[str, Any]:
