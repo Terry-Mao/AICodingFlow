@@ -172,11 +172,20 @@ class ResolvePrEventTest(unittest.TestCase):
             "false",
         )
 
-    def test_review_state_skips_open_non_draft_fork_prs(self) -> None:
+    def test_review_state_allows_open_non_draft_fork_prs_for_manual_entry(self) -> None:
         state = resolver.review_state({"pull_request": pr_payload(head_repo="fork/repo")}, "owner/repo")
 
-        self.assertEqual(state["reviewable"], "false")
-        self.assertEqual(state["skip_reason"], "head repository is not the current repository")
+        self.assertEqual(state["reviewable"], "true")
+        self.assertEqual(state["skip_reason"], "")
+
+    def test_review_state_allows_manual_workflow_dispatch_for_fork_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(head_repo="fork/repo")},
+            "owner/repo",
+            "workflow_dispatch",
+        )
+
+        self.assertEqual(state["reviewable"], "true")
 
     def test_review_state_allows_valid_comment_review_for_open_non_draft_pr(self) -> None:
         self.assertEqual(

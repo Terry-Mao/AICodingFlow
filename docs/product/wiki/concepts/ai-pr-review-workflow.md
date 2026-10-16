@@ -21,7 +21,7 @@ AI PR Review 负责在 PR 满足可评审条件时运行机器评审，并根据
 - 目标项目已有自己的 CI 时，应在自己的 CI 成功路径中 dispatch `review-pr.yml`，而不是修改已安装的 `review-pr.yml`。
 - `workflow_dispatch` 可以通过 PR number 手动触发 review。
 - PR conversation comment mention Actions variable `AGENT_LOGIN` 指定账号时，可以从 `issue_comment` 事件触发。
-- `review-pr.yml` 不监听 GitHub `pull_request` 事件；fork PR 会被触发器门控和 resolver 双重跳过。
+- `review-pr.yml` 不监听 GitHub `pull_request` 事件；自动 `pull_request_target` 入口会被触发器门控和 resolver 双重限制为同仓库 head，维护者仍可通过 `workflow_dispatch` 显式评审 fork PR。
 - 手动触发和 comment 触发会先解析目标 PR，再复用 review 流程。
 - `workflow_dispatch` 触发允许 `github-actions[bot]` 运行 Codex review action；使用 GitHub App token、PAT 或第三方 CI dispatch 时，bot allowlist 需要匹配实际触发 actor，或改用有人类账号权限的 token 触发。
 - Comment 触发要求 `@AGENT_LOGIN /review` 独占一行，允许前后空白。
@@ -30,8 +30,8 @@ AI PR Review 负责在 PR 满足可评审条件时运行机器评审，并根据
 
 ## Reviewable 条件
 
-- 只有 open、非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review。
-- closed PR、draft PR 或来自 fork 的 PR 会被跳过。
+- 自动 `pull_request_target` 入口只有 open、非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review；`workflow_dispatch` 和有效 comment 入口可显式评审 fork PR。
+- closed PR 或 draft PR 会被跳过。
 - 被跳过的 PR 不会运行 agent、发布 review 或上传 review artifact。
 
 ## Skill 选择
