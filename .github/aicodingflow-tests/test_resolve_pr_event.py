@@ -152,6 +152,16 @@ class ResolvePrEventTest(unittest.TestCase):
         self.assertEqual(state["reviewable"], "true")
         self.assertEqual(state["skip_reason"], "")
 
+    def test_review_state_skips_pull_request_target_fork_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(number=15, head_repo="fork/repo")},
+            "owner/repo",
+            "pull_request_target",
+        )
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "head repository is not the current repository")
+
     def test_review_state_skips_draft_and_closed_prs(self) -> None:
         self.assertEqual(
             resolver.review_state({"pull_request": pr_payload(draft=True)}, "owner/repo")["reviewable"],
@@ -162,11 +172,11 @@ class ResolvePrEventTest(unittest.TestCase):
             "false",
         )
 
-    def test_review_state_allows_open_non_draft_fork_prs(self) -> None:
-        self.assertEqual(
-            resolver.review_state({"pull_request": pr_payload(head_repo="fork/repo")}, "owner/repo")["reviewable"],
-            "true",
-        )
+    def test_review_state_skips_open_non_draft_fork_prs(self) -> None:
+        state = resolver.review_state({"pull_request": pr_payload(head_repo="fork/repo")}, "owner/repo")
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "head repository is not the current repository")
 
     def test_review_state_allows_valid_comment_review_for_open_non_draft_pr(self) -> None:
         self.assertEqual(

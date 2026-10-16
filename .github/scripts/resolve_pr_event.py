@@ -111,18 +111,21 @@ def review_state(event: dict[str, Any], repo: str, event_name: str = "") -> dict
     draft = bool(pr.get("draft"))
     state = str(pr.get("state") or "").lower()
     is_open = state == "open"
+    is_same_repo = head_repo == repo
     is_comment_review = event_name == "issue_comment" and event.get("review_command") is True
     if event_name == "workflow_dispatch":
-        reviewable = is_open
+        reviewable = is_open and is_same_repo
     elif event_name == "issue_comment":
-        reviewable = is_open and not draft and is_comment_review
+        reviewable = is_open and not draft and is_comment_review and is_same_repo
     else:
-        reviewable = is_open and not draft
+        reviewable = is_open and not draft and is_same_repo
 
     if not is_open:
         skip_reason = "closed"
     elif draft and event_name != "workflow_dispatch":
         skip_reason = "draft"
+    elif not is_same_repo:
+        skip_reason = "head repository is not the current repository"
     elif event_name == "issue_comment" and not is_comment_review:
         skip_reason = "missing valid @AGENT_LOGIN /review command"
     else:

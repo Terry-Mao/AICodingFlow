@@ -28,16 +28,16 @@ Source: [docs/product/raw/pr-review-verdict.md](../../raw/pr-review-verdict.md)
 
 ## 触发与 skill 选择
 
-- AI PR Review 默认由目标项目 CI 成功路径通过 `workflow_dispatch` 输入 PR number 触发；AICodingFlow 参考 `CI` workflow 在非 draft、同仓库 head PR 的测试和编译检查成功后 dispatch `review-pr.yml`。
+- AI PR Review 可由 `pull_request_target` 在同仓库 PR 的 opened、reopened、synchronize、ready_for_review 事件触发，也可由目标项目 CI 成功路径通过 `workflow_dispatch` 输入 PR number 触发。
 - 目标项目已有自己的 CI 时，应在自己的 CI 成功路径中 dispatch `review-pr.yml`，而不是修改已安装的 `review-pr.yml`。
 - AI PR Review 也可以手动通过 `workflow_dispatch` 输入 PR number 触发，或由 open 且非 draft PR conversation comment 中的 `@AGENT_LOGIN /review` body-level command 从 `issue_comment` 事件触发。
-- `review-pr.yml` 不直接监听 GitHub `pull_request` 事件。
+- `review-pr.yml` 不监听 GitHub `pull_request` 事件；fork PR 会被触发器门控和 resolver 双重跳过。
 - `workflow_dispatch` 触发允许 `github-actions[bot]` 运行 Codex review action；如果目标仓库改用 GitHub App token、PAT 或第三方 CI dispatch，需要让 bot allowlist 与实际触发 actor 匹配，或改用有人类账号权限的 token 触发。
 - 手动触发和 comment 触发会先解析目标 PR，再复用 review 流程。
 - Comment 触发要求 `@AGENT_LOGIN /review` 独占一行，允许前后空白。
 - 裸 `/review`、单纯 `@AGENT_LOGIN` mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的 `@AGENT_LOGIN /review ...` 都不会触发 AI review。
 - 普通 issue comment 和 PR inline review comment 不是 comment 触发入口。
-- 只有 open、非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review。
+- 只有 open、非 draft 且 head repository 与当前仓库一致的 PR 会继续进入 AI review；fork PR 会被触发器门控和 resolver 双重跳过。
 - closed PR、draft PR 或来自 fork 的 PR 会被跳过，不会运行 agent、发布 review 或上传 review artifact。
 - spec-only PR 使用 `review-spec-repo`；其他 code PR 使用 `review-pr-repo`。
 - 仓库本地 wrapper skill 补充本仓库评审偏好，不改变核心输出契约。

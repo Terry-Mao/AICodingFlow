@@ -61,8 +61,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertTrue(triggers["workflow_dispatch"]["inputs"]["pr_number"]["required"])
         job_gate = data["jobs"]["preflight"]["if"]
         self.assertIn("github.event_name == 'pull_request_target'", job_gate)
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", job_gate)
         self.assertIn("github.event_name == 'workflow_dispatch'", job_gate)
-        self.assertNotIn("github.event.pull_request.head.repo.full_name == github.repository", job_gate)
         self.assertIn("github.event_name == 'issue_comment'", job_gate)
         self.assertIn("github.event.issue.pull_request != null", job_gate)
         self.assertIn("contains(github.event.comment.body, format('@{0}', vars.AGENT_LOGIN))", job_gate)
