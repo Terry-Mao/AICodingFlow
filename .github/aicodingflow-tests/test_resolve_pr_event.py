@@ -207,6 +207,16 @@ class ResolvePrEventTest(unittest.TestCase):
             "true",
         )
 
+    def test_review_state_skips_issue_comment_review_for_fork_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(head_repo="fork/repo"), "review_command": True},
+            "owner/repo",
+            "issue_comment",
+        )
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "head repository is not the current repository")
+
     def test_review_state_skips_issue_comments_without_valid_review_command(self) -> None:
         state = resolver.review_state(
             {"pull_request": pr_payload(draft=False), "review_command": False},
