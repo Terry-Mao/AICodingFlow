@@ -90,9 +90,10 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--agent-login \"${{ vars.AGENT_LOGIN }}\"", resolve_step["run"])
 
         pending_status_step = next(step for step in review_steps if step.get("name") == "Mark PR review status pending")
-        self.assertIn("github.event_name != 'pull_request'", pending_status_step["if"])
-        self.assertIn("steps.pr.outputs.head_sha != ''", pending_status_step["if"])
-        self.assertIn("steps.pr.outputs.head_repo == github.repository", pending_status_step["if"])
+        self.assertEqual(
+            pending_status_step["if"],
+            "steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository",
+        )
         self.assertEqual(pending_status_step["env"]["HEAD_SHA"], "${{ steps.pr.outputs.head_sha }}")
         self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", pending_status_step["run"])
         self.assertIn('state="pending"', pending_status_step["run"])
@@ -175,10 +176,10 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("pr-worktree/pr_diff.txt pr-worktree/review.json", validate_step["run"])
 
         complete_status_step = next(step for step in review_steps if step.get("name") == "Mark PR review status complete")
-        self.assertIn("always()", complete_status_step["if"])
-        self.assertIn("github.event_name != 'pull_request'", complete_status_step["if"])
-        self.assertIn("steps.pr.outputs.head_sha != ''", complete_status_step["if"])
-        self.assertIn("steps.pr.outputs.head_repo == github.repository", complete_status_step["if"])
+        self.assertEqual(
+            complete_status_step["if"],
+            "always() && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository",
+        )
         self.assertEqual(complete_status_step["env"]["STATE"], "${{ job.status == 'success' && 'success' || 'failure' }}")
         self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", complete_status_step["run"])
 

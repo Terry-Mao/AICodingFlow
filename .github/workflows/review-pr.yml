@@ -100,7 +100,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Mark PR review status pending
-        if: github.event_name != 'pull_request' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
+        if: steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
@@ -253,7 +253,7 @@ jobs:
             pr-worktree/review.json
 
       - name: Mark PR review status complete
-        if: always() && github.event_name != 'pull_request' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
+        if: always() && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
