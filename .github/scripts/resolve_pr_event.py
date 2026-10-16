@@ -74,10 +74,10 @@ def resolve_event(
     pr_number: str,
     agent_login: str = "",
 ) -> dict[str, Any]:
-    if event_name == "pull_request":
+    if event_name in {"pull_request", "pull_request_target"}:
         event = load_json(event_path)
         if "pull_request" not in event:
-            raise SystemExit("pull_request event payload is missing pull_request")
+            raise SystemExit(f"{event_name} event payload is missing pull_request")
         return event
 
     if event_name == "issue_comment":
