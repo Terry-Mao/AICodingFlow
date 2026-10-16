@@ -74,10 +74,10 @@ def resolve_event(
     pr_number: str,
     agent_login: str = "",
 ) -> dict[str, Any]:
-    if event_name == "pull_request":
+    if event_name in {"pull_request", "pull_request_target"}:
         event = load_json(event_path)
         if "pull_request" not in event:
-            raise SystemExit("pull_request event payload is missing pull_request")
+            raise SystemExit(f"{event_name} event payload is missing pull_request")
         return event
 
     if event_name == "issue_comment":
@@ -111,18 +111,21 @@ def review_state(event: dict[str, Any], repo: str, event_name: str = "") -> dict
     draft = bool(pr.get("draft"))
     state = str(pr.get("state") or "").lower()
     is_open = state == "open"
+    is_same_repo_entry = event_name not in {"pull_request_target", "issue_comment"} or head_repo == repo
     is_comment_review = event_name == "issue_comment" and event.get("review_command") is True
     if event_name == "workflow_dispatch":
         reviewable = is_open
     elif event_name == "issue_comment":
-        reviewable = is_open and not draft and is_comment_review
+        reviewable = is_open and not draft and is_comment_review and is_same_repo_entry
     else:
-        reviewable = is_open and not draft
+        reviewable = is_open and not draft and is_same_repo_entry
 
     if not is_open:
         skip_reason = "closed"
     elif draft and event_name != "workflow_dispatch":
         skip_reason = "draft"
+    elif event_name in {"pull_request_target", "issue_comment"} and not is_same_repo_entry:
+        skip_reason = "head repository is not the current repository"
     elif event_name == "issue_comment" and not is_comment_review:
         skip_reason = "missing valid @AGENT_LOGIN /review command"
     else:

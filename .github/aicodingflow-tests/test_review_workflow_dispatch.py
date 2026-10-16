@@ -47,19 +47,22 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
                     if action.startswith("actions/upload-artifact@"):
                         self.assertEqual(action, "actions/upload-artifact@v7")
 
-    def test_review_workflow_uses_manual_and_comment_triggers_only(self) -> None:
+    def test_review_workflow_accepts_pull_request_target_and_manual_comment_triggers(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")
         triggers = data[True]
 
         self.assertNotIn("pull_request", triggers)
-        self.assertNotIn("pull_request_target", triggers)
+        self.assertEqual(
+            triggers["pull_request_target"]["types"],
+            ["opened", "reopened", "synchronize", "ready_for_review"],
+        )
         self.assertEqual(data["permissions"]["statuses"], "write")
         self.assertEqual(triggers["issue_comment"]["types"], ["created"])
         self.assertTrue(triggers["workflow_dispatch"]["inputs"]["pr_number"]["required"])
         job_gate = data["jobs"]["preflight"]["if"]
+        self.assertIn("github.event_name == 'pull_request_target'", job_gate)
+        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", job_gate)
         self.assertIn("github.event_name == 'workflow_dispatch'", job_gate)
-        self.assertNotIn("github.event_name == 'pull_request'", job_gate)
-        self.assertNotIn("github.event.pull_request.head.repo.full_name == github.repository", job_gate)
         self.assertIn("github.event_name == 'issue_comment'", job_gate)
         self.assertIn("github.event.issue.pull_request != null", job_gate)
         self.assertIn("contains(github.event.comment.body, format('@{0}', vars.AGENT_LOGIN))", job_gate)

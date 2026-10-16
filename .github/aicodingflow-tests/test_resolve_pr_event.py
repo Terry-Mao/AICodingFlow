@@ -75,6 +75,17 @@ class ResolvePrEventTest(unittest.TestCase):
                 event,
             )
 
+    def test_pull_request_target_event_reuses_existing_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event = {"pull_request": pr_payload(number=12)}
+            event_path.write_text(json.dumps(event), encoding="utf-8")
+
+            self.assertEqual(
+                resolver.resolve_event("owner/repo", "pull_request_target", event_path, ""),
+                event,
+            )
+
     def test_workflow_dispatch_fetches_pr_payload(self) -> None:
         fetched = pr_payload(number=12)
         with mock.patch.object(resolver, "fetch_pr", return_value=fetched) as fetch_pr:
@@ -131,6 +142,36 @@ class ResolvePrEventTest(unittest.TestCase):
             },
         )
 
+    def test_review_state_marks_pull_request_target_non_draft_pr_reviewable(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(number=14)},
+            "owner/repo",
+            "pull_request_target",
+        )
+
+        self.assertEqual(state["reviewable"], "true")
+        self.assertEqual(state["skip_reason"], "")
+
+    def test_review_state_skips_pull_request_target_fork_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(number=15, head_repo="fork/repo")},
+            "owner/repo",
+            "pull_request_target",
+        )
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "head repository is not the current repository")
+
+    def test_review_state_skips_pull_request_target_draft_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(number=16, draft=True)},
+            "owner/repo",
+            "pull_request_target",
+        )
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "draft")
+
     def test_review_state_skips_draft_and_closed_prs(self) -> None:
         self.assertEqual(
             resolver.review_state({"pull_request": pr_payload(draft=True)}, "owner/repo")["reviewable"],
@@ -141,11 +182,20 @@ class ResolvePrEventTest(unittest.TestCase):
             "false",
         )
 
-    def test_review_state_allows_open_non_draft_fork_prs(self) -> None:
-        self.assertEqual(
-            resolver.review_state({"pull_request": pr_payload(head_repo="fork/repo")}, "owner/repo")["reviewable"],
-            "true",
+    def test_review_state_allows_open_non_draft_fork_prs_for_manual_entry(self) -> None:
+        state = resolver.review_state({"pull_request": pr_payload(head_repo="fork/repo")}, "owner/repo")
+
+        self.assertEqual(state["reviewable"], "true")
+        self.assertEqual(state["skip_reason"], "")
+
+    def test_review_state_allows_manual_workflow_dispatch_for_fork_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(head_repo="fork/repo")},
+            "owner/repo",
+            "workflow_dispatch",
         )
+
+        self.assertEqual(state["reviewable"], "true")
 
     def test_review_state_allows_valid_comment_review_for_open_non_draft_pr(self) -> None:
         self.assertEqual(
@@ -156,6 +206,16 @@ class ResolvePrEventTest(unittest.TestCase):
             )["reviewable"],
             "true",
         )
+
+    def test_review_state_skips_issue_comment_review_for_fork_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(head_repo="fork/repo"), "review_command": True},
+            "owner/repo",
+            "issue_comment",
+        )
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "head repository is not the current repository")
 
     def test_review_state_skips_issue_comments_without_valid_review_command(self) -> None:
         state = resolver.review_state(
