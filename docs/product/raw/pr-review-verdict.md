@@ -13,7 +13,8 @@ AI PR Review 默认由目标项目的 CI 成功路径通过 `workflow_dispatch` 
 `review-pr.yml`。
 
 AI PR Review 也会由 `pull_request_target` 监听同仓库 PR 的 opened、reopened、synchronize
-和 ready_for_review 事件触发；fork PR 会被 workflow gate 和 resolver 两层跳过。它也可以手动通过 `workflow_dispatch` 输入 PR number 触发。当 open 且非
+和 ready_for_review 事件触发；fork PR 会被 workflow gate 和 resolver 两层跳过。它也可以手动通过
+`workflow_dispatch` 输入 PR number 触发。当 open 且非
 draft 的 PR conversation comment 中包含发给 Actions variable `AGENT_LOGIN` 指定账号的
 body-level command `@AGENT_LOGIN /review` 时，也可以从 `issue_comment` 事件触发。
 手动触发、comment 触发和 `pull_request_target` 触发会先解析目标 PR，再复用 review 流程。
