@@ -162,6 +162,16 @@ class ResolvePrEventTest(unittest.TestCase):
         self.assertEqual(state["reviewable"], "false")
         self.assertEqual(state["skip_reason"], "head repository is not the current repository")
 
+    def test_review_state_skips_pull_request_target_draft_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(number=16, draft=True)},
+            "owner/repo",
+            "pull_request_target",
+        )
+
+        self.assertEqual(state["reviewable"], "false")
+        self.assertEqual(state["skip_reason"], "draft")
+
     def test_review_state_skips_draft_and_closed_prs(self) -> None:
         self.assertEqual(
             resolver.review_state({"pull_request": pr_payload(draft=True)}, "owner/repo")["reviewable"],
