@@ -37,6 +37,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         data = workflow(".github/workflows/ci.yml")
         self.assertIn("edited", data[True]["pull_request"]["types"])
         self.assertIn("merge_group", data[True])
+        self.assertNotIn("if", data["jobs"]["pr-body"])
         body_steps = steps(data, "pr-body")
         self.assertTrue(any("validate_pr_body" in step.get("run", "") for step in body_steps))
         self.assertNotIn("edited", data["jobs"]["test"]["if"])
