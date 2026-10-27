@@ -58,11 +58,17 @@ class ValidateReviewJsonTest(unittest.TestCase):
             self.run_validator(
                 {
                     "verdict": "REJECT",
-                    "body": "",
+                    "body": "需要修复一个阻塞问题。",
                     "comments": [],
                     "recommended_reviewers": ["reviewer-login"],
                 }
             )
+        )
+
+    def test_rejects_empty_reject_review(self) -> None:
+        self.assert_validator_fails(
+            {"verdict": "REJECT", "body": "", "comments": []},
+            "REJECT review must explain at least one finding",
         )
 
     def test_rejects_missing_verdict(self) -> None:

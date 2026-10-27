@@ -12,6 +12,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from pr_metadata_contracts import BASE_METADATA_FIELDS, load_json_object, validate_base_metadata  # noqa: E402
+from validate_pr_body import validate_body  # noqa: E402
 
 
 REQUIRED_METADATA_FIELDS = BASE_METADATA_FIELDS
@@ -26,6 +27,7 @@ def validate_metadata(path: Path, branch_name: str, issue_number: int | None = N
         raise SystemExit("pr-metadata.json was not created")
     metadata = load_json_object(path, display_name="pr-metadata.json")
     validate_base_metadata(metadata, required_fields=REQUIRED_METADATA_FIELDS)
+    validate_body(metadata["pr_summary"])
     if metadata["branch_name"] != branch_name:
         raise SystemExit(
             f"pr-metadata.json branch_name must be {branch_name!r}, got {metadata['branch_name']!r}"

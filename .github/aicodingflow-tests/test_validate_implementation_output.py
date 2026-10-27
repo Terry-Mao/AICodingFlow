@@ -38,7 +38,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 {
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "feat: add implementation workflow",
-                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
@@ -65,7 +65,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 {
                     "branch_name": "spec/implement-issue-18-workflow",
                     "pr_title": "feat: add implementation workflow",
-                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
@@ -92,7 +92,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 {
                     "branch_name": "spec/issue-18-workflow",
                     "pr_title": "feat: add implementation workflow",
-                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
@@ -120,7 +120,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 {
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "Add implementation workflow",
-                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
@@ -148,7 +148,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 {
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "feat: add implementation workflow",
-                    "pr_summary": "Refs #18\n\n## Summary\n- Done",
+                    "pr_summary": "Refs #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                 },
             )
@@ -176,7 +176,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 {
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "feat: add implementation workflow",
-                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                 },
             )
 
@@ -201,7 +201,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                 {
                     "branch_name": "spec/implement-issue-18",
                     "pr_title": "feat: add implementation workflow",
-                    "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                    "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     "intended_files": ["../outside.py"],
                 },
             )
@@ -235,7 +235,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                     {
                         "branch_name": "spec/implement-issue-18",
                         "pr_title": "feat: add implementation workflow",
-                        "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                        "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                         "intended_files": [filename],
                     },
                 )
@@ -262,7 +262,7 @@ class ValidateImplementationOutputTest(unittest.TestCase):
                     {
                         "branch_name": "spec/implement-issue-18",
                         "pr_title": "feat: add implementation workflow",
-                        "pr_summary": "Closes #18\n\n## Summary\n- Done",
+                        "pr_summary": "Closes #18\n\n## Summary\n- Done\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                         "intended_files": [filename],
                     },
                 )

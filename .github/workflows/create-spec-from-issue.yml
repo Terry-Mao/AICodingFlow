@@ -147,7 +147,8 @@ jobs:
             - pr_title: concise conventional-commit style PR title, such as
               "docs(spec): create issue ${{ steps.issue.outputs.issue_number }} specs"
             - pr_summary: complete markdown PR body. It must include the exact
-              non-closing issue reference "Refs #${{ steps.issue.outputs.issue_number }}".
+              non-closing issue reference "Refs #${{ steps.issue.outputs.issue_number }}"
+              and Summary, Testing, Risk, and How to revert sections.
 
             Respect coauthor_directives from
             ${{ steps.handoff.outputs.dir }}/issue_context.json in generated

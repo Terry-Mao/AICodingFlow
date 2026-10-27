@@ -16,6 +16,16 @@ class ReviewContractsTest(unittest.TestCase):
         self.assertEqual(schema["required"], ["verdict", "body", "comments"])
         self.assertFalse(schema["additionalProperties"])
 
+    def test_reject_requires_body_text_or_inline_comment_in_shared_schema_and_docs(self) -> None:
+        schema = json.loads((ROOT / ".agents/contracts/review.schema.json").read_text(encoding="utf-8"))
+        self.assertEqual(schema["if"], {"properties": {"verdict": {"const": "REJECT"}}})
+        self.assertEqual(schema["then"]["anyOf"], [
+            {"properties": {"body": {"pattern": "\\S"}}},
+            {"properties": {"comments": {"minItems": 1}}},
+        ])
+        product_doc = (ROOT / "docs/product/raw/pr-review-verdict.md").read_text(encoding="utf-8")
+        self.assertIn("`REJECT` 必须在 `body` 中提供非空白说明，或至少提供一条 inline comment", product_doc)
+
     def test_core_and_security_review_skills_reference_shared_contract(self) -> None:
         skill_paths = [
             ".github/skills/review-pr/SKILL.md",

@@ -20,6 +20,32 @@ def compact(text: str) -> str:
 
 
 class ReviewWorkflowDispatchTest(unittest.TestCase):
+    def test_review_skips_already_reviewed_snapshot_before_ai_action(self) -> None:
+        data = workflow(".github/workflows/review-pr.yml")
+        preflight = steps(data, "preflight")
+        seen = next(step for step in preflight if step.get("id") == "seen")
+        self.assertIn("--check-existing", seen["run"])
+        self.assertIn('--base-sha "${{ steps.pr.outputs.base_sha }}"', seen["run"])
+        self.assertIn("steps.seen.outputs.already_reviewed != 'true'", data["jobs"]["preflight"]["outputs"]["reviewable"])
+        self.assertEqual(data["jobs"]["review"]["if"], "needs.preflight.outputs.reviewable == 'true'")
+        restore = next(step for step in preflight if step.get("name") == "Restore status for an already reviewed snapshot")
+        self.assertIn("steps.seen.outputs.already_reviewed == 'true'", restore["if"])
+        self.assertEqual(restore["env"]["HEAD_SHA"], "${{ steps.pr.outputs.head_sha }}")
+        self.assertIn('state="success"', restore["run"])
+        self.assertIn('context="AI PR Review"', restore["run"])
+
+    def test_ci_checks_pr_body_on_edit_without_dispatching_review(self) -> None:
+        data = workflow(".github/workflows/ci.yml")
+        self.assertIn("edited", data[True]["pull_request"]["types"])
+        self.assertIn("merge_group", data[True])
+        self.assertNotIn("if", data["jobs"]["pr-body"])
+        body_steps = steps(data, "pr-body")
+        self.assertTrue(any("validate_pr_body" in step.get("run", "") for step in body_steps))
+        self.assertNotIn("edited", data["jobs"]["test"]["if"])
+        self.assertIn("github.event.pull_request.draft == false", data["jobs"]["test"]["if"])
+        self.assertNotIn("ai-review", data["jobs"])
+        self.assertNotIn("actions", data["permissions"])
+
     def test_workflows_use_node24_action_runtime(self) -> None:
         workflow_jobs = {
             ".github/workflows/create-implementation-from-issue.yml": "create-implementation",

@@ -6,24 +6,20 @@
 
 ## 触发与 reviewable 条件
 
-AI PR Review 默认由目标项目的 CI 成功路径通过 `workflow_dispatch` 输入 PR number
-触发。AICodingFlow 仓库自带的参考 `CI` workflow 会在非 draft、同仓库 head PR 上运行
-单元测试和 Python 编译检查，成功后 dispatch `review-pr.yml`；目标项目已有自己的 CI
-时，应在自己的 CI 成功路径中 dispatch `review-pr.yml`，而不是修改已安装的
-`review-pr.yml`。
+AI PR Review 默认由 `pull_request_target` 在 PR 新建、重新打开、更新 head 或转为
+ready for review 时直接触发，不等待 CI 结果。AICodingFlow 仓库自带的参考 `CI`
+workflow 负责测试和 PR 正文校验，不再额外 dispatch `review-pr.yml`。目标项目已有
+自己的 CI 时，也不应在保留直接触发入口的同时从 CI 再次分发审查。
 
-AI PR Review 也会由 `pull_request_target` 监听同仓库 PR 的 opened、reopened、synchronize
-和 ready_for_review 事件触发；该自动入口只接受同仓库 head，fork PR 会被 workflow gate 和 resolver 两层跳过。维护者仍可通过 `workflow_dispatch` 显式评审 fork PR。当 open 且非
+该自动入口只接受同仓库 head，fork PR 会被 workflow gate 和 resolver 两层跳过。维护者仍可通过 `workflow_dispatch` 显式评审 fork PR。当 open 且非
 draft、同仓库 head 的 PR conversation comment 中包含发给 Actions variable `AGENT_LOGIN` 指定账号的
 body-level command `@AGENT_LOGIN /review` 时，也可以从 `issue_comment` 事件触发。
 手动触发、comment 触发和 `pull_request_target` 触发会先解析目标 PR，再复用 review 流程。
 `review-pr.yml` 不监听 GitHub `pull_request` 事件。
 
-`workflow_dispatch` 触发的 review workflow 允许 `github-actions[bot]` 运行 Codex
-review action，因此使用 GitHub Actions 自带 `GITHUB_TOKEN` 的 CI dispatch 可以运行 AI
-PR Review。若目标仓库改用 GitHub App token、PAT 或第三方 CI dispatch，actor 可能不是
-`github-actions[bot]`，需要让 `review-pr.yml` 的 bot allowlist 与实际触发 actor 匹配，
-或改用有人类账号权限的 token 触发。
+`workflow_dispatch` 保留为手动入口。若改用 GitHub App token 或 PAT 触发，actor
+可能不是 `github-actions[bot]`，需要让 `review-pr.yml` 的 bot allowlist 与实际
+触发 actor 匹配，或改用有人类账号权限的 token 触发。
 
 Comment 触发要求命令独占一行，允许前后空白；裸 `/review`、单纯 `@AGENT_LOGIN`
 mention、quoted line、fenced code block、普通句子中的提及，以及带额外参数的
@@ -37,21 +33,25 @@ checkout 后对 base/head SHA 执行本地 `git diff`。workflow 会在读取 di
 metadata 中的 head SHA 和 base SHA 仍等于触发时解析出的快照；如果 head 或 base 在准备
 review diff 期间变化，本次 review run 失败而不是基于不一致的 diff 继续发布评审。
 
-## Comment 与手动触发的 PR 关联
+## Review status 与 PR 关联
 
-当 AI PR Review 由 PR comment 或 `workflow_dispatch` 触发，且目标 PR 的 head
-repository 是当前仓库时，workflow 会在 PR head commit 上写入 `AI PR Review` commit
+当 AI PR Review 由 `pull_request_target`、PR comment 或 `workflow_dispatch` 触发，
+且目标 PR 的 head repository 是当前仓库时，workflow 会在 PR head commit 上写入 `AI PR Review` commit
 status。Review 运行开始时 status 为 `pending`，运行结束后按 job 结果更新为
 `success` 或 `failure`，并把 status target URL 指向对应的 GitHub Actions run。
 
-该 commit status 用于让 CI dispatch、comment 或手动触发的 review run 出现在目标 PR 的
-checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 不再在测试前预写
-`AI PR Review` status；它只在非 draft、同仓库 head PR 的测试成功后 dispatch
-`review-pr.yml`。测试失败、测试被跳过或 dispatch 未发生时，参考 `CI` workflow 不写入
-`AI PR Review` status。review workflow 运行后按 review job 结果更新该 status。来自 fork
-的 PR 不会写入该 status。
+该 commit status 用于让自动、comment 或手动触发的 review run 出现在目标 PR 的
+checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 不写入
+`AI PR Review` status，也不负责分发审查。review workflow 运行后按 review job 结果
+更新该 status。来自 fork 的 PR 不会写入该 status。
 
 ## Review skill 选择
+
+AI PR Review 的一次 Action 运行只做一次审查。轮次按当前 PR 已发布的 Bot Review
+所对应的不同 base/head SHA 快照计算；相同快照的 Action 重跑不增加轮次，并在 AI
+调用前跳过。前三轮审查当轮 base 与当前 head 的完整 PR diff；第四轮起，当上次已审查提交可追溯且 PR base
+未改变时，以从上次已审查 head 到当前 head 的新增 diff 为重点，并检查未解决意见和整体实现方案。条件不满足时回退
+完整审查。inline 评论始终定位到当前完整 PR diff。
 
 AI PR Review 会先按 changed files 判断 PR 类型，再选择核心 review skill：
 
@@ -154,6 +154,8 @@ review 不生成 spec context。
 - `verdict`: `APPROVE` 或 `REJECT`。
 - `body`: 顶层评审总结或无法 inline 的问题。
 - `comments`: inline review comments 数组。
+
+`REJECT` 必须在 `body` 中提供非空白说明，或至少提供一条 inline comment；两者都为空时校验失败。
 
 `review.json` 可以包含 `recommended_reviewers`，该字段只用于需要推荐人工
 reviewer 的场景。`recommended_reviewers` 必须是字符串数组，最多包含 1 个

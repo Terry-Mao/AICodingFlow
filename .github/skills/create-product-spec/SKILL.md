@@ -73,7 +73,8 @@ questions.
     clearly enough that reviewers can use it directly as the PR body. For
     spec-only PRs, include a non-closing reference to the source issue such as
     `Refs #<issue-number>` rather than closing keywords like `Closes` or
-    `Fixes`.
+    `Fixes`. Include `## Summary`, `## Testing`, `## Risk`, and
+    `## How to revert` in the PR body.
 11. Default behavior: do not stage files, create commits, push branches, open pull requests, or use the GitHub CLI.
 12. In your final response, provide a brief summary of the product spec and call out any assumptions or open questions so the workflow can reuse that summary when creating the PR.
 

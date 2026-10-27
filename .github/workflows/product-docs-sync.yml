@@ -203,6 +203,7 @@ jobs:
             --result product-docs-sync-result.json \
             --output "$body_file" \
             --comment-output "$comment_file"
+          python3 .github/scripts/complete_automated_pr_body.py --body-file "$body_file" --workflow-name "Product Docs Sync" --risk 低
 
           existing_pr="$(
             gh pr list \

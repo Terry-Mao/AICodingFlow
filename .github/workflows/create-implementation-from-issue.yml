@@ -213,6 +213,7 @@ jobs:
             - pr_title: conventional commit style title based on actual changes
             - pr_summary: complete markdown PR body whose first line is exactly
               "Closes #${{ steps.issue.outputs.issue_number }}"
+              and which includes Summary, Testing, Risk, and How to revert sections
             - intended_files: repository-relative implementation files that
               should be committed. Include every intentionally changed
               production, test, spec, .agents, or workflow file. Do not include

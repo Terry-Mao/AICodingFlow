@@ -278,6 +278,8 @@ jobs:
             intended_files must list every intentionally changed repository
             file and must not include workflow handoff files, validation logs,
             generated cache files, or unchanged files.
+            pr_summary must include non-empty Summary, Testing, Risk, and
+            How to revert sections for any follow-up PR.
             When this workflow can push directly to the original PR branch,
             pr_title and pr_summary are used for validation, commit metadata,
             and the response comment summary only; the outer workflow must not

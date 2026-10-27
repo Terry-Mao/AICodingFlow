@@ -100,7 +100,7 @@ class CreateImplementationFlowTest(unittest.TestCase):
                     {
                         "branch_name": "spec/implement-issue-18",
                         "pr_title": "feat: implement issue workflow",
-                        "pr_summary": "Closes #18\n\n## Summary\n- Implemented",
+                        "pr_summary": "Closes #18\n\n## Summary\n- Implemented\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                         "intended_files": [".github/workflows/create-implementation-from-issue.yml"],
                     }
                 ),
@@ -128,7 +128,7 @@ class CreateImplementationFlowTest(unittest.TestCase):
             "main",
             "spec/implement-issue-18",
             "feat: implement issue workflow",
-            "Closes #18\n\n## Summary\n- Implemented",
+            "Closes #18\n\n## Summary\n- Implemented\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
         )
 
 

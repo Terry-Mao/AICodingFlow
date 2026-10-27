@@ -19,6 +19,7 @@ from pr_metadata_contracts import (  # noqa: E402
     validate_base_metadata,
     validate_intended_files,
 )
+from validate_pr_body import validate_body  # noqa: E402
 
 
 REQUIRED_METADATA_FIELDS = {*BASE_METADATA_FIELDS, "intended_files"}
@@ -33,6 +34,7 @@ def validate_metadata(metadata_path: Path, context_path: Path, candidate_paths: 
     context = load_json(context_path)
     metadata = load_json(metadata_path)
     validate_base_metadata(metadata, required_fields=REQUIRED_METADATA_FIELDS)
+    validate_body(metadata["pr_summary"])
     if metadata["branch_name"].strip() != str(context.get("agent_push_branch") or "").strip():
         raise SystemExit("pr-metadata.json branch_name must equal pr_comment_context.json agent_push_branch")
 

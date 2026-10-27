@@ -89,7 +89,7 @@ output path named by the prompt. If no explicit path is provided, use
 {
   "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n...",
+  "pr_summary": "Closes #42\n\n## Summary\n新增 API 重试逻辑。\n\n## Testing\n运行客户端单元测试并通过。\n\n## Risk\n重复请求可能增加 API 负载。\n\n## How to revert\n回退本 PR 提交。",
   "intended_files": [
     "src/api/client.py",
     "tests/test_client.py"
@@ -120,6 +120,8 @@ resolved:
   changes.
 - `pr_summary`: the full markdown PR body. The first line must be exactly
   `Closes #<issue_number>` so GitHub auto-closes the issue when the PR merges.
+  Include `## Summary`, `## Testing`, `## Risk`, and `## How to revert` with
+  actual validation results, a concrete risk, and a rollback action.
 - `intended_files`: repository-relative paths that should be committed as the
   implementation diff. Include every production, test, spec, `.agents`, or
   workflow file intentionally changed by the implementation. Do not include

@@ -20,7 +20,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 | `APP_ID` | Actions variable | GitHub App ID；需要提交 workflow 文件更新时使用。 |
 | `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
 
-目标仓库已有自己的 CI 时，推荐在 CI 成功路径中 dispatch `review-pr.yml`，不要直接改 managed review workflow。这样后续升级 AICodingFlow 时可以覆盖受管 workflow，而不会丢失目标仓库自己的 CI 编排。
+目标仓库已有自己的 CI 时，不要在 CI 成功路径中再次 dispatch `review-pr.yml`。自动审查由该 workflow 的 `pull_request_target` 入口直接触发；CI 保持自己的测试编排。若需要测试通过后才审查，应先关闭直接触发入口，再设计单独的 CI 分发路径，避免两个入口同时运行。
 
 所有 Codex workflow 使用同一组模型配置。`CODEX_API_KEY` 和 `CODEX_API_ENDPOINT` 必须配置；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
 
@@ -134,7 +134,7 @@ Workflow：
 {
   "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n...",
+  "pr_summary": "Closes #42\n\n## Summary\n新增 API 重试逻辑。\n\n## Testing\n运行客户端单元测试并通过。\n\n## Risk\n重复请求可能增加 API 负载。\n\n## How to revert\n回退本 PR 提交。",
   "intended_files": [
     "src/api/client.py",
     "tests/test_client.py"
@@ -142,7 +142,7 @@ Workflow：
 }
 ```
 
-`pr_summary` 第一行必须是 `Closes #<issue-number>`。`intended_files` 必须精确列出 workflow 应提交的实现文件，不包含临时文件、validation logs、生成缓存或未变化文件。
+`pr_summary` 第一行必须是 `Closes #<issue-number>`，并填写非空的 `## Summary`、`## Testing`、`## Risk`、`## How to revert` 四个章节。`intended_files` 必须精确列出 workflow 应提交的实现文件，不包含临时文件、validation logs、生成缓存或未变化文件。
 
 ## PR Review
 
@@ -162,6 +162,15 @@ AI PR Review 会：
 6. `review-pr` 在存在 `spec_context.md` 时加载 `check-impl-against-spec`。
 7. 输出并验证 `review.json`。
 8. 通过 GitHub API 发布 PR review。
+
+每次 Action 只执行一次 Review。流程按同一 PR 已发布 Review 的不同 base/head SHA 快照
+计算轮次；相同快照重跑在 AI 审查前跳过。前三轮对比当轮 base 和当前 head 的完整 PR diff；第四轮起在历史提交可追溯
+且 base 未变化时重点比较上次已审查 head 与当前 head 的 diff，并审视反复局部修复是否需要调整整体方案。
+所有 PR 正文由 CI 校验 Summary、Testing、Risk、How to revert；自动生成的 PR
+也需填写这些章节。正文编辑始终重新校验正文；非草稿 PR 同时重新运行测试。
+自动审查由 `pull_request_target` 直接触发，不等待 CI 结果；`workflow_dispatch`
+和 PR 评论命令保留作手动触发入口，CI 不再自动分发审查。
+如果当前 head 已发布 Review，重跑会跳过 AI 生成并恢复该 head 的审查状态。
 
 发布规则：
 
