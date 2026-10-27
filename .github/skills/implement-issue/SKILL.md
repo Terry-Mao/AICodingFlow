@@ -120,6 +120,8 @@ resolved:
   changes.
 - `pr_summary`: the full markdown PR body. The first line must be exactly
   `Closes #<issue_number>` so GitHub auto-closes the issue when the PR merges.
+  Include `## Summary`, `## Testing`, `## Risk`, and `## How to revert` with
+  actual validation results, a concrete risk, and a rollback action.
 - `intended_files`: repository-relative paths that should be committed as the
   implementation diff. Include every production, test, spec, `.agents`, or
   workflow file intentionally changed by the implementation. Do not include

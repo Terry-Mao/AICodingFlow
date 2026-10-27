@@ -163,6 +163,13 @@ AI PR Review 会：
 7. 输出并验证 `review.json`。
 8. 通过 GitHub API 发布 PR review。
 
+每次 Action 只执行一次 Review。流程按同一 PR 已发布 Review 的不同 head commit
+计算轮次；同一 commit 重跑在 AI 审查前跳过。前三轮看完整 PR，第四轮起在历史提交可追溯
+且 base 未变化时重点检查新增 diff，并审视反复局部修复是否需要调整整体方案。
+所有 PR 正文由 CI 校验 Summary、Testing、Risk、How to revert；自动生成的 PR
+也需填写这些章节。正文编辑后，非草稿 PR 会重新运行测试与正文校验，二者通过后再分发审查。
+如果当前 head 已发布 Review，重跑会跳过 AI 生成并恢复该 head 的审查状态。
+
 发布规则：
 
 - 内部成员、协作者或 owner PR 的 `REJECT` 发布为普通 `COMMENT` review，不产生 GitHub blocking review。

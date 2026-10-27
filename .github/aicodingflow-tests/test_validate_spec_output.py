@@ -24,7 +24,7 @@ class ValidateSpecOutputTest(unittest.TestCase):
                     {
                         "branch_name": "spec/issue-32",
                         "pr_title": "docs(spec): create issue 32 specs",
-                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n",
+                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     }
                 ),
                 encoding="utf-8",
@@ -62,7 +62,7 @@ class ValidateSpecOutputTest(unittest.TestCase):
                     {
                         "branch_name": "spec/issue-32",
                         "pr_title": "docs(spec): create issue 32 specs",
-                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n",
+                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     }
                 ),
                 encoding="utf-8",
@@ -82,7 +82,7 @@ class ValidateSpecOutputTest(unittest.TestCase):
                     {
                         "branch_name": "wrong",
                         "pr_title": "docs(spec): create issue 32 specs",
-                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n",
+                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     }
                 ),
                 encoding="utf-8",
@@ -99,7 +99,7 @@ class ValidateSpecOutputTest(unittest.TestCase):
                     {
                         "branch_name": "spec/issue-32",
                         "pr_title": "Spec: example",
-                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n",
+                        "pr_summary": "## Summary\n\nCreate specs.\n\nRefs #32\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     }
                 ),
                 encoding="utf-8",
@@ -116,7 +116,7 @@ class ValidateSpecOutputTest(unittest.TestCase):
                     {
                         "branch_name": "spec/issue-32",
                         "pr_title": "docs(spec): create issue 32 specs",
-                        "pr_summary": "## Summary\n\nCreate specs.\n",
+                        "pr_summary": "## Summary\n\nCreate specs.\n\n## Testing\nNot run (fixture).\n\n## Risk\nLow.\n\n## How to revert\nRevert the change.",
                     }
                 ),
                 encoding="utf-8",

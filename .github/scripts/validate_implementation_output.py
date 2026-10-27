@@ -17,6 +17,7 @@ from pr_metadata_contracts import (  # noqa: E402
     validate_base_metadata,
     validate_intended_files,
 )
+from validate_pr_body import validate_body  # noqa: E402
 
 REQUIRED_METADATA_FIELDS = {*BASE_METADATA_FIELDS, "intended_files"}
 
@@ -31,6 +32,7 @@ def validate_metadata(metadata_path: Path, context_path: Path) -> dict[str, str]
     context = load_json(context_path)
     metadata = load_json(metadata_path)
     validate_base_metadata(metadata, required_fields=REQUIRED_METADATA_FIELDS)
+    validate_body(metadata["pr_summary"])
     validate_intended_files(metadata)
 
     branch_name = metadata["branch_name"].strip()

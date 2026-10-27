@@ -39,11 +39,11 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     outputs:
-      reviewable: ${{ steps.pr.outputs.reviewable }}
+      reviewable: ${{ steps.pr.outputs.reviewable == 'true' && steps.seen.outputs.already_reviewed != 'true' }}
       number: ${{ steps.pr.outputs.number }}
       draft: ${{ steps.pr.outputs.draft }}
       head_repo: ${{ steps.pr.outputs.head_repo }}
-      skip_reason: ${{ steps.pr.outputs.skip_reason }}
+      skip_reason: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head' || steps.pr.outputs.skip_reason }}
 
     steps:
       - name: Checkout workflow scripts
@@ -66,10 +66,38 @@ jobs:
             --output "$RUNNER_TEMP/pr_event.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Report skipped review
-        if: steps.pr.outputs.reviewable != 'true'
+      - name: Check whether this head was already reviewed
+        id: seen
+        if: steps.pr.outputs.reviewable == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
         run: |
-          echo "PR #${{ steps.pr.outputs.number }} is not reviewable (${{ steps.pr.outputs.skip_reason }}); skipping AI review."
+          python3 .github/scripts/prepare_review_round_context.py \
+            --repo "${{ github.repository }}" \
+            --pr-number "${{ steps.pr.outputs.number }}" \
+            --head-sha "${{ steps.pr.outputs.head_sha }}" \
+            --bot-login "${REVIEW_BOT_LOGIN:-github-actions[bot]}" \
+            --check-existing \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Report skipped review
+        if: steps.pr.outputs.reviewable != 'true' || steps.seen.outputs.already_reviewed == 'true'
+        run: |
+          echo "PR #${{ steps.pr.outputs.number }}: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head' || steps.pr.outputs.skip_reason }}; skipping AI review."
+
+      - name: Restore status for an already reviewed head
+        if: steps.seen.outputs.already_reviewed == 'true' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+            -f state="success" \
+            -f context="AI PR Review" \
+            -f description="AI PR review was already published for this head" \
+            -f target_url="$RUN_URL"
 
   review:
     needs: preflight
@@ -137,6 +165,21 @@ jobs:
             --head-sha "${{ steps.pr.outputs.head_sha }}" \
             --base-sha "${{ steps.pr.outputs.base_sha }}" \
             --output pr_diff.txt
+
+      - name: Prepare cross-run review round
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
+        run: |
+          python3 .github/scripts/prepare_review_round_context.py \
+            --repo "${{ github.repository }}" \
+            --pr-number "${{ steps.pr.outputs.number }}" \
+            --head-sha "${{ steps.pr.outputs.head_sha }}" \
+            --base-sha "${{ steps.pr.outputs.base_sha }}" \
+            --bot-login "${REVIEW_BOT_LOGIN:-github-actions[bot]}" \
+            --worktree pr-worktree \
+            --output pr-worktree/review_round_context.json \
+            --incremental-diff pr-worktree/review_incremental_diff.txt
 
       - name: Select review skill
         id: review_skill
@@ -213,6 +256,13 @@ jobs:
             Use spec_context.md in pr-worktree only when the selected review skill instructs you to.
             Use review_discussion_context.json in pr-worktree as prior review
             discussion context for duplicate suppression only.
+            Read review_round_context.json. One Action run performs one review;
+            the round counts previously published reviews of distinct PR head commits.
+            When mode is incremental, focus on review_incremental_diff.txt since
+            the prior reviewed commit, but use pr_diff.txt for valid inline targets
+            and re-check unresolved prior findings. When architecture_review_required
+            is true, explicitly assess whether repeated fixes indicate a flawed
+            overall approach. When mode is full, review the whole pr_diff.txt.
             review.json must include verdict with value APPROVE or REJECT.
             It may include recommended_reviewers with at most one login when
             a human reviewer recommendation is useful.
@@ -250,6 +300,8 @@ jobs:
             pr-worktree/pr_diff.txt
             pr-worktree/spec_context.md
             pr-worktree/review_discussion_context.json
+            pr-worktree/review_round_context.json
+            pr-worktree/review_incremental_diff.txt
             pr-worktree/review.json
 
       - name: Mark PR review status complete

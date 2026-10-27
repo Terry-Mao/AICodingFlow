@@ -484,6 +484,19 @@ def main() -> None:
 
     event = load_event()
     pr = event["pull_request"]
+    base_sha = (pr.get("base") or {}).get("sha") or ""
+    head_sha = (pr.get("head") or {}).get("sha") or ""
+    has_snapshot = bool(re.fullmatch(r"[0-9a-f]{40}", base_sha) and re.fullmatch(r"[0-9a-f]{40}", head_sha))
+    if has_snapshot:
+        current = github_api_json(
+            f"https://api.github.com/repos/{repo}/pulls/{pr['number']}", token
+        )
+        if current.get("head", {}).get("sha") != head_sha or current.get("base", {}).get("sha") != base_sha:
+            raise SystemExit("PR head or base changed during review; refusing to publish stale findings")
+        previous_reviews = list_pull_request_reviews(repo, token, pr["number"])
+        if any(review_author_matches_bot(item, bot_login) and item.get("commit_id") == head_sha and item.get("state") != "PENDING" for item in previous_reviews):
+            print("Bot review already exists for this PR head; skipping duplicate publication")
+            return
     review = json.loads(Path(args.review).read_text(encoding="utf-8"))
     diff_path = Path(args.diff)
     changed_files = changed_files_from_diff(diff_path)
@@ -496,11 +509,19 @@ def main() -> None:
         positions = parse_diff_positions(diff_path)
         comments = normalize_comments(raw_comments, positions)
     if not body and not comments:
-        print("review.json has no body or comments; skipping PR review")
-        if verdict == "APPROVE" and is_non_member_code_review_subject(pr, changed_files):
-            dismiss_stale_bot_request_changes(repo, token, pr, bot_login)
-        request_human_reviewer_if_needed(repo, token, pr, review, changed_files, verdict)
-        return
+        if verdict == "REJECT":
+            raise SystemExit("REJECT review must explain at least one finding")
+        if not has_snapshot:
+            print("review.json has no body or comments; skipping PR review")
+            if verdict == "APPROVE" and is_non_member_code_review_subject(pr, changed_files):
+                dismiss_stale_bot_request_changes(repo, token, pr, bot_login)
+            request_human_reviewer_if_needed(repo, token, pr, review, changed_files, verdict)
+            return
+        body = "审查完成，未发现需要报告的问题。"
+
+    if has_snapshot:
+        marker = f"<!-- aicodingflow-review base={base_sha} head={head_sha} -->"
+        body = f"{body}\n\n{marker}"
 
     payload = {
         "event": review_event_for(pr, changed_files, verdict),

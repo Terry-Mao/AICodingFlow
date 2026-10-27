@@ -28,7 +28,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                 {
                     "branch_name": "feature",
                     "pr_title": "fix: update parser",
-                    "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.",
+                    "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                     "intended_files": ["app.py"],
                 },
             )
@@ -52,7 +52,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                 {
                     "branch_name": "other",
                     "pr_title": "fix: update parser",
-                    "pr_summary": "Refs #42\n\nBody",
+                    "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                     "intended_files": ["app.py"],
                 },
             )
@@ -70,7 +70,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                 {
                     "branch_name": "feature",
                     "pr_title": "fix: update parser",
-                    "pr_summary": "Refs #42\n\nBody",
+                    "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                     "intended_files": ["pr_comment_context.json"],
                 },
             )
@@ -83,7 +83,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                     {
                         "branch_name": "feature",
                         "pr_title": "fix: update parser",
-                        "pr_summary": "Refs #42\n\nBody",
+                        "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                         "intended_files": ["app.py"],
                     }
                 ),
@@ -102,7 +102,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                 {
                     "branch_name": "feature",
                     "pr_title": "fix: update parser",
-                    "pr_summary": "Refs #42\n\nBody",
+                    "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                     "intended_files": ["app.py"],
                 },
             )
@@ -125,7 +125,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                     {
                         "branch_name": "feature",
                         "pr_title": "fix: update parser",
-                        "pr_summary": "Refs #42\n\nBody",
+                        "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                         "intended_files": [".codex-runtime/skills/implement-specs/SKILL.md"],
                     }
                 ),
@@ -169,7 +169,7 @@ class ValidatePrCommentResultTest(unittest.TestCase):
                 {
                     "branch_name": "feature",
                     "pr_title": "fix: update parser",
-                    "pr_summary": "Refs #42\n\nBody",
+                    "pr_summary": "Refs #42\n\n## Summary\nUpdated parser.\n\n## Testing\nUnit tests passed.\n\n## Risk\nLow.\n\n## How to revert\nRevert the commit.",
                     "intended_files": ["app.py"],
                 },
             )

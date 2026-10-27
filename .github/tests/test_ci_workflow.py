@@ -20,16 +20,18 @@ class CiWorkflowTest(unittest.TestCase):
         data = workflow(".github/workflows/ci.yml")
         triggers = data[True]
 
-        self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review"])
+        self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review", "edited"])
+        self.assertEqual(triggers["merge_group"]["types"], ["checks_requested"])
         self.assertEqual(data["permissions"]["actions"], "write")
         self.assertEqual(data["permissions"]["contents"], "read")
         self.assertNotIn("pull-requests", data["permissions"])
         self.assertNotIn("statuses", data["permissions"])
-        self.assertEqual(set(data["jobs"]), {"test", "ai-review"})
+        self.assertEqual(set(data["jobs"]), {"pr-body", "test", "ai-review"})
 
-        self.assertEqual(data["jobs"]["test"]["if"], "github.event.pull_request.draft == false")
-        self.assertEqual(data["jobs"]["ai-review"]["needs"], "test")
+        self.assertEqual(data["jobs"]["test"]["if"], "github.event_name == 'merge_group' || github.event.pull_request.draft == false")
+        self.assertEqual(data["jobs"]["ai-review"]["needs"], ["test", "pr-body"])
         self.assertIn("needs.test.result == 'success'", data["jobs"]["ai-review"]["if"])
+        self.assertIn("needs.pr-body.result == 'success'", data["jobs"]["ai-review"]["if"])
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", data["jobs"]["ai-review"]["if"])
 
         test_steps = steps(data, "test")

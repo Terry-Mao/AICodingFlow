@@ -17,6 +17,54 @@ post_pr_review = import_script(".github/scripts/post_pr_review.py", "post_pr_rev
 
 
 class PostPrReviewTest(unittest.TestCase):
+    def test_main_rejects_empty_reject_review(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            review_path = Path(directory) / "review.json"
+            review_path.write_text('{"verdict":"REJECT","body":"","comments":[]}', encoding="utf-8")
+            event = {"pull_request": {"number": 5, "head": {"sha": "abc123"}, "author_association": "FIRST_TIMER", "user": {"login": "external", "type": "User"}}}
+            with (
+                mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"}, clear=True),
+                mock.patch.object(post_pr_review, "load_event", return_value=event),
+                mock.patch.object(post_pr_review, "request_json") as publish,
+                mock.patch("sys.argv", ["post_pr_review.py", "--review", str(review_path)]),
+            ):
+                with self.assertRaisesRegex(SystemExit, "must explain"):
+                    post_pr_review.main()
+            publish.assert_not_called()
+
+    def test_main_rejects_stale_full_sha_before_posting(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            review_path = Path(directory) / "review.json"
+            review_path.write_text('{"verdict":"APPROVE","body":"ok","comments":[]}', encoding="utf-8")
+            event = {"pull_request": {"number": 5, "head": {"sha": "a" * 40}, "base": {"sha": "b" * 40}}}
+            with (
+                mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"}, clear=True),
+                mock.patch.object(post_pr_review, "load_event", return_value=event),
+                mock.patch.object(post_pr_review, "github_api_json", return_value={"head": {"sha": "c" * 40}, "base": {"sha": "b" * 40}}),
+                mock.patch.object(post_pr_review, "request_json") as publish,
+                mock.patch("sys.argv", ["post_pr_review.py", "--review", str(review_path)]),
+            ):
+                with self.assertRaisesRegex(SystemExit, "changed during review"):
+                    post_pr_review.main()
+            publish.assert_not_called()
+
+    def test_main_skips_existing_bot_review_of_same_head(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            review_path = Path(directory) / "review.json"
+            review_path.write_text('{"verdict":"APPROVE","body":"ok","comments":[]}', encoding="utf-8")
+            event = {"pull_request": {"number": 5, "head": {"sha": "a" * 40}, "base": {"sha": "b" * 40}}}
+            old_review = {"user": {"login": "github-actions[bot]", "type": "Bot"}, "commit_id": "a" * 40, "state": "COMMENTED"}
+            with (
+                mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"}, clear=True),
+                mock.patch.object(post_pr_review, "load_event", return_value=event),
+                mock.patch.object(post_pr_review, "github_api_json", return_value={"head": {"sha": "a" * 40}, "base": {"sha": "b" * 40}}),
+                mock.patch.object(post_pr_review, "list_pull_request_reviews", return_value=[old_review]),
+                mock.patch.object(post_pr_review, "request_json") as publish,
+                mock.patch("sys.argv", ["post_pr_review.py", "--review", str(review_path)]),
+            ):
+                post_pr_review.main()
+            publish.assert_not_called()
+
     def test_github_api_response_retries_network_failures_with_timeout(self) -> None:
         calls = []
 

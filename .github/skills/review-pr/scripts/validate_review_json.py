@@ -154,6 +154,8 @@ def main() -> None:
         fail("review.verdict must be APPROVE or REJECT")
     require_type(review["body"], str, "review.body")
     require_type(review["comments"], list, "review.comments")
+    if review["verdict"] == "REJECT" and not review["body"].strip() and not review["comments"]:
+        fail("REJECT review must explain at least one finding")
     if "recommended_reviewers" in review:
         validate_reviewers(review["recommended_reviewers"])
 

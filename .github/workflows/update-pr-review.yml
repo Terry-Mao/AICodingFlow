@@ -161,6 +161,10 @@ jobs:
           - include_bots: ${{ inputs.include_bots }}
           EOF
           )"
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          printf '%s\n' "$body" > "$body_file"
+          python3 .github/scripts/complete_automated_pr_body.py --body-file "$body_file" --workflow-name "Update PR Review Guidance" --risk 中
 
           existing_pr="$(
             gh pr list \
@@ -175,12 +179,12 @@ jobs:
             gh pr edit "$existing_pr" \
               --repo "${{ github.repository }}" \
               --title "Update PR review guidance" \
-              --body "$body"
+              --body-file "$body_file"
           else
             gh pr create \
               --repo "${{ github.repository }}" \
               --base "${{ github.event.repository.default_branch }}" \
               --head "$branch" \
               --title "Update PR review guidance" \
-              --body "$body"
+              --body-file "$body_file"
           fi

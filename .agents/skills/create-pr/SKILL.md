@@ -18,8 +18,12 @@ churn, and missing validation. Sync the base into the branch when needed; if
 that creates conflicts, resolve, validate, commit, and push the resolution.
 
 Build a concise title and body from the issue, branch, commits, or user request.
-Include summary, validation, and a known issue link (`Closes`, `Fixes`, or
-`Refs`). Never invent an issue ID.
+Include `## Summary`, `## Testing`, `## Risk`, and `## How to revert`, plus a
+known issue link (`Closes`, `Fixes`, or `Refs`). State actual test results,
+the relevant risk and a concrete rollback action; never invent results or an
+issue ID. Preserve any manually written sections when updating an open PR.
+Before submitting, save the exact body and run
+`python3 .github/scripts/validate_pr_body.py <body-file>`.
 
 ## Create or update
 

@@ -53,6 +53,12 @@ checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 不再在测试�
 
 ## Review skill 选择
 
+AI PR Review 的一次 Action 运行只做一次审查。轮次按当前 PR 已发布的 Bot Review
+所对应的不同 head commit 计算；同一 commit 的 Action 重跑不增加轮次，并在 AI
+调用前跳过。前三轮审查完整 diff；第四轮起，当上次已审查提交可追溯且 PR base
+未改变时，以新增 diff 为重点，并检查未解决意见和整体实现方案。条件不满足时回退
+完整审查。inline 评论始终定位到当前完整 PR diff。
+
 AI PR Review 会先按 changed files 判断 PR 类型，再选择核心 review skill：
 
 - spec-only PR 主入口使用 `review-spec`。
