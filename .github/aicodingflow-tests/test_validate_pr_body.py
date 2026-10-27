@@ -34,6 +34,21 @@ class ValidatePrBodyTests(unittest.TestCase):
         body = "~~~markdown\n## Testing\nExample\n~~~\n## Summary\nChange.\n## Testing\nPassed.\n## Risk\nLow.\n## How to revert\nRevert."
         validator.validate_body(body)
 
+    def test_fenced_code_is_section_content(self) -> None:
+        for fence in ("```", "~~~"):
+            with self.subTest(fence=fence):
+                body = f"## Summary\nChange.\n## Testing\n{fence}sh\npython3 -m unittest\n{fence}\n## Risk\nLow.\n## How to revert\nRevert."
+                validator.validate_body(body)
+
+    def test_empty_fenced_code_is_not_section_content(self) -> None:
+        body = "## Summary\nChange.\n## Testing\n```sh\n```\n## Risk\nLow.\n## How to revert\nRevert."
+        with self.assertRaisesRegex(SystemExit, "Testing"):
+            validator.validate_body(body)
+
+    def test_html_comment_inside_fenced_code_is_literal_content(self) -> None:
+        body = "## Summary\nChange.\n## Testing\n```html\n<!-- test fixture -->\n```\n## Risk\nLow.\n## How to revert\nRevert."
+        validator.validate_body(body)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,6 +32,12 @@ class CompleteAutomatedPrBodyTests(unittest.TestCase):
         self.assertIn("## Testing\n\n由 Product Docs Sync 生成", result)
         self.assertIn("## Risk\n\n低：", result)
 
+    def test_keeps_testing_section_with_only_fenced_code(self) -> None:
+        body = "## Summary\n\nGenerated report.\n\n## Testing\n\n```sh\npython3 -m unittest\n```"
+        result = complete.complete_body(body, "Product Docs Sync", "低")
+        self.assertEqual(result.count("## Testing"), 1)
+        validator.validate_body(result)
+
 
 if __name__ == "__main__":
     unittest.main()
