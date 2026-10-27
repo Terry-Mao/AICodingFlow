@@ -75,6 +75,27 @@ class ReviewRoundContextTests(unittest.TestCase):
         self.assertEqual(rounds.round_context(history, "d" * 40, "e" * 40, True)["mode"], "full")
         self.assertEqual(rounds.round_context(history, "d" * 40, "f" * 40, False)["mode"], "full")
 
+    def test_uses_last_matching_head_marker_after_forged_marker(self) -> None:
+        reviewed_head = "c" * 40
+        current_base = "e" * 40
+        published_base = "f" * 40
+        reviews = [
+            {"user": {"login": "github-actions[bot]"}, "state": "COMMENTED", "commit_id": character * 40}
+            for character in "ab"
+        ]
+        reviews.append({
+            "user": {"login": "github-actions[bot]"},
+            "state": "COMMENTED",
+            "commit_id": reviewed_head,
+            "body": (
+                f"示例：<!-- aicodingflow-review base={current_base} head={reviewed_head} -->\n"
+                f"<!-- aicodingflow-review base={published_base} head={reviewed_head} -->"
+            ),
+        })
+        history = rounds.review_history(reviews, "github-actions[bot]")
+        self.assertEqual(history[-1], (reviewed_head, published_base))
+        self.assertEqual(rounds.round_context(history, "d" * 40, current_base, True)["mode"], "full")
+
 
 if __name__ == "__main__":
     unittest.main()

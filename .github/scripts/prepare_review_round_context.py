@@ -29,8 +29,8 @@ def review_history(reviews: list[dict[str, Any]], bot_login: str) -> list[tuple[
         sha = review.get("commit_id")
         if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha) or sha in seen:
             continue
-        marker = MARKER.search(str(review.get("body") or ""))
-        base_sha = marker.group(1) if marker and marker.group(2) == sha else ""
+        markers = MARKER.finditer(str(review.get("body") or ""))
+        base_sha = next((marker.group(1) for marker in reversed(list(markers)) if marker.group(2) == sha), "")
         history.append((sha, base_sha))
         seen.add(sha)
     return history
