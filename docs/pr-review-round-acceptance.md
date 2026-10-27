@@ -11,3 +11,10 @@
 ## 第 1 轮
 
 建立独立的验收文件，作为后续轮次完整 PR diff 的稳定基线。
+
+## 第 2 轮
+
+第 1 轮的 [AI PR Review 运行](https://github.com/Terry-Mao/AICodingFlow/actions/runs/40540156835) 成功发布了 1 条 Bot Review；其产物记录 `round: 1`、`mode: full`。
+在同一 base/head 快照上执行的[手动重跑](https://github.com/Terry-Mao/AICodingFlow/actions/runs/40540467072)跳过了 review job，Bot Review 总数仍为 1。
+
+本次只增加上述验收记录，检查第 2 轮是否继续读取从 base 到当前 head 的完整 PR diff。
