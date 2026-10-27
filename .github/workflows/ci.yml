@@ -7,7 +7,6 @@ on:
     types: [checks_requested]
 
 permissions:
-  actions: write
   contents: read
 
 concurrency:
@@ -92,21 +91,3 @@ jobs:
             .github/skills/implement-specs/scripts/*.py \
             .github/skills/review-pr/scripts/validate_review_json.py \
             .github/skills/update-pr-review/scripts/*.py
-
-  ai-review:
-    needs: [test, pr-body]
-    if: >-
-      github.event_name == 'pull_request' &&
-      needs.test.result == 'success' &&
-      needs.pr-body.result == 'success' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
-    steps:
-      - name: Dispatch AI PR Review
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: gh workflow run review-pr.yml --repo "${{ github.repository }}" -f pr_number="$PR_NUMBER"

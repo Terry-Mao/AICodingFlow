@@ -33,7 +33,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn('state="success"', restore["run"])
         self.assertIn('context="AI PR Review"', restore["run"])
 
-    def test_ci_checks_pr_body_on_edit_and_preserves_merge_group_tests(self) -> None:
+    def test_ci_checks_pr_body_on_edit_without_dispatching_review(self) -> None:
         data = workflow(".github/workflows/ci.yml")
         self.assertIn("edited", data[True]["pull_request"]["types"])
         self.assertIn("merge_group", data[True])
@@ -41,8 +41,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertTrue(any("validate_pr_body" in step.get("run", "") for step in body_steps))
         self.assertNotIn("edited", data["jobs"]["test"]["if"])
         self.assertIn("github.event.pull_request.draft == false", data["jobs"]["test"]["if"])
-        self.assertIn("pr-body", data["jobs"]["ai-review"]["needs"])
-        self.assertIn("needs.test.result == 'success'", data["jobs"]["ai-review"]["if"])
+        self.assertNotIn("ai-review", data["jobs"])
+        self.assertNotIn("actions", data["permissions"])
 
     def test_workflows_use_node24_action_runtime(self) -> None:
         workflow_jobs = {

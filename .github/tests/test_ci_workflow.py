@@ -16,23 +16,22 @@ def steps(workflow_data: dict, job: str) -> list[dict]:
 
 
 class CiWorkflowTest(unittest.TestCase):
-    def test_ci_dispatches_review_only_after_tests_pass(self) -> None:
+    def test_ci_checks_pr_body_and_runs_tests_without_dispatching_review(self) -> None:
         data = workflow(".github/workflows/ci.yml")
         triggers = data[True]
 
         self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review", "edited"])
         self.assertEqual(triggers["merge_group"]["types"], ["checks_requested"])
-        self.assertEqual(data["permissions"]["actions"], "write")
+        self.assertNotIn("actions", data["permissions"])
         self.assertEqual(data["permissions"]["contents"], "read")
         self.assertNotIn("pull-requests", data["permissions"])
         self.assertNotIn("statuses", data["permissions"])
-        self.assertEqual(set(data["jobs"]), {"pr-body", "test", "ai-review"})
+        self.assertEqual(set(data["jobs"]), {"pr-body", "test"})
 
         self.assertEqual(data["jobs"]["test"]["if"], "github.event_name == 'merge_group' || github.event.pull_request.draft == false")
-        self.assertEqual(data["jobs"]["ai-review"]["needs"], ["test", "pr-body"])
-        self.assertIn("needs.test.result == 'success'", data["jobs"]["ai-review"]["if"])
-        self.assertIn("needs.pr-body.result == 'success'", data["jobs"]["ai-review"]["if"])
-        self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", data["jobs"]["ai-review"]["if"])
+
+        body_steps = steps(data, "pr-body")
+        self.assertTrue(any("validate_pr_body" in step.get("run", "") for step in body_steps))
 
         test_steps = steps(data, "test")
         dependencies = next(step for step in test_steps if step.get("name") == "Install Python test dependencies")
@@ -55,15 +54,9 @@ class CiWorkflowTest(unittest.TestCase):
         self.assertIn("-name '*.yaml'", lint_workflows["run"])
         self.assertIn('actionlint "${workflow_files[@]}"', lint_workflows["run"])
 
-        dispatch_step = next(step for step in steps(data, "ai-review") if step.get("name") == "Dispatch AI PR Review")
-        self.assertEqual(dispatch_step["env"]["GH_TOKEN"], "${{ github.token }}")
-        self.assertEqual(dispatch_step["env"]["PR_NUMBER"], "${{ github.event.pull_request.number }}")
-        self.assertIn("gh workflow run review-pr.yml --repo \"${{ github.repository }}\" -f pr_number=\"$PR_NUMBER\"", dispatch_step["run"])
-
     def test_ci_uses_node24_action_runtime(self) -> None:
         data = workflow(".github/workflows/ci.yml")
-        for job_name in ("test", "ai-review"):
-            self.assertEqual(data["jobs"][job_name]["env"]["FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"], "true")
+        self.assertEqual(data["jobs"]["test"]["env"]["FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"], "true")
 
         used_actions = [step.get("uses", "") for step in steps(data, "test") if "uses" in step]
         self.assertNotIn("actions/checkout@v4", used_actions)

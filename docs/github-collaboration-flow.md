@@ -167,7 +167,9 @@ AI PR Review 会：
 计算轮次；同一 commit 重跑在 AI 审查前跳过。前三轮看完整 PR，第四轮起在历史提交可追溯
 且 base 未变化时重点检查新增 diff，并审视反复局部修复是否需要调整整体方案。
 所有 PR 正文由 CI 校验 Summary、Testing、Risk、How to revert；自动生成的 PR
-也需填写这些章节。正文编辑后，非草稿 PR 会重新运行测试与正文校验，二者通过后再分发审查。
+也需填写这些章节。正文编辑后，非草稿 PR 会重新运行测试与正文校验。
+自动审查由 `pull_request_target` 直接触发，不等待 CI 结果；`workflow_dispatch`
+和 PR 评论命令保留作手动触发入口，CI 不再自动分发审查。
 如果当前 head 已发布 Review，重跑会跳过 AI 生成并恢复该 head 的审查状态。
 
 发布规则：
