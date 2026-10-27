@@ -34,14 +34,15 @@ def strip_html_comments(line: str, in_comment: bool) -> tuple[str, bool]:
     return "".join(visible), in_comment
 
 
-def section_contents(body: str) -> dict[str, str]:
-    """Read headings outside fences while retaining fenced section content."""
+def parse_sections(body: str) -> tuple[dict[str, str], dict[str, int]]:
+    """Read section content and heading line numbers outside fences."""
     sections: dict[str, list[str]] = {}
+    headings: dict[str, int] = {}
     current_section: str | None = None
     fence_char = ""
     fence_length = 0
     in_comment = False
-    for line in body.splitlines():
+    for line_number, line in enumerate(body.splitlines()):
         if fence_char:
             if re.fullmatch(r" {0,3}" + re.escape(fence_char) + "{" + str(fence_length) + r",}[ \t]*", line):
                 fence_char = ""
@@ -58,9 +59,15 @@ def section_contents(body: str) -> dict[str, str]:
         if heading:
             current_section = heading.group(1).strip().lower()
             sections[current_section] = []
+            headings[current_section] = line_number
         elif current_section is not None:
             sections[current_section].append(line)
-    return {name: "\n".join(lines).strip() for name, lines in sections.items()}
+    return {name: "\n".join(lines).strip() for name, lines in sections.items()}, headings
+
+
+def section_contents(body: str) -> dict[str, str]:
+    """Read headings outside fences while retaining fenced section content."""
+    return parse_sections(body)[0]
 
 
 def validate_body(body: str) -> None:
