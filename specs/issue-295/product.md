@@ -11,7 +11,7 @@
 ## Goals
 
 1. PR 正文具备 Summary、Testing、Risk、How to revert 四部分，内容不能为空。
-2. 一次 Action 只执行一次 Review；轮次跨 Action、按已审查的不同 PR head commit 计算。
+2. 一次 Action 只执行一次 Review；轮次跨 Action、按已审查的不同 PR base/head SHA 快照计算。
 3. 第四轮起重点审查上次已审查提交以来的增量，并评估反复局部修复是否暴露整体方案问题。
 
 ## Non-goals
@@ -21,14 +21,14 @@
 ## User experience
 
 1. PR 模板和自动创建 PR 的指南要求填写四部分；自动实现与 spec PR 的元数据缺少任一部分时，创建 PR 前校验失败。CI 在 PR 新建、修改正文及推送后检查所有 PR 的正文；自动生成的文档与指南 PR 也补齐四部分。
-2. 同一 head commit 的 Action 重跑不增加轮次，且在调用 AI 前直接跳过。作者推送新 commit 后，下一次成功发布的 Review 形成下一轮。
+2. 同一 base/head SHA 快照的 Action 重跑不增加轮次，且在调用 AI 前直接跳过。作者推送新 commit，或 base SHA 改变后，下一次成功发布的 Review 形成下一轮。
 3. 前三轮看完整 PR。第四轮起，如果历史 head 可追溯且 base 未改变，关注从上次已审查 head 至当前 head 的增量；否则回退完整审查。未解决的旧意见仍需检查，inline 定位仍以当前完整 PR diff 为准。
 4. 审查意见需指出同类缺陷的排查边界。仅涉及风格、诊断日志或微小清理的意见不发布；既有 Bug 不归咎于本次 PR。
 
 ## Success criteria
 
 - 测试 PR 连续修复三次后，第四次 Review 可以看到正确轮次和增量范围。
-- 同一 SHA 重跑不新增重复 Bot Review。
+- 同一 base/head SHA 快照重跑不新增重复 Bot Review；base 变化时同一 head 可重新审查。
 
 ## Validation
 

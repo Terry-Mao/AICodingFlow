@@ -43,7 +43,7 @@ jobs:
       number: ${{ steps.pr.outputs.number }}
       draft: ${{ steps.pr.outputs.draft }}
       head_repo: ${{ steps.pr.outputs.head_repo }}
-      skip_reason: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head' || steps.pr.outputs.skip_reason }}
+      skip_reason: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head and base' || steps.pr.outputs.skip_reason }}
 
     steps:
       - name: Checkout workflow scripts
@@ -77,6 +77,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --pr-number "${{ steps.pr.outputs.number }}" \
             --head-sha "${{ steps.pr.outputs.head_sha }}" \
+            --base-sha "${{ steps.pr.outputs.base_sha }}" \
             --bot-login "${REVIEW_BOT_LOGIN:-github-actions[bot]}" \
             --check-existing \
             --github-output "$GITHUB_OUTPUT"
@@ -84,9 +85,9 @@ jobs:
       - name: Report skipped review
         if: steps.pr.outputs.reviewable != 'true' || steps.seen.outputs.already_reviewed == 'true'
         run: |
-          echo "PR #${{ steps.pr.outputs.number }}: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head' || steps.pr.outputs.skip_reason }}; skipping AI review."
+          echo "PR #${{ steps.pr.outputs.number }}: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head and base' || steps.pr.outputs.skip_reason }}; skipping AI review."
 
-      - name: Restore status for an already reviewed head
+      - name: Restore status for an already reviewed snapshot
         if: steps.seen.outputs.already_reviewed == 'true' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
@@ -257,7 +258,7 @@ jobs:
             Use review_discussion_context.json in pr-worktree as prior review
             discussion context for duplicate suppression only.
             Read review_round_context.json. One Action run performs one review;
-            the round counts previously published reviews of distinct PR head commits.
+            the round counts previously published reviews of distinct base/head snapshots.
             When mode is incremental, focus on review_incremental_diff.txt since
             the prior reviewed commit, but use pr_diff.txt for valid inline targets
             and re-check unresolved prior findings. When architecture_review_required

@@ -71,7 +71,8 @@ When available, the product spec at the `product_spec` path from `issue_context.
    and any reviewer-relevant assumptions or open questions. For spec-only PRs,
    include a non-closing reference to the source issue such as
    `Refs #<issue-number>` rather than closing keywords like `Closes` or
-   `Fixes`.
+   `Fixes`. Include non-empty `## Summary`, `## Testing`, `## Risk`, and
+   `## How to revert` sections in the PR body.
 10. Default behavior: do not stage files, create commits, push branches, open pull requests, or use the GitHub CLI.
 11. In your final response, provide a brief summary of the tech spec and call out any assumptions or open questions so the workflow can reuse that summary when creating the PR.
 

@@ -19,7 +19,7 @@ MARKER = re.compile(r"<!-- aicodingflow-review base=([0-9a-f]{40}) head=([0-9a-f
 
 def review_history(reviews: list[dict[str, Any]], bot_login: str) -> list[tuple[str, str]]:
     history: list[tuple[str, str]] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
     for review in reviews:
         user = review.get("user") or {}
         if not isinstance(user, dict) or str(user.get("login", "")).lower() != bot_login.lower():
@@ -27,20 +27,23 @@ def review_history(reviews: list[dict[str, Any]], bot_login: str) -> list[tuple[
         if review.get("state") == "PENDING":
             continue
         sha = review.get("commit_id")
-        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha) or sha in seen:
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
             continue
         markers = MARKER.finditer(str(review.get("body") or ""))
         base_sha = next((marker.group(1) for marker in reversed(list(markers)) if marker.group(2) == sha), "")
-        history.append((sha, base_sha))
-        seen.add(sha)
+        snapshot = (sha, base_sha)
+        if snapshot in seen:
+            continue
+        history.append(snapshot)
+        seen.add(snapshot)
     return history
 
 
 def round_context(history: list[tuple[str, str]], head_sha: str, base_sha: str, ancestor: bool) -> dict[str, Any]:
-    heads = [sha for sha, _ in history]
-    current_seen = head_sha in heads
-    round_number = heads.index(head_sha) + 1 if current_seen else len(heads) + 1
-    previous = next(((sha, base) for sha, base in reversed(history) if sha != head_sha), None)
+    snapshot = (head_sha, base_sha)
+    current_seen = snapshot in history
+    round_number = history.index(snapshot) + 1 if current_seen else len(history) + 1
+    previous = next((item for item in reversed(history) if item != snapshot), None)
     incremental = bool(
         round_number >= 4 and not current_seen and previous and previous[1] == base_sha and ancestor
     )
@@ -91,11 +94,13 @@ def main() -> None:
 
     history = review_history(fetch_reviews(args.repo, args.pr_number), args.bot_login)
     if args.check_existing:
-        write_github_output(args.github_output, {"already_reviewed": str(any(sha == args.head_sha for sha, _ in history)).lower()})
+        if not args.base_sha:
+            raise SystemExit("--base-sha is required with --check-existing")
+        write_github_output(args.github_output, {"already_reviewed": str((args.head_sha, args.base_sha) in history).lower()})
         return
     if not all((args.base_sha, args.worktree, args.output, args.incremental_diff)):
         raise SystemExit("--base-sha, --worktree, --output and --incremental-diff are required")
-    previous = next((sha for sha, _ in reversed(history) if sha != args.head_sha), "")
+    previous = next((sha for sha, base in reversed(history) if (sha, base) != (args.head_sha, args.base_sha)), "")
     ancestor = bool(previous and is_ancestor(previous, args.head_sha, args.worktree))
     context = round_context(history, args.head_sha, args.base_sha, ancestor)
     if context["mode"] == "incremental":

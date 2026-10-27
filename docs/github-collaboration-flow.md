@@ -134,7 +134,7 @@ Workflow：
 {
   "branch_name": "spec/implement-issue-42-add-retry-logic",
   "pr_title": "fix: add retry logic for transient API failures",
-  "pr_summary": "Closes #42\n\n## Summary\n...",
+  "pr_summary": "Closes #42\n\n## Summary\n新增 API 重试逻辑。\n\n## Testing\n运行客户端单元测试并通过。\n\n## Risk\n重复请求可能增加 API 负载。\n\n## How to revert\n回退本 PR 提交。",
   "intended_files": [
     "src/api/client.py",
     "tests/test_client.py"
@@ -142,7 +142,7 @@ Workflow：
 }
 ```
 
-`pr_summary` 第一行必须是 `Closes #<issue-number>`。`intended_files` 必须精确列出 workflow 应提交的实现文件，不包含临时文件、validation logs、生成缓存或未变化文件。
+`pr_summary` 第一行必须是 `Closes #<issue-number>`，并填写非空的 `## Summary`、`## Testing`、`## Risk`、`## How to revert` 四个章节。`intended_files` 必须精确列出 workflow 应提交的实现文件，不包含临时文件、validation logs、生成缓存或未变化文件。
 
 ## PR Review
 
@@ -163,9 +163,9 @@ AI PR Review 会：
 7. 输出并验证 `review.json`。
 8. 通过 GitHub API 发布 PR review。
 
-每次 Action 只执行一次 Review。流程按同一 PR 已发布 Review 的不同 head commit
-计算轮次；同一 commit 重跑在 AI 审查前跳过。前三轮看完整 PR，第四轮起在历史提交可追溯
-且 base 未变化时重点检查新增 diff，并审视反复局部修复是否需要调整整体方案。
+每次 Action 只执行一次 Review。流程按同一 PR 已发布 Review 的不同 base/head SHA 快照
+计算轮次；相同快照重跑在 AI 审查前跳过。前三轮对比当轮 base 和当前 head 的完整 PR diff；第四轮起在历史提交可追溯
+且 base 未变化时重点比较上次已审查 head 与当前 head 的 diff，并审视反复局部修复是否需要调整整体方案。
 所有 PR 正文由 CI 校验 Summary、Testing、Risk、How to revert；自动生成的 PR
 也需填写这些章节。正文编辑始终重新校验正文；非草稿 PR 同时重新运行测试。
 自动审查由 `pull_request_target` 直接触发，不等待 CI 结果；`workflow_dispatch`

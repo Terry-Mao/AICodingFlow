@@ -13,6 +13,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from prepare_review_round_context import review_history
+
 
 FILE_RE = re.compile(r"^FILE\s+(.+?)\s*$")
 LINE_RE = re.compile(r"^(LEFT|RIGHT|BOTH)\s+(\d+)\s+\|")
@@ -494,8 +496,9 @@ def main() -> None:
         if current.get("head", {}).get("sha") != head_sha or current.get("base", {}).get("sha") != base_sha:
             raise SystemExit("PR head or base changed during review; refusing to publish stale findings")
         previous_reviews = list_pull_request_reviews(repo, token, pr["number"])
-        if any(review_author_matches_bot(item, bot_login) and item.get("commit_id") == head_sha and item.get("state") != "PENDING" for item in previous_reviews):
-            print("Bot review already exists for this PR head; skipping duplicate publication")
+        bot_reviews = [item for item in previous_reviews if review_author_matches_bot(item, bot_login)]
+        if (head_sha, base_sha) in review_history(bot_reviews, bot_login):
+            print("Bot review already exists for this PR head/base; skipping duplicate publication")
             return
     review = json.loads(Path(args.review).read_text(encoding="utf-8"))
     diff_path = Path(args.diff)

@@ -15,13 +15,13 @@
 ## Proposed changes
 
 1. PR 模板与共享正文校验器统一四个章节；本地 `create-pr` 在提交前运行校验，自动实现、spec 与 PR comment 元数据校验调用同一规则。CI 的 `pr-body` job 对所有 PR 校验正文；其他自动化 PR 使用共享补全器补齐章节。
-2. `prepare_review_round_context.py` 查询已发布的 Bot Review，按不同 `commit_id` 计数。新发布 Review 的 body 附带 base/head SHA 标记，以支持下一次运行判断 base 是否仍相同；旧 Review 缺标记时安全回退完整审查。
-3. preflight 在调用 Codex 前跳过同一 head 的既有 Bot Review，并在重跑时恢复该 head 的 `AI PR Review` 状态。第四轮起，仅当先前 head 是当前 head 的祖先且 base SHA 与上轮一致时，生成增量 `PR_DIFF_V1`。当前完整 PR diff 继续用于合法 inline 定位。发布前再次确认 PR head/base 快照未改变；没有内容的 `REJECT` 不得发布。
+2. `prepare_review_round_context.py` 查询已发布的 Bot Review，按不同 base/head SHA 快照计数。新发布 Review 的 body 附带 base/head SHA 标记；旧 Review 缺标记时安全回退完整审查，且不复用其未知 base 的审查结果。
+3. preflight 在调用 Codex 前跳过相同 base/head SHA 快照的既有 Bot Review，并在重跑时恢复该 head 的 `AI PR Review` 状态。第四轮起，仅当先前 head 是当前 head 的祖先且 base SHA 与上轮一致时，生成从上次已审查 head 到当前 head 的增量 `PR_DIFF_V1`。前三轮使用当轮 base 到 head 的完整 PR diff；当前完整 PR diff 继续用于合法 inline 定位。发布前再次确认 PR head/base 快照未改变，并按相同快照检查重复发布；没有内容的 `REJECT` 不得发布。
 4. `ci.yml` 监听 `merge_group` 并运行同一测试任务；PR 正文编辑后始终重新校验正文，非草稿 PR 同时重新运行测试。AI PR Review 由 `pull_request_target` 自动触发，CI 不再额外发起 `workflow_dispatch`，避免同一 PR 自动运行两次。手动触发与 PR 评论命令保留。此变更仅为未来队列准备检查，不启用队列。
 
 ## Testing and validation
 
-- 单测验证不同 SHA 计数、同 SHA 重跑、base 变化与历史改写回退、发布时过期快照及重复 Review 抑制。
+- 单测验证不同 base/head 快照计数、相同快照重跑、base 变化与历史改写回退、发布时过期快照及重复 Review 抑制。
 - 单测验证 PR 正文章节与不同入口的校验行为。
 - 运行仓库完整单测、Python 编译检查、`actionlint`、`git diff --check`。
 

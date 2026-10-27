@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
+import re
 import unittest
 
-from script_imports import ROOT
+from script_imports import ROOT, import_script
+
+
+validate_pr_body = import_script(".github/scripts/validate_pr_body.py", "validate_pr_body")
 
 
 def compact(text: str) -> str:
@@ -56,6 +61,20 @@ class ImplementationSkillGuidanceTest(unittest.TestCase):
         self.assertIn("review_comment_ids.json", text)
         self.assertIn("one to three sentences", compact_text)
         self.assertIn("omit `resolved_review_comments.json`", compact_text)
+
+    def test_implementation_metadata_examples_pass_pr_body_validation(self) -> None:
+        for path in (".github/skills/implement-issue/SKILL.md", "docs/github-collaboration-flow.md"):
+            with self.subTest(path=path):
+                source = (ROOT / path).read_text(encoding="utf-8")
+                example = re.search(r"```json\n(\{[^`]*\"pr_summary\"[^`]*\})\n```", source)
+                self.assertIsNotNone(example)
+                metadata = json.loads(example.group(1))
+                validate_pr_body.validate_body(metadata["pr_summary"])
+
+    def test_create_tech_spec_requires_all_pr_body_sections(self) -> None:
+        source = (ROOT / ".github/skills/create-tech-spec/SKILL.md").read_text(encoding="utf-8")
+        for heading in validate_pr_body.REQUIRED_SECTIONS:
+            self.assertIn(f"`## {heading}`", source)
 
     def test_local_review_skills_follow_selected_skill_output(self) -> None:
         for path in (

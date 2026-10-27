@@ -42,18 +42,52 @@ class ReviewRoundContextTests(unittest.TestCase):
 
     def test_check_existing_writes_early_skip_output(self) -> None:
         head = "a" * 40
+        base = "b" * 40
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "github-output"
             with (
                 mock.patch.object(rounds, "fetch_reviews", return_value=[{
                     "user": {"login": "github-actions[bot]"}, "state": "COMMENTED", "commit_id": head,
+                    "body": f"<!-- aicodingflow-review base={base} head={head} -->",
                 }]),
                 mock.patch.object(rounds, "is_ancestor") as ancestor,
-                mock.patch("sys.argv", ["prepare_review_round_context.py", "--repo", "owner/repo", "--pr-number", "1", "--head-sha", head, "--check-existing", "--github-output", str(output)]),
+                mock.patch("sys.argv", ["prepare_review_round_context.py", "--repo", "owner/repo", "--pr-number", "1", "--head-sha", head, "--base-sha", base, "--check-existing", "--github-output", str(output)]),
             ):
                 rounds.main()
             self.assertEqual(output.read_text(encoding="utf-8"), "already_reviewed=true\n")
             ancestor.assert_not_called()
+
+    def test_same_head_with_changed_base_is_new_full_review_round(self) -> None:
+        head = "a" * 40
+        old_base = "b" * 40
+        new_base = "c" * 40
+        reviews = [{
+            "user": {"login": "github-actions[bot]"}, "state": "COMMENTED", "commit_id": head,
+            "body": f"<!-- aicodingflow-review base={old_base} head={head} -->",
+        }]
+        history = rounds.review_history(reviews, "github-actions[bot]")
+        self.assertEqual(rounds.round_context(history, head, new_base, True)["round"], 2)
+        self.assertEqual(rounds.round_context(history, head, new_base, True)["mode"], "full")
+        reviewed_again = dict(reviews[0], body=f"<!-- aicodingflow-review base={new_base} head={head} -->")
+        self.assertEqual(rounds.review_history([*reviews, reviewed_again], "github-actions[bot]"), [
+            (head, old_base), (head, new_base),
+        ])
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "github-output"
+            with (
+                mock.patch.object(rounds, "fetch_reviews", return_value=reviews),
+                mock.patch("sys.argv", ["prepare_review_round_context.py", "--repo", "owner/repo", "--pr-number", "1", "--head-sha", head, "--base-sha", new_base, "--check-existing", "--github-output", str(output)]),
+            ):
+                rounds.main()
+            self.assertEqual(output.read_text(encoding="utf-8"), "already_reviewed=false\n")
+
+    def test_legacy_review_without_base_is_not_reused(self) -> None:
+        head = "a" * 40
+        reviews = [{"user": {"login": "github-actions[bot]"}, "state": "COMMENTED", "commit_id": head}]
+        history = rounds.review_history(reviews, "github-actions[bot]")
+        self.assertEqual(history, [(head, "")])
+        context = rounds.round_context(history, head, "b" * 40, True)
+        self.assertEqual((context["round"], context["mode"]), (2, "full"))
 
     def test_counts_distinct_published_bot_heads_across_runs(self) -> None:
         heads = [character * 40 for character in "abcd"]

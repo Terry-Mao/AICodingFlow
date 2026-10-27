@@ -49,5 +49,16 @@
         "type": "string"
       }
     }
+  },
+  "if": {
+    "properties": {
+      "verdict": {"const": "REJECT"}
+    }
+  },
+  "then": {
+    "anyOf": [
+      {"properties": {"body": {"pattern": "\\S"}}},
+      {"properties": {"comments": {"minItems": 1}}}
+    ]
   }
 }

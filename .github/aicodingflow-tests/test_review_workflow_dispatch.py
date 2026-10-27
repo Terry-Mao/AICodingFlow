@@ -20,14 +20,15 @@ def compact(text: str) -> str:
 
 
 class ReviewWorkflowDispatchTest(unittest.TestCase):
-    def test_review_skips_already_reviewed_head_before_ai_action(self) -> None:
+    def test_review_skips_already_reviewed_snapshot_before_ai_action(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")
         preflight = steps(data, "preflight")
         seen = next(step for step in preflight if step.get("id") == "seen")
         self.assertIn("--check-existing", seen["run"])
+        self.assertIn('--base-sha "${{ steps.pr.outputs.base_sha }}"', seen["run"])
         self.assertIn("steps.seen.outputs.already_reviewed != 'true'", data["jobs"]["preflight"]["outputs"]["reviewable"])
         self.assertEqual(data["jobs"]["review"]["if"], "needs.preflight.outputs.reviewable == 'true'")
-        restore = next(step for step in preflight if step.get("name") == "Restore status for an already reviewed head")
+        restore = next(step for step in preflight if step.get("name") == "Restore status for an already reviewed snapshot")
         self.assertIn("steps.seen.outputs.already_reviewed == 'true'", restore["if"])
         self.assertEqual(restore["env"]["HEAD_SHA"], "${{ steps.pr.outputs.head_sha }}")
         self.assertIn('state="success"', restore["run"])

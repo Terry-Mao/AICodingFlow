@@ -48,12 +48,12 @@ class PostPrReviewTest(unittest.TestCase):
                     post_pr_review.main()
             publish.assert_not_called()
 
-    def test_main_skips_existing_bot_review_of_same_head(self) -> None:
+    def test_main_skips_existing_bot_review_of_same_head_and_base(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             review_path = Path(directory) / "review.json"
             review_path.write_text('{"verdict":"APPROVE","body":"ok","comments":[]}', encoding="utf-8")
             event = {"pull_request": {"number": 5, "head": {"sha": "a" * 40}, "base": {"sha": "b" * 40}}}
-            old_review = {"user": {"login": "github-actions[bot]", "type": "Bot"}, "commit_id": "a" * 40, "state": "COMMENTED"}
+            old_review = {"user": {"login": "github-actions[bot]", "type": "Bot"}, "commit_id": "a" * 40, "state": "COMMENTED", "body": f"<!-- aicodingflow-review base={'b' * 40} head={'a' * 40} -->"}
             with (
                 mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"}, clear=True),
                 mock.patch.object(post_pr_review, "load_event", return_value=event),
@@ -64,6 +64,31 @@ class PostPrReviewTest(unittest.TestCase):
             ):
                 post_pr_review.main()
             publish.assert_not_called()
+
+    def test_main_publishes_same_head_after_base_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            review_path = Path(directory) / "review.json"
+            review_path.write_text('{"verdict":"APPROVE","body":"ok","comments":[]}', encoding="utf-8")
+            diff_path = Path(directory) / "pr_diff.txt"
+            diff_path.write_text("", encoding="utf-8")
+            head, base, prior_base = "a" * 40, "b" * 40, "c" * 40
+            event = {"pull_request": {"number": 5, "head": {"sha": head}, "base": {"sha": base}}}
+            old_review = {
+                "user": {"login": "github-actions[bot]", "type": "Bot"},
+                "commit_id": head, "state": "COMMENTED",
+                "body": f"<!-- aicodingflow-review base={prior_base} head={head} -->",
+            }
+            with (
+                mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token", "GITHUB_REPOSITORY": "owner/repo"}, clear=True),
+                mock.patch.object(post_pr_review, "load_event", return_value=event),
+                mock.patch.object(post_pr_review, "github_api_json", return_value={"head": {"sha": head}, "base": {"sha": base}}),
+                mock.patch.object(post_pr_review, "list_pull_request_reviews", return_value=[old_review]),
+                mock.patch.object(post_pr_review, "request_json", return_value={"id": 7}) as publish,
+                mock.patch("sys.argv", ["post_pr_review.py", "--review", str(review_path), "--diff", str(diff_path)]),
+            ):
+                post_pr_review.main()
+            publish.assert_called_once()
+            self.assertIn(f"base={base} head={head}", publish.call_args.args[2]["body"])
 
     def test_github_api_response_retries_network_failures_with_timeout(self) -> None:
         calls = []

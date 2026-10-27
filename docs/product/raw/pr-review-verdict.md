@@ -48,9 +48,9 @@ checks / statuses 视图中。AICodingFlow 参考 `CI` workflow 不写入
 ## Review skill 选择
 
 AI PR Review 的一次 Action 运行只做一次审查。轮次按当前 PR 已发布的 Bot Review
-所对应的不同 head commit 计算；同一 commit 的 Action 重跑不增加轮次，并在 AI
-调用前跳过。前三轮审查完整 diff；第四轮起，当上次已审查提交可追溯且 PR base
-未改变时，以新增 diff 为重点，并检查未解决意见和整体实现方案。条件不满足时回退
+所对应的不同 base/head SHA 快照计算；相同快照的 Action 重跑不增加轮次，并在 AI
+调用前跳过。前三轮审查当轮 base 与当前 head 的完整 PR diff；第四轮起，当上次已审查提交可追溯且 PR base
+未改变时，以从上次已审查 head 到当前 head 的新增 diff 为重点，并检查未解决意见和整体实现方案。条件不满足时回退
 完整审查。inline 评论始终定位到当前完整 PR diff。
 
 AI PR Review 会先按 changed files 判断 PR 类型，再选择核心 review skill：
@@ -154,6 +154,8 @@ review 不生成 spec context。
 - `verdict`: `APPROVE` 或 `REJECT`。
 - `body`: 顶层评审总结或无法 inline 的问题。
 - `comments`: inline review comments 数组。
+
+`REJECT` 必须在 `body` 中提供非空白说明，或至少提供一条 inline comment；两者都为空时校验失败。
 
 `review.json` 可以包含 `recommended_reviewers`，该字段只用于需要推荐人工
 reviewer 的场景。`recommended_reviewers` 必须是字符串数组，最多包含 1 个
