@@ -91,7 +91,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 - `plan-approved.yml`：批准 spec PR 后同步 issue 状态，并在满足实现 gate 时调度 implementation。
 - `create-implementation-from-issue.yml`：把 `ready-to-implement` issue 交给 Codex 实现。
 - `review-pr.yml`：基于稳定快照审查 PR。
-- `review-existing-code.yml`：每天北京时间 02:30 从全项目视角审查默认分支，并轮巡重点代码；默认 7 天覆盖一次，周期可配置；高置信旧 Bug 查重后逐个创建 Issue。
+- `nightly-codebase-review.yml`：每天北京时间 02:30 从全项目视角审查默认分支，并轮巡重点代码；默认 7 天覆盖一次，周期可配置；高置信旧 Bug 查重后逐个创建 Issue。
 - `respond-to-pr-comment.yml`：通过 `@AGENT_LOGIN /fix` 响应 PR conversation、review 或 inline comments。
 - `update-pr-review.yml` / `update-dedupe.yml`：从人工反馈中更新仓库本地 companion SKILL。
 
