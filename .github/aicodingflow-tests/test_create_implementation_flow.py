@@ -116,13 +116,14 @@ class CreateImplementationFlowTest(unittest.TestCase):
                     return_value="https://github.test/owner/repo/pull/125",
                 ) as create_pr,
             ):
-                pr_url = finalize_impl.finalize(
+                pr_url, created = finalize_impl.finalize(
                     "owner/repo",
                     context,
                     json.loads(metadata.read_text(encoding="utf-8")),
                 )
 
         self.assertEqual(pr_url, "https://github.test/owner/repo/pull/125")
+        self.assertTrue(created)
         create_pr.assert_called_once_with(
             "owner/repo",
             "main",

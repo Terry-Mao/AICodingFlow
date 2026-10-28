@@ -21,7 +21,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 | `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
 
 目标仓库已有自己的 CI 时，不要在 CI 成功路径中再次 dispatch `review-pr.yml`。自动审查由该 workflow 的 `pull_request_target` 入口直接触发；CI 保持自己的测试编排。若需要测试通过后才审查，应先关闭直接触发入口，再设计单独的 CI 分发路径，避免两个入口同时运行。
-使用 `GITHUB_TOKEN` 创建或更新 PR 的工作流在 PR 操作完成后显式 dispatch `review-pr.yml`；分发前跳过 draft PR。implementation 工作流使用 GitHub App token 推送 workflow 文件时，由现有 PR 的 `pull_request_target` 事件触发审查，跳过显式 dispatch。常规 PR 仍由 `pull_request_target` 触发。
+使用 `GITHUB_TOKEN` 创建或更新 PR 的工作流在 PR 操作完成后显式 dispatch `review-pr.yml`；默认跳过 draft PR。implementation 工作流新建 PR 时，即使之前使用 GitHub App token 推送 workflow 文件，也显式分发并允许审查新建的 draft PR。仅更新已有 PR 且使用 App token 推送时，依靠推送产生的 `pull_request_target` 事件，跳过显式分发。常规 PR 仍由 `pull_request_target` 触发。
 
 所有 Codex workflow 使用同一组模型配置。`CODEX_API_KEY` 和 `CODEX_API_ENDPOINT` 必须配置；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
 
@@ -155,7 +155,7 @@ Workflow：
 
 AI PR Review 会：
 
-1. preflight 确认 PR 是 open、same-repo、非 draft。
+1. preflight 确认 PR 是 open；自动 PR 事件要求 same-repo、非 draft，新建 implementation PR 的显式分发可审查 draft。
 2. 生成稳定的 `pr_description.txt`。
 3. 生成带行号的 `pr_diff.txt`。
 4. 如果能找到相关 spec，生成 `spec_context.md`。

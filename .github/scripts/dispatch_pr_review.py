@@ -29,14 +29,14 @@ def find_pr(repo: str, *, pr_url: str = "", head_branch: str = "") -> dict:
     return prs[0]
 
 
-def dispatch(repo: str, *, pr_url: str = "", head_branch: str = "") -> bool:
+def dispatch(repo: str, *, pr_url: str = "", head_branch: str = "", allow_draft: bool = False) -> bool:
     pr = find_pr(repo, pr_url=pr_url, head_branch=head_branch)
     if pr.get("state") != "open":
         raise SystemExit("cannot dispatch review for a closed PR")
     head_repo = (pr.get("head") or {}).get("repo") or {}
     if head_repo.get("full_name") != repo:
         raise SystemExit("cannot auto-dispatch review for a fork PR")
-    if pr.get("draft"):
+    if pr.get("draft") and not allow_draft:
         print(f"PR #{pr['number']} is draft; skipping AI review dispatch")
         return False
     subprocess.run(
@@ -53,8 +53,9 @@ def main() -> None:
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--pr-url")
     target.add_argument("--head-branch")
+    parser.add_argument("--allow-draft", action="store_true")
     args = parser.parse_args()
-    dispatch(args.repo, pr_url=args.pr_url or "", head_branch=args.head_branch or "")
+    dispatch(args.repo, pr_url=args.pr_url or "", head_branch=args.head_branch or "", allow_draft=args.allow_draft)
 
 
 if __name__ == "__main__":

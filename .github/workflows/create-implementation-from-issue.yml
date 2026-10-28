@@ -364,11 +364,17 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: dispatch-ai-pr-review
-        if: steps.pr.outputs.pr_url != '' && steps.workflow_update.outputs.required != 'true'
+        if: steps.pr.outputs.pr_url != '' && (steps.pr.outputs.created == 'true' || steps.workflow_update.outputs.required != 'true')
         env:
           GH_TOKEN: ${{ github.token }}
           PR_URL: ${{ steps.pr.outputs.pr_url }}
-        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --pr-url "$PR_URL"
+          PR_CREATED: ${{ steps.pr.outputs.created }}
+        run: |
+          args=(--repo "${{ github.repository }}" --pr-url "$PR_URL")
+          if [ "$PR_CREATED" = true ]; then
+            args+=(--allow-draft)
+          fi
+          python3 .github/scripts/dispatch_pr_review.py "${args[@]}"
 
       - name: update-progress-comment
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'

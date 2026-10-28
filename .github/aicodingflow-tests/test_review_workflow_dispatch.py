@@ -304,8 +304,11 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         dispatch = next(step for step in create_steps if step.get("name") == "dispatch-ai-pr-review")
         self.assertEqual(
             dispatch["if"],
-            "steps.pr.outputs.pr_url != '' && steps.workflow_update.outputs.required != 'true'",
+            "steps.pr.outputs.pr_url != '' && (steps.pr.outputs.created == 'true' || steps.workflow_update.outputs.required != 'true')",
         )
+        self.assertEqual(dispatch["env"]["PR_CREATED"], "${{ steps.pr.outputs.created }}")
+        self.assertIn('if [ "$PR_CREATED" = true ]; then', dispatch["run"])
+        self.assertIn("args+=(--allow-draft)", dispatch["run"])
         self.assertIn(".github/scripts/dispatch_pr_review.py", dispatch["run"])
 
     def test_other_pr_creating_workflows_dispatch_review_after_success(self) -> None:

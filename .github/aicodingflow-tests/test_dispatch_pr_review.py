@@ -44,6 +44,21 @@ class DispatchPrReviewTest(unittest.TestCase):
         api.assert_called_once_with(["api", "repos/owner/repo/pulls?state=open&head=owner%3Adocs%2Fupdate&per_page=100"])
         run.assert_not_called()
 
+    def test_dispatches_draft_pr_when_explicitly_allowed(self) -> None:
+        with (
+            mock.patch.object(dispatch_pr_review, "run_gh_json", return_value=pr(draft=True)),
+            mock.patch.object(dispatch_pr_review.subprocess, "run") as run,
+        ):
+            dispatched = dispatch_pr_review.dispatch(
+                "owner/repo", pr_url="https://github.com/owner/repo/pull/42", allow_draft=True
+            )
+
+        self.assertTrue(dispatched)
+        run.assert_called_once_with(
+            ["gh", "workflow", "run", "review-pr.yml", "--repo", "owner/repo", "-f", "pr_number=42"],
+            check=True,
+        )
+
     def test_rejects_fork_pr_and_foreign_url(self) -> None:
         with mock.patch.object(dispatch_pr_review, "run_gh_json", return_value=pr(head_repo="other/repo")):
             with self.assertRaisesRegex(SystemExit, "fork PR"):
