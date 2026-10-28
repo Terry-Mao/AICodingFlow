@@ -145,6 +145,14 @@ Workflow：
 
 `pr_summary` 第一行必须是 `Closes #<issue-number>`，并填写非空的 `## Summary`、`## Testing`、`## Risk`、`## How to revert` 四个章节。`intended_files` 必须精确列出 workflow 应提交的实现文件，不包含临时文件、validation logs、生成缓存或未变化文件。
 
+## 夜间存量代码审查
+
+`review-existing-code.yml` 每天北京时间 02:30 运行。每次先查看默认分支的完整代码清单、入口和跨文件调用链，再深入审查当天的重点文件。默认轮巡周期为 7 天；设置 Actions variable `NIGHTLY_REVIEW_CYCLE_DAYS` 可调整为 1–90 天。`workflow_dispatch` 可临时覆盖周期，并指定 `0` 至“周期天数减 1”的分片补跑；留空时使用当天的北京时间分片。源码、工作流、脚本和可执行的技能说明是审查目标；测试目录及同目录测试文件不参与轮巡，测试和其他文件仅用于核实发现。稀疏项目遇到空分片时会复查一个文件，确保每天仍执行项目级审查。
+
+准备 job 以只读权限生成固定提交的项目清单和 Issue 快照，并上传输入 artifact。审查 Agent 在独立、只读的 review job 中读取这些资料，以最后一步的最终消息交出 JSON；它不直接发布 Issue。新的 publish job 从固定提交重新检出脚本，读取准备阶段的 artifact 和 Agent 输出，校验文件位置与输入完整性后才获取写权限发布。若跨文件调查定位到重点范围外的根因，也可报告该项目代码位置。发布阶段按现有 Issue 与指纹查重；匹配到已关闭 Issue 时将当前发现视为潜在回归，新建 Issue 并引用旧单。只有具备明确触发条件、影响和核实依据的高置信缺陷才会逐项创建中文 Issue，并显式调度已有的 `triage-issue.yml`；单个分诊调度失败时继续处理剩余发现，最后汇总失败编号并使工作流失败，重跑时会为尚无分诊评论的夜间 Issue 补发调度。用户主动创建 Issue 的 `issues.opened` 入口不变。公开的安全 Issue 不应包含利用载荷或敏感信息。无发现时不创建 Issue；运行产物上传留存，失败运行不会发布未经校验的结果。
+
+调度由 GitHub Actions 执行；如某天未运行，可从 Actions 页面手动补跑对应分片。该流程不修改源码，也不使用 PR review 的差异行定位契约。
+
 ## PR Review
 
 Workflow：

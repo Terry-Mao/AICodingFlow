@@ -41,6 +41,7 @@ cd AICodingFlow
 | `CODEX_MODEL` | Actions variable | Codex 使用的模型名称，例如网关暴露的 `deepseek-chat`；为空时使用 Codex 默认模型。 |
 | `AGENT_LOGIN` | Actions variable | GitHub issue / PR comment 中被分配或 mention 的 agent 登录名。 |
 | `REVIEW_BOT_LOGIN` | Actions variable | 可选。发布 PR review 的 bot 登录名；默认 `github-actions[bot]`。如果 review workflow 改用其他 token / bot 账号发 review，需要设置为实际 review 作者，用于后续 `APPROVE` 清理旧的 bot `REQUEST_CHANGES`。 |
+| `NIGHTLY_REVIEW_CYCLE_DAYS` | Actions variable | 可选。夜间存量代码审查的轮巡周期，取值 1–90；默认 7。 |
 | `APP_ID` | Actions variable | GitHub App ID；implementation/comment fix 需要更新 workflow 文件时使用。 |
 | `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
 
@@ -90,6 +91,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 - `plan-approved.yml`：批准 spec PR 后同步 issue 状态，并在满足实现 gate 时调度 implementation。
 - `create-implementation-from-issue.yml`：把 `ready-to-implement` issue 交给 Codex 实现。
 - `review-pr.yml`：基于稳定快照审查 PR。
+- `review-existing-code.yml`：每天北京时间 02:30 从全项目视角审查默认分支，并轮巡重点代码；默认 7 天覆盖一次，周期可配置；高置信旧 Bug 查重后逐个创建 Issue。
 - `respond-to-pr-comment.yml`：通过 `@AGENT_LOGIN /fix` 响应 PR conversation、review 或 inline comments。
 - `update-pr-review.yml` / `update-dedupe.yml`：从人工反馈中更新仓库本地 companion SKILL。
 
