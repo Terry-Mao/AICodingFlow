@@ -18,7 +18,6 @@ when a request names them or matches their purpose.
 - `.github/aicodingflow-tests/`: upstream-managed `unittest` coverage for
   workflows, scripts, and skill contracts.
 - `specs/issue-<N>/`: product and technical specs for issue-backed work.
-- `docs/updates/`: generated product change reports.
 
 ## Validation
 

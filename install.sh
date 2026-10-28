@@ -159,6 +159,39 @@ cleanup_legacy_agent_skills() {
   done
 }
 
+cleanup_retired_product_automation() {
+  local relative path
+  local retired_paths=(
+    .github/workflows/product-change-report.yml
+    .github/workflows/product-docs-sync.yml
+    .github/workflows/product-wiki-compile.yml
+    .github/skills/product-change-report
+    .github/skills/product-docs-sync
+    .github/skills/product-wiki
+    .github/agents/product-wiki-query.md
+    .github/scripts/check_product_change_report_status.py
+    .github/scripts/prepare_product_change_report_context.py
+    .github/scripts/prepare_product_docs_sync_context.py
+    .github/scripts/update_product_change_report_ledger.py
+    .github/scripts/update_product_docs_sync_ledger.py
+    .github/scripts/validate_product_docs_sync_result.py
+    .github/scripts/validate_product_wiki_compile.py
+    .github/scripts/write_product_change_report_pr_body.py
+    .github/scripts/write_product_docs_sync_pr_body.py
+    .github/scripts/write_product_wiki_compile_pr_body.py
+  )
+
+  for relative in "${retired_paths[@]}"; do
+    path="$target_dir/$relative"
+    [ -e "$path" ] || continue
+    if [ "$dry_run" = true ]; then
+      info "Would remove retired product automation: $relative"
+    else
+      rm -r "$path"
+    fi
+  done
+}
+
 sync_skills() {
   local skills_src="$script_dir/.agents/skills"
   local skills_dest="$target_dir/.agents/skills"
@@ -204,6 +237,7 @@ sync_github_dirs() {
 }
 
 cleanup_legacy_agent_skills
+cleanup_retired_product_automation
 sync_skills
 copy_dir "$script_dir/.agents/contracts" "$target_dir/.agents/contracts"
 sync_github_skills
