@@ -4,6 +4,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -277,8 +278,14 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
             self.assertIn("分诊调度失败，需补发：#10", summary.read_text(encoding="utf-8"))
 
     def test_workflow_schedules_beijing_night_and_publishes_outside_agent(self) -> None:
-        workflow = (ROOT / ".github/workflows/review-existing-code.yml").read_text(encoding="utf-8")
-        self.assertTrue(workflow.startswith("name: Nightly Codebase Review\n"))
+        workflow = (ROOT / ".github/workflows/nightly-codebase-review.yml").read_text(encoding="utf-8")
+        self.assertTrue(workflow.startswith("name: nightly-codebase-review\n"))
+        step_names = re.findall(r"^      - name: (.+)$", workflow, flags=re.MULTILINE)
+        self.assertEqual(len(step_names), 14)
+        for step_name in step_names:
+            with self.subTest(step_name=step_name):
+                self.assertRegex(step_name, r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+        self.assertNotRegex(workflow, r"(?m)^      - uses:")
         self.assertIn('cron: "30 18 * * *"', workflow)
         self.assertIn("NIGHTLY_REVIEW_CYCLE_DAYS", workflow)
         self.assertIn("publish_nightly_findings.py", workflow)
@@ -290,7 +297,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         prepare_job = workflow.split("  prepare:\n", 1)[1].split("  review:\n", 1)[0]
         review_job = workflow.split("  review:\n", 1)[1].split("  publish:\n", 1)[0]
         publish_job = workflow.split("  publish:\n", 1)[1]
-        self.assertIn("name: nightly-review-input-${{ github.run_id }}", prepare_job)
+        self.assertIn("name: nightly-codebase-review-input-${{ github.run_id }}", prepare_job)
         self.assertNotIn("issues: write", prepare_job)
         self.assertNotIn("actions: write", prepare_job)
         self.assertNotIn("issues: write", review_job)
@@ -299,7 +306,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertEqual(review_job.count("uses: openai/codex-action@v1"), 1)
         self.assertTrue(review_job.rstrip().endswith("issues, or post comments. The publisher validates your final message."))
         self.assertIn("ref: ${{ needs.prepare.outputs.commit }}", publish_job)
-        self.assertIn("name: nightly-review-input-${{ github.run_id }}", publish_job)
+        self.assertIn("name: nightly-codebase-review-input-${{ github.run_id }}", publish_job)
         self.assertIn("GH_TOKEN: ${{ github.token }}", publish_job)
         self.assertIn("if: always()", publish_job)
 

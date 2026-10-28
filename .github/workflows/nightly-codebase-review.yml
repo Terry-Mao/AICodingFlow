@@ -1,4 +1,4 @@
-name: Nightly Codebase Review
+name: nightly-codebase-review
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ on:
     - cron: "30 18 * * *"
 
 concurrency:
-  group: nightly-existing-code-review
+  group: nightly-codebase-review
   cancel-in-progress: false
 
 jobs:
@@ -36,13 +36,14 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - uses: actions/checkout@v6
+      - name: checkout-default-branch
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Prepare pinned review context
+      - name: prepare-pinned-review-context
         id: context
         env:
           GH_TOKEN: ${{ github.token }}
@@ -56,13 +57,14 @@ jobs:
             --output-dir nightly-review-output \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Report empty shard
+      - name: report-empty-shard
         if: steps.context.outputs.file_count == '0'
         run: echo "轮巡分片 ${{ steps.context.outputs.shard }}/${{ steps.context.outputs.cycle_days }} 没有重点代码文件。" >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v7
+      - name: upload-review-input
+        uses: actions/upload-artifact@v7
         with:
-          name: nightly-review-input-${{ github.run_id }}
+          name: nightly-codebase-review-input-${{ github.run_id }}
           path: nightly-review-output/
 
   review:
@@ -77,24 +79,26 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
-      - uses: actions/checkout@v6
+      - name: checkout-pinned-review-source
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
           ref: ${{ needs.prepare.outputs.commit }}
 
-      - uses: actions/download-artifact@v7
+      - name: download-review-input
+        uses: actions/download-artifact@v7
         with:
-          name: nightly-review-input-${{ github.run_id }}
+          name: nightly-codebase-review-input-${{ github.run_id }}
           path: nightly-review-output
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
-        id: codex_endpoint
+      - name: configure-codex-api-endpoint
+        id: codex-endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
         run: |
@@ -109,14 +113,14 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Review existing code
+      - name: review-existing-code
         id: codex
         uses: openai/codex-action@v1
         timeout-minutes: 20
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
-          responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
+          responses-api-endpoint: ${{ steps.codex-endpoint.outputs.url }}
           sandbox: read-only
           prompt: |
             Read .github/skills/review-existing-code/SKILL.md and follow it exactly.
@@ -144,18 +148,20 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - uses: actions/checkout@v6
+      - name: checkout-pinned-review-source
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           persist-credentials: false
           ref: ${{ needs.prepare.outputs.commit }}
 
-      - uses: actions/download-artifact@v7
+      - name: download-review-input
+        uses: actions/download-artifact@v7
         with:
-          name: nightly-review-input-${{ github.run_id }}
+          name: nightly-codebase-review-input-${{ github.run_id }}
           path: nightly-review-output
 
-      - name: Materialize untrusted review result
+      - name: materialize-untrusted-review-result
         env:
           FINDINGS_JSON: ${{ needs.review.outputs.findings_json }}
         run: |
@@ -169,7 +175,7 @@ jobs:
           Path("nightly-review-output/findings.json").write_text(result, encoding="utf-8")
           PY
 
-      - name: Validate and publish findings
+      - name: validate-and-publish-findings
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -179,9 +185,10 @@ jobs:
             --output-dir nightly-review-output \
             --summary "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v7
+      - name: upload-review-results
+        uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: nightly-existing-code-review-${{ github.run_id }}
+          name: nightly-codebase-review-${{ github.run_id }}
           path: nightly-review-output/
           if-no-files-found: ignore
