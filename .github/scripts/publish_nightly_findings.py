@@ -9,10 +9,12 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
-from github_api import run_gh_json
+from apply_issue_triage_result import MARKER as TRIAGE_COMMENT_MARKER
+from github_api import flatten_gh_pages, run_gh_json
 from prepare_nightly_review import focus_files, issue_snapshot, parse_cycle_days
 
 OUTPUT_FILES = {
@@ -166,12 +168,56 @@ def issue_body(finding: dict[str, Any], context: dict[str, Any]) -> str:
     )
 
 
-def publish(repo: str, findings: list[dict[str, Any]], issues: list[dict[str, Any]], context: dict[str, Any]) -> tuple[int, int]:
+def is_nightly_issue(issue: dict[str, Any]) -> bool:
+    return str(issue.get("body") or "").lstrip().startswith("<!-- nightly-review-fingerprint:")
+
+
+def has_triage_comment(repo: str, issue_number: int) -> bool:
+    pages = run_gh_json([
+        "api", f"repos/{repo}/issues/{issue_number}/comments?per_page=100",
+        "--paginate", "--slurp",
+    ])
+    return any(TRIAGE_COMMENT_MARKER in str(item.get("body") or "") for item in flatten_gh_pages(pages))
+
+
+def dispatch_triage(repo: str, default_branch: str, issue_number: int) -> None:
+    subprocess.run([
+        "gh", "workflow", "run", "triage-issue.yml", "--repo", repo,
+        "--ref", default_branch, "-f", f"issue={issue_number}",
+    ], check=True)
+    print(f"Dispatched triage for issue #{issue_number}")
+
+
+def publish(repo: str, default_branch: str, findings: list[dict[str, Any]], issues: list[dict[str, Any]], context: dict[str, Any]) -> tuple[int, int, list[int]]:
     created = skipped = 0
+    failed_dispatches: list[int] = []
     seen: set[str] = set()
+    checked_triage: set[int] = set()
+
+    def try_dispatch(issue_number: int, *, check_existing: bool = False) -> None:
+        try:
+            if check_existing and has_triage_comment(repo, issue_number):
+                return
+            dispatch_triage(repo, default_branch, issue_number)
+        except (OSError, subprocess.CalledProcessError) as exc:
+            failed_dispatches.append(issue_number)
+            print(f"Failed to dispatch triage for issue #{issue_number}: {exc}", file=sys.stderr)
+
     for finding in findings:
         marker = fingerprint(finding)
-        if marker in seen or finding["duplicate_issue_number"] is not None or matched_issue(finding, issues):
+        if marker in seen:
+            skipped += 1
+            continue
+        existing = next(
+            (issue for issue in issues if issue.get("number") == finding["duplicate_issue_number"]),
+            None,
+        ) if finding["duplicate_issue_number"] is not None else matched_issue(finding, issues)
+        if existing:
+            if existing and is_nightly_issue(existing):
+                number = existing["number"]
+                if number not in checked_triage:
+                    checked_triage.add(number)
+                    try_dispatch(number, check_existing=True)
             skipped += 1
             continue
         title = finding["title"].strip()
@@ -187,12 +233,14 @@ def publish(repo: str, findings: list[dict[str, Any]], issues: list[dict[str, An
         seen.add(marker)
         created += 1
         print(f"Created issue #{response['number']}: {title}")
-    return created, skipped
+        try_dispatch(response["number"])
+    return created, skipped, failed_dispatches
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True)
+    parser.add_argument("--default-branch", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--summary", type=Path)
     args = parser.parse_args()
@@ -206,12 +254,16 @@ def main() -> None:
     findings = validate_findings(load_object(args.output_dir / "findings.json"), lines, issues)
     # A new issue can appear while the agent is reviewing. Refresh before writes.
     current_issues = issue_snapshot(args.repo)
-    created, skipped = publish(args.repo, findings, current_issues, context)
+    created, skipped, failed_dispatches = publish(args.repo, args.default_branch, findings, current_issues, context)
     summary = f"夜间代码审查：分片 {context['shard']}/{context['cycle_days']}，项目代码 {len(lines)} 个文件，本轮重点 {len(context['files'])} 个文件，发现 {len(findings)} 项，创建 {created} 个 Issue，跳过 {skipped} 项重复发现。\n"
+    if failed_dispatches:
+        summary += "分诊调度失败，需补发：" + "、".join(f"#{number}" for number in failed_dispatches) + "。\n"
     print(summary, end="")
     if args.summary:
         with args.summary.open("a", encoding="utf-8") as output:
             output.write(summary)
+    if failed_dispatches:
+        raise SystemExit("Nightly review created issues but triage dispatch failed for: " + ", ".join(f"#{number}" for number in failed_dispatches))
 
 
 if __name__ == "__main__":

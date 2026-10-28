@@ -109,7 +109,7 @@ def issue_snapshot(repo: str) -> list[dict[str, object]]:
         issues.append({
             "number": item["number"],
             "title": str(item.get("title") or ""),
-            "body": str(item.get("body") or "")[:4000],
+            "body": str(item.get("body") or ""),
             "state": str(item.get("state") or ""),
             "url": str(item.get("html_url") or ""),
         })

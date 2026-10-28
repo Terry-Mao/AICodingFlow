@@ -52,7 +52,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertTrue(prepare.is_reviewable_path("src/server.ts"))
         self.assertTrue(prepare.is_reviewable_path(".github/workflows/ci.yml"))
         self.assertTrue(prepare.is_reviewable_path(".agents/skills/create-pr/SKILL.md"))
-        self.assertFalse(prepare.is_reviewable_path("docs/product/raw/workflow.md"))
+        self.assertFalse(prepare.is_reviewable_path("docs/architecture/workflow.md"))
         self.assertFalse(prepare.is_reviewable_path("tests/test_server.py"))
         self.assertFalse(prepare.is_reviewable_path(".github/aicodingflow-tests/test_script.py"))
         self.assertFalse(prepare.is_reviewable_path("vendor/lib.py"))
@@ -124,12 +124,91 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertEqual(publish.matched_issue(item, prior)["number"], 7)
         same_title_other_path = [{"number": 9, "title": item["title"], "body": "`src/other.py:2`"}]
         self.assertIsNone(publish.matched_issue(item, same_title_other_path))
-        with mock.patch.object(publish, "run_gh_json") as create:
-            self.assertEqual(publish.publish("owner/repo", [item], prior, context), (0, 1))
+        with mock.patch.object(publish, "has_triage_comment", return_value=True), mock.patch.object(publish, "run_gh_json") as create, mock.patch.object(publish, "dispatch_triage") as dispatch:
+            self.assertEqual(publish.publish("owner/repo", "main", [item], prior, context), (0, 1, []))
             create.assert_not_called()
-        with mock.patch.object(publish, "run_gh_json", return_value={"number": 8}) as create:
-            self.assertEqual(publish.publish("owner/repo", [item, item], [], context), (1, 1))
+            dispatch.assert_not_called()
+        with mock.patch.object(publish, "run_gh_json", return_value={"number": 8}) as create, mock.patch.object(publish, "dispatch_triage") as dispatch:
+            self.assertEqual(publish.publish("owner/repo", "main", [item, item], [], context), (1, 1, []))
             create.assert_called_once()
+            dispatch.assert_called_once_with("owner/repo", "main", 8)
+
+    def test_long_issue_body_keeps_late_path_for_deduplication(self) -> None:
+        item = finding()
+        body = "背景说明" * 1000 + "\n`src/example.py:2`"
+        self.assertGreater(len(body), 4000)
+        response = [[{
+            "number": 23,
+            "title": item["title"],
+            "body": body,
+            "state": "open",
+            "html_url": "https://github.com/owner/repo/issues/23",
+        }]]
+        with mock.patch.object(prepare, "run_gh_json", return_value=response):
+            issues = prepare.issue_snapshot("owner/repo")
+        self.assertEqual(issues[0]["body"], body)
+        self.assertEqual(publish.matched_issue(item, issues)["number"], 23)
+
+    def test_dispatch_failure_does_not_stop_remaining_issue_creation(self) -> None:
+        first = finding()
+        second = finding(title="另一处状态判断错误", path="src/second.py")
+        context = {"commit": "a" * 40, "scan_date": "2026-10-28", "shard": 3, "cycle_days": 7}
+        failure = publish.subprocess.CalledProcessError(1, ["gh", "workflow", "run"])
+        with (
+            mock.patch.object(publish, "run_gh_json", side_effect=[{"number": 10}, {"number": 11}]) as create,
+            mock.patch.object(publish, "dispatch_triage", side_effect=[failure, None]) as dispatch,
+        ):
+            self.assertEqual(publish.publish("owner/repo", "main", [first, second], [], context), (2, 0, [10]))
+            self.assertEqual(create.call_count, 2)
+            self.assertEqual(dispatch.call_count, 2)
+
+    def test_triage_lookup_failure_does_not_stop_remaining_issue_creation(self) -> None:
+        first = finding()
+        second = finding(title="另一处状态判断错误", path="src/second.py")
+        context = {"commit": "a" * 40, "scan_date": "2026-10-28", "shard": 3, "cycle_days": 7}
+        prior = [{"number": 7, "title": "other", "body": publish.issue_body(first, context)}]
+        failure = publish.subprocess.CalledProcessError(1, ["gh", "api"])
+        with (
+            mock.patch.object(publish, "has_triage_comment", side_effect=failure),
+            mock.patch.object(publish, "run_gh_json", return_value={"number": 11}) as create,
+            mock.patch.object(publish, "dispatch_triage") as dispatch,
+        ):
+            self.assertEqual(publish.publish("owner/repo", "main", [first, second], prior, context), (1, 1, [7]))
+            create.assert_called_once()
+            dispatch.assert_called_once_with("owner/repo", "main", 11)
+
+    def test_rerun_dispatches_untriaged_nightly_issue_without_recreating_it(self) -> None:
+        item = finding()
+        context = {"commit": "a" * 40, "scan_date": "2026-10-28", "shard": 3, "cycle_days": 7}
+        prior = [{"number": 7, "title": "other", "body": publish.issue_body(item, context)}]
+        with mock.patch.object(publish, "has_triage_comment", return_value=False), mock.patch.object(publish, "run_gh_json") as create, mock.patch.object(publish, "dispatch_triage") as dispatch:
+            self.assertEqual(publish.publish("owner/repo", "main", [item], prior, context), (0, 1, []))
+            create.assert_not_called()
+            dispatch.assert_called_once_with("owner/repo", "main", 7)
+
+    def test_user_created_duplicate_never_triggers_nightly_triage_dispatch(self) -> None:
+        item = finding()
+        issue = {"number": 9, "title": item["title"], "body": "`src/example.py:2`"}
+        with mock.patch.object(publish, "dispatch_triage") as dispatch:
+            self.assertEqual(publish.publish("owner/repo", "main", [item], [issue], {}), (0, 1, []))
+            dispatch.assert_not_called()
+
+    def test_triage_comment_lookup_and_dispatch_command(self) -> None:
+        with mock.patch.object(publish, "run_gh_json", return_value=[[{"body": publish.TRIAGE_COMMENT_MARKER}]]) as fetch:
+            self.assertTrue(publish.has_triage_comment("owner/repo", 7))
+            fetch.assert_called_once()
+        with mock.patch.object(publish.subprocess, "run") as run:
+            publish.dispatch_triage("owner/repo", "main", 7)
+            run.assert_called_once_with([
+                "gh", "workflow", "run", "triage-issue.yml", "--repo", "owner/repo",
+                "--ref", "main", "-f", "issue=7",
+            ], check=True)
+        with mock.patch.object(
+            publish.subprocess, "run",
+            side_effect=publish.subprocess.CalledProcessError(1, ["gh", "workflow", "run"]),
+        ):
+            with self.assertRaises(publish.subprocess.CalledProcessError):
+                publish.dispatch_triage("owner/repo", "main", 7)
 
     def test_public_security_issue_omits_trigger_and_evidence(self) -> None:
         item = finding(security=True, trigger="private trigger", evidence="private evidence")
@@ -146,7 +225,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
             (output / "findings.json").write_text(json.dumps({"findings": [finding()]}))
             current = [{"number": 9, "title": "缺少边界检查导致异常", "body": "`src/example.py:2`"}]
             with (
-                mock.patch("sys.argv", ["publish_nightly_findings.py", "--repo", "owner/repo", "--output-dir", str(output)]),
+                mock.patch("sys.argv", ["publish_nightly_findings.py", "--repo", "owner/repo", "--default-branch", "main", "--output-dir", str(output)]),
                 mock.patch.object(publish, "validate_write_surface"),
                 mock.patch.object(publish, "validate_snapshot", return_value={"src/example.py": 3}),
                 mock.patch.object(publish, "issue_snapshot", return_value=current) as refresh,
@@ -156,11 +235,31 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
             refresh.assert_called_once_with("owner/repo")
             create.assert_not_called()
 
+    def test_dispatch_failures_are_reported_after_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            (output / "context.json").write_text(json.dumps({"commit": "a" * 40, "scan_date": "2026-10-28", "shard": 3, "cycle_days": 7, "files": [{"path": "src/example.py"}]}))
+            (output / "issues.json").write_text("[]")
+            (output / "findings.json").write_text(json.dumps({"findings": [finding()]}))
+            summary = output / "summary.md"
+            with (
+                mock.patch("sys.argv", ["publish_nightly_findings.py", "--repo", "owner/repo", "--default-branch", "main", "--output-dir", str(output), "--summary", str(summary)]),
+                mock.patch.object(publish, "validate_write_surface"),
+                mock.patch.object(publish, "validate_snapshot", return_value={"src/example.py": 3}),
+                mock.patch.object(publish, "issue_snapshot", return_value=[]),
+                mock.patch.object(publish, "publish", return_value=(2, 0, [10])),
+            ):
+                with self.assertRaises(SystemExit) as failure:
+                    publish.main()
+            self.assertIn("#10", str(failure.exception))
+            self.assertIn("分诊调度失败，需补发：#10", summary.read_text(encoding="utf-8"))
+
     def test_workflow_schedules_beijing_night_and_publishes_outside_agent(self) -> None:
         workflow = (ROOT / ".github/workflows/review-existing-code.yml").read_text(encoding="utf-8")
         self.assertIn('cron: "30 18 * * *"', workflow)
         self.assertIn("NIGHTLY_REVIEW_CYCLE_DAYS", workflow)
         self.assertIn("publish_nightly_findings.py", workflow)
+        self.assertIn("actions: write", workflow)
         self.assertIn("if: always()", workflow)
 
 

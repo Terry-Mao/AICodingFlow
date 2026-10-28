@@ -137,7 +137,7 @@ class InstallScriptTest(unittest.TestCase):
                 path = target / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("retired\n", encoding="utf-8")
-            retained = target / "docs/product/custom.md"
+            retained = target / "docs/custom.md"
             retained.parent.mkdir(parents=True)
             retained.write_text("project content\n", encoding="utf-8")
 
