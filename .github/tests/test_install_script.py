@@ -103,12 +103,12 @@ class InstallScriptTest(unittest.TestCase):
             self.assertTrue((target / ".agents/contracts/review.md").is_file())
             self.assertTrue((target / ".agents/contracts/review.schema.json").is_file())
             self.assertTrue((target / ".github/skills/review-pr/SKILL.md").is_file())
-            self.assertTrue((target / ".github/skills/product-docs-sync/SKILL.md").is_file())
+            self.assertFalse((target / ".github/skills/product-docs-sync/SKILL.md").exists())
             self.assertFalse((target / ".github/skills/review-pr-repo/SKILL.md").exists())
             self.assertFalse((target / ".github/skills/review-spec-repo/SKILL.md").exists())
             self.assertFalse((target / ".github/skills/triage-issue-repo/SKILL.md").exists())
             self.assertFalse((target / ".github/skills/dedupe-issue-repo/SKILL.md").exists())
-            self.assertTrue((target / ".github/agents/product-wiki-query.md").is_file())
+            self.assertFalse((target / ".github/agents/product-wiki-query.md").exists())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
             self.assertFalse((target / ".github/tests").exists())
             self.assertFalse((target / ".github/aicodingflow-tests").exists())
@@ -121,6 +121,33 @@ class InstallScriptTest(unittest.TestCase):
             self.run_install(target)
 
             self.assertFalse((target / ".github/workflows/ci.yml").exists())
+
+    def test_removes_retired_product_automation_from_existing_install(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            retired = [
+                ".github/workflows/product-docs-sync.yml",
+                ".github/workflows/product-change-report.yml",
+                ".github/workflows/product-wiki-compile.yml",
+                ".github/skills/product-docs-sync/SKILL.md",
+                ".github/agents/product-wiki-query.md",
+                ".github/scripts/prepare_product_docs_sync_context.py",
+            ]
+            for relative in retired:
+                path = target / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("retired\n", encoding="utf-8")
+            retained = target / "docs/product/custom.md"
+            retained.parent.mkdir(parents=True)
+            retained.write_text("project content\n", encoding="utf-8")
+
+            preview = self.run_install(target, "--dry-run")
+            self.assertIn("Would remove retired product automation", preview.stdout)
+            self.assertTrue(all((target / relative).exists() for relative in retired))
+
+            self.run_install(target)
+            self.assertTrue(all(not (target / relative).exists() for relative in retired))
+            self.assertEqual(retained.read_text(encoding="utf-8"), "project content\n")
 
     def test_overwrites_regular_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

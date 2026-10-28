@@ -1,4 +1,4 @@
-name: Respond To PR Comment
+name: respond-to-pr-comment
 
 on:
   issue_comment:
@@ -55,12 +55,12 @@ jobs:
       pr_number: ${{ steps.context.outputs.pr_number }}
 
     steps:
-      - name: Checkout workflow scripts
+      - name: checkout-workflow-scripts
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
-      - name: Prepare workflow handoff directory
+      - name: prepare-workflow-handoff-directory
         id: handoff
         run: |
           dir="$RUNNER_TEMP/aicodingflow-pr-comment-preflight"
@@ -68,7 +68,7 @@ jobs:
           mkdir -p "$dir"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare PR comment context
+      - name: prepare-pr-comment-context
         id: context
         env:
           GH_TOKEN: ${{ github.token }}
@@ -83,7 +83,7 @@ jobs:
             --review-comment-ids-output "${{ steps.handoff.outputs.dir }}/review_comment_ids.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Report skipped PR comment response
+      - name: report-skipped-pr-comment-response
         if: steps.context.outputs.should_run != 'true'
         run: echo "${{ steps.context.outputs.skip_reason }}"
 
@@ -101,6 +101,7 @@ jobs:
     if: needs.preflight.outputs.should_run == 'true' && needs.preflight.outputs.branch_strategy != 'blocked'
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       issues: write
       pull-requests: write
@@ -109,12 +110,12 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
 
     steps:
-      - name: Checkout workflow scripts
+      - name: checkout-workflow-scripts
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
-      - name: Prepare workflow handoff directory
+      - name: prepare-workflow-handoff-directory
         id: handoff
         run: |
           temp_dir="$RUNNER_TEMP/aicodingflow-pr-comment-response"
@@ -124,7 +125,7 @@ jobs:
           echo "temp_dir=$temp_dir" >> "$GITHUB_OUTPUT"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare PR comment context
+      - name: prepare-pr-comment-context
         id: context
         env:
           GH_TOKEN: ${{ github.token }}
@@ -139,7 +140,7 @@ jobs:
             --review-comment-ids-output "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Checkout PR head
+      - name: checkout-pr-head
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         uses: actions/checkout@v6
         with:
@@ -149,7 +150,7 @@ jobs:
           ref: ${{ steps.context.outputs.head_sha }}
           path: pr-worktree
 
-      - name: Prepare implementation workspace
+      - name: prepare-implementation-workspace
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         run: |
           rm -rf pr-worktree/.codex-runtime
@@ -159,7 +160,7 @@ jobs:
           cp "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" "${{ steps.handoff.outputs.dir }}/review_comment_ids.json"
           cp -R .agents/skills pr-worktree/.codex-runtime/skills
 
-      - name: Snapshot PR diff
+      - name: snapshot-pr-diff
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -172,7 +173,7 @@ jobs:
             --base-sha "${{ steps.context.outputs.base_sha }}" \
             --output "${{ steps.handoff.outputs.dir }}/pr_diff.txt"
 
-      - name: Snapshot spec context
+      - name: snapshot-spec-context
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         env:
           PR_EVENT_PATH: ${{ steps.handoff.outputs.dir }}/pr_event.json
@@ -183,13 +184,13 @@ jobs:
             --changed-files-from-diff "${{ steps.handoff.outputs.dir }}/pr_diff.txt" \
             --output "${{ steps.handoff.outputs.dir }}/spec_context.md"
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
+      - name: configure-codex-api-endpoint
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         id: codex_endpoint
         env:
@@ -206,7 +207,7 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Respond to PR comment
+      - name: respond-to-pr-comment
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         uses: openai/codex-action@v1
         with:
@@ -297,7 +298,7 @@ jobs:
             GitHub APIs. The outer workflow validates outputs and performs all
             GitHub writes.
 
-      - name: Check PR comment response worktree changes
+      - name: check-pr-comment-response-worktree-changes
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         id: worktree
         working-directory: pr-worktree
@@ -311,7 +312,7 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Report no PR comment response diff
+      - name: report-no-pr-comment-response-diff
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -321,7 +322,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --body "I analyzed the request but did not produce a PR comment response diff."
 
-      - name: Validate PR comment response output
+      - name: validate-pr-comment-response-output
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true'
         id: validate
         continue-on-error: true
@@ -335,7 +336,7 @@ jobs:
             > "${{ steps.handoff.outputs.dir }}/validation-output.txt" \
             2> "${{ steps.handoff.outputs.dir }}/validation-error.txt"
 
-      - name: Check whether workflow update token is required
+      - name: check-whether-workflow-update-token-is-required
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
         id: workflow_update
         working-directory: pr-worktree
@@ -350,7 +351,7 @@ jobs:
           print(f"required={str(required).lower()}")
           PY
 
-      - name: Create GitHub App token for workflow updates
+      - name: create-github-app-token-for-workflow-updates
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.workflow_update.outputs.required == 'true'
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -360,7 +361,7 @@ jobs:
           permission-contents: write
           permission-workflows: write
 
-      - name: Commit and push PR comment response branch
+      - name: commit-and-push-pr-comment-response-branch
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
         id: response_branch
         working-directory: pr-worktree
@@ -373,7 +374,7 @@ jobs:
             --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Apply PR comment response result
+      - name: apply-pr-comment-response-result
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.response_branch.outputs.changed == 'true'
         id: apply
         env:
@@ -386,7 +387,14 @@ jobs:
             --resolved "${{ steps.handoff.outputs.dir }}/resolved_review_comments.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Report no committable PR comment response diff
+      - name: dispatch-ai-pr-review
+        if: steps.apply.outputs.pr_url != '' && steps.workflow_update.outputs.required != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.apply.outputs.pr_url }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --pr-url "$PR_URL"
+
+      - name: report-no-committable-pr-comment-response-diff
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.response_branch.outputs.changed != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -396,7 +404,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --body "I analyzed the request but did not produce a committable PR comment response diff."
 
-      - name: Fail after reporting invalid PR comment response output
+      - name: fail-after-reporting-invalid-pr-comment-response-output
         if: steps.validate.outcome == 'failure'
         run: exit 1
 

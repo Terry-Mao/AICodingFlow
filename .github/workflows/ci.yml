@@ -1,8 +1,8 @@
-name: CI
+name: ci
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, ready_for_review, edited]
+    types: [opened, reopened, synchronize, ready_for_review]
   merge_group:
     types: [checks_requested]
 
@@ -14,28 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pr-body:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        if: github.event_name == 'pull_request'
-        with:
-          fetch-depth: 1
-      - name: Validate PR description
-        if: github.event_name == 'pull_request'
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          python3 - <<'PY'
-          import os
-          import sys
-
-          sys.path.insert(0, ".github/scripts")
-          from validate_pr_body import validate_body
-
-          validate_body(os.environ.get("PR_BODY", ""))
-          PY
-
   test:
     if: github.event_name == 'merge_group' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -43,25 +21,25 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
-      - name: Install Python test dependencies
+      - name: install-python-test-dependencies
         run: |
           python3 -m venv "$RUNNER_TEMP/aicodingflow-venv"
           "$RUNNER_TEMP/aicodingflow-venv/bin/python" -m pip install \
             --disable-pip-version-check "PyYAML==6.0.3"
           echo "$RUNNER_TEMP/aicodingflow-venv/bin" >> "$GITHUB_PATH"
 
-      - name: Run repository unit tests
+      - name: run-repository-unit-tests
         run: python3 -m unittest discover -s .github/tests
 
-      - name: Run delivered unit tests
+      - name: run-delivered-unit-tests
         run: python3 -m unittest discover -s .github/aicodingflow-tests
 
-      - name: Install actionlint
+      - name: install-actionlint
         env:
           ACTIONLINT_VERSION: "1.7.12"
         run: |
@@ -75,7 +53,7 @@ jobs:
           tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
-      - name: Lint GitHub Actions workflows
+      - name: lint-github-actions-workflows
         run: |
           mapfile -d '' workflow_files < <(find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
           if ((${#workflow_files[@]} == 0)); then
@@ -84,7 +62,7 @@ jobs:
           fi
           actionlint "${workflow_files[@]}"
 
-      - name: Compile Python scripts
+      - name: compile-python-scripts
         run: |
           PYTHONPYCACHEPREFIX=/tmp/aicodingflow-pycache python3 -m py_compile \
             .github/scripts/*.py \

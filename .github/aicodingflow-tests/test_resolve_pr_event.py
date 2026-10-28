@@ -197,6 +197,15 @@ class ResolvePrEventTest(unittest.TestCase):
 
         self.assertEqual(state["reviewable"], "true")
 
+    def test_review_state_allows_workflow_dispatch_for_draft_pr(self) -> None:
+        state = resolver.review_state(
+            {"pull_request": pr_payload(draft=True)},
+            "owner/repo",
+            "workflow_dispatch",
+        )
+
+        self.assertEqual(state["reviewable"], "true")
+
     def test_review_state_allows_valid_comment_review_for_open_non_draft_pr(self) -> None:
         self.assertEqual(
             resolver.review_state(

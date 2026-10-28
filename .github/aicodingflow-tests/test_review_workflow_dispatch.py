@@ -28,20 +28,17 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn('--base-sha "${{ steps.pr.outputs.base_sha }}"', seen["run"])
         self.assertIn("steps.seen.outputs.already_reviewed != 'true'", data["jobs"]["preflight"]["outputs"]["reviewable"])
         self.assertEqual(data["jobs"]["review"]["if"], "needs.preflight.outputs.reviewable == 'true'")
-        restore = next(step for step in preflight if step.get("name") == "Restore status for an already reviewed snapshot")
+        restore = next(step for step in preflight if step.get("name") == "restore-status-for-an-already-reviewed-snapshot")
         self.assertIn("steps.seen.outputs.already_reviewed == 'true'", restore["if"])
         self.assertEqual(restore["env"]["HEAD_SHA"], "${{ steps.pr.outputs.head_sha }}")
         self.assertIn('state="success"', restore["run"])
         self.assertIn('context="AI PR Review"', restore["run"])
 
-    def test_ci_checks_pr_body_on_edit_without_dispatching_review(self) -> None:
+    def test_ci_runs_tests_without_dispatching_review(self) -> None:
         data = workflow(".github/workflows/ci.yml")
-        self.assertIn("edited", data[True]["pull_request"]["types"])
+        self.assertNotIn("edited", data[True]["pull_request"]["types"])
         self.assertIn("merge_group", data[True])
-        self.assertNotIn("if", data["jobs"]["pr-body"])
-        body_steps = steps(data, "pr-body")
-        self.assertTrue(any("validate_pr_body" in step.get("run", "") for step in body_steps))
-        self.assertNotIn("edited", data["jobs"]["test"]["if"])
+        self.assertEqual(set(data["jobs"]), {"test"})
         self.assertIn("github.event.pull_request.draft == false", data["jobs"]["test"]["if"])
         self.assertNotIn("ai-review", data["jobs"])
         self.assertNotIn("actions", data["permissions"])
@@ -50,7 +47,6 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         workflow_jobs = {
             ".github/workflows/create-implementation-from-issue.yml": "create-implementation",
             ".github/workflows/create-spec-from-issue.yml": "create-spec",
-            ".github/workflows/product-docs-sync.yml": "sync",
             ".github/workflows/review-pr.yml": "review",
             ".github/workflows/respond-to-pr-comment.yml": "respond",
             ".github/workflows/triage-issue.yml": "generate",
@@ -100,22 +96,22 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         data = workflow(".github/workflows/review-pr.yml")
         names = [step.get("name") or step.get("uses") for step in steps(data, "review")]
 
-        self.assertLess(names.index("Checkout workflow scripts"), names.index("Resolve pull request"))
-        self.assertLess(names.index("Resolve pull request"), names.index("Checkout PR head"))
+        self.assertLess(names.index("checkout-workflow-scripts"), names.index("resolve-pull-request"))
+        self.assertLess(names.index("resolve-pull-request"), names.index("checkout-pr-head"))
 
         review_steps = steps(data, "review")
-        checkout_pr_head = next(step for step in review_steps if step.get("name") == "Checkout PR head")
+        checkout_pr_head = next(step for step in review_steps if step.get("name") == "checkout-pr-head")
         self.assertEqual(checkout_pr_head["with"]["persist-credentials"], False)
         self.assertEqual(checkout_pr_head["with"]["repository"], "${{ steps.pr.outputs.head_repo }}")
         self.assertEqual(checkout_pr_head["with"]["ref"], "${{ steps.pr.outputs.head_sha }}")
         self.assertEqual(checkout_pr_head["with"]["path"], "pr-worktree")
 
-        resolve_step = next(step for step in review_steps if step.get("name") == "Resolve pull request")
+        resolve_step = next(step for step in review_steps if step.get("name") == "resolve-pull-request")
         self.assertIn(".github/scripts/resolve_pr_event.py", resolve_step["run"])
         self.assertIn("--output \"$RUNNER_TEMP/pr_event.json\"", resolve_step["run"])
         self.assertIn("--agent-login \"${{ vars.AGENT_LOGIN }}\"", resolve_step["run"])
 
-        pending_status_step = next(step for step in review_steps if step.get("name") == "Mark PR review status pending")
+        pending_status_step = next(step for step in review_steps if step.get("name") == "mark-pr-review-status-pending")
         self.assertEqual(
             pending_status_step["if"],
             "steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository",
@@ -125,17 +121,17 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn('state="pending"', pending_status_step["run"])
 
         preflight_steps = steps(data, "preflight")
-        preflight_resolve = next(step for step in preflight_steps if step.get("name") == "Resolve pull request")
+        preflight_resolve = next(step for step in preflight_steps if step.get("name") == "resolve-pull-request")
         self.assertIn(".github/scripts/resolve_pr_event.py", preflight_resolve["run"])
         self.assertIn("--github-output \"$GITHUB_OUTPUT\"", preflight_resolve["run"])
         self.assertIn("--agent-login \"${{ vars.AGENT_LOGIN }}\"", preflight_resolve["run"])
         self.assertIn("reviewable", data["jobs"]["preflight"]["outputs"])
         self.assertIn("skip_reason", data["jobs"]["preflight"]["outputs"])
 
-        description_step = next(step for step in review_steps if step.get("name") == "Snapshot PR description")
-        spec_context_step = next(step for step in review_steps if step.get("name") == "Snapshot spec context")
-        discussion_context_step = next(step for step in review_steps if step.get("name") == "Snapshot review discussion context")
-        post_step = next(step for step in review_steps if step.get("name") == "Post PR review")
+        description_step = next(step for step in review_steps if step.get("name") == "snapshot-pr-description")
+        spec_context_step = next(step for step in review_steps if step.get("name") == "snapshot-spec-context")
+        discussion_context_step = next(step for step in review_steps if step.get("name") == "snapshot-review-discussion-context")
+        post_step = next(step for step in review_steps if step.get("name") == "post-pr-review")
         self.assertEqual(description_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
         self.assertIn("--output pr-worktree/pr_description.txt", description_step["run"])
         self.assertEqual(spec_context_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
@@ -151,7 +147,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--review pr-worktree/review.json", post_step["run"])
         self.assertIn("--diff pr-worktree/pr_diff.txt", post_step["run"])
 
-        diff_step = next(step for step in review_steps if step.get("name") == "Snapshot PR diff")
+        diff_step = next(step for step in review_steps if step.get("name") == "snapshot-pr-diff")
         self.assertEqual(diff_step["working-directory"], "pr-worktree")
         self.assertEqual(diff_step["env"]["GITHUB_TOKEN"], "${{ github.token }}")
         self.assertNotIn("git_config=\"$(mktemp)\"", diff_step["run"])
@@ -169,16 +165,16 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--base-sha \"${{ steps.pr.outputs.base_sha }}\"", diff_step["run"])
         self.assertIn("--output pr_diff.txt", diff_step["run"])
 
-        select_step = next(step for step in review_steps if step.get("name") == "Select review skill")
+        select_step = next(step for step in review_steps if step.get("name") == "select-review-skill")
         self.assertIn("--diff pr-worktree/pr_diff.txt", select_step["run"])
 
-        prepare_step = next(step for step in review_steps if step.get("name") == "Prepare review workspace")
+        prepare_step = next(step for step in review_steps if step.get("name") == "prepare-review-workspace")
         self.assertIn("rm -rf pr-worktree/.agents/skills", prepare_step["run"])
         self.assertIn("rm -rf pr-worktree/.agents/contracts", prepare_step["run"])
         self.assertIn("cp -R .agents/skills pr-worktree/.agents/skills", prepare_step["run"])
         self.assertIn("cp -R .agents/contracts pr-worktree/.agents/contracts", prepare_step["run"])
 
-        ai_step = next(step for step in review_steps if step.get("name") == "Run AI review")
+        ai_step = next(step for step in review_steps if step.get("name") == "run-ai-review")
         self.assertEqual(
             ai_step["uses"],
             "openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56",
@@ -194,14 +190,14 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("review_discussion_context.json", ai_step["with"]["prompt"])
         self.assertIn("duplicate suppression only", ai_step["with"]["prompt"])
 
-        normalize_step = next(step for step in review_steps if step.get("name") == "Normalize review output path")
+        normalize_step = next(step for step in review_steps if step.get("name") == "normalize-review-output-path")
         self.assertIn("[ ! -f pr-worktree/review.json ] && [ -f review.json ]", normalize_step["run"])
         self.assertIn("mv review.json pr-worktree/review.json", normalize_step["run"])
 
-        validate_step = next(step for step in review_steps if step.get("name") == "Validate review output")
+        validate_step = next(step for step in review_steps if step.get("name") == "validate-review-output")
         self.assertIn("pr-worktree/pr_diff.txt pr-worktree/review.json", validate_step["run"])
 
-        complete_status_step = next(step for step in review_steps if step.get("name") == "Mark PR review status complete")
+        complete_status_step = next(step for step in review_steps if step.get("name") == "mark-pr-review-status-complete")
         self.assertEqual(
             complete_status_step["if"],
             "always() && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository",
@@ -225,18 +221,18 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertNotIn("github.event.comment.author_association", job_gate)
         self.assertNotIn("contains(github.event.comment.body, '/triage')", job_gate)
 
-        triage = next(step for step in steps(data, "generate") if step.get("name") == "Triage issue")
+        triage = next(step for step in steps(data, "generate") if step.get("name") == "triage-issue")
         self.assertEqual(triage["with"]["allow-users"], "*")
 
-    def test_create_spec_workflow_does_not_dispatch_review_after_pr_creation(self) -> None:
+    def test_create_spec_workflow_dispatches_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-spec-from-issue.yml")
-        self.assertNotIn("actions", data["permissions"])
+        self.assertEqual(data["permissions"]["actions"], "write")
 
         create_steps = steps(data, "create-spec")
-        handoff = next(step for step in create_steps if step.get("name") == "Prepare workflow handoff directory")
-        prepare = next(step for step in create_steps if step.get("name") == "Prepare issue context")
-        validate = next(step for step in create_steps if step.get("name") == "Validate spec output")
-        create_pr = next(step for step in create_steps if step.get("name") == "Create or update spec pull request")
+        handoff = next(step for step in create_steps if step.get("name") == "prepare-workflow-handoff-directory")
+        prepare = next(step for step in create_steps if step.get("name") == "prepare-issue-context")
+        validate = next(step for step in create_steps if step.get("name") == "validate-spec-output")
+        create_pr = next(step for step in create_steps if step.get("name") == "create-or-update-spec-pull-request")
         step_names = [step.get("name") for step in create_steps]
 
         self.assertEqual(handoff["id"], "handoff")
@@ -248,23 +244,26 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn(".github/scripts/finalize_spec_pr.py", create_pr["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_context.json', create_pr["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/pr-metadata.json', create_pr["run"])
-        self.assertNotIn("--github-output", create_pr["run"])
-        self.assertNotIn("id", create_pr)
-        self.assertNotIn("Dispatch AI PR review", step_names)
+        self.assertIn("--github-output", create_pr["run"])
+        self.assertEqual(create_pr["id"], "pr")
+        self.assertLess(step_names.index("create-or-update-spec-pull-request"), step_names.index("dispatch-ai-pr-review"))
+        dispatch = next(step for step in create_steps if step.get("name") == "dispatch-ai-pr-review")
+        self.assertEqual(dispatch["if"], "steps.pr.outputs.pr_url != ''")
+        self.assertIn(".github/scripts/dispatch_pr_review.py", dispatch["run"])
 
-    def test_create_implementation_workflow_does_not_dispatch_review_after_pr_creation(self) -> None:
+    def test_create_implementation_workflow_dispatches_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-implementation-from-issue.yml")
-        self.assertNotIn("actions", data["permissions"])
+        self.assertEqual(data["permissions"]["actions"], "write")
 
         create_steps = steps(data, "create-implementation")
-        handoff = next(step for step in create_steps if step.get("name") == "Prepare workflow handoff directory")
-        prepare = next(step for step in create_steps if step.get("name") == "Prepare implementation context")
-        worktree = next(step for step in create_steps if step.get("name") == "Check implementation worktree changes")
-        validate = next(step for step in create_steps if step.get("name") == "Validate implementation output")
-        workflow_update = next(step for step in create_steps if step.get("name") == "Check whether workflow update token is required")
-        app_token = next(step for step in create_steps if step.get("name") == "Create GitHub App token for workflow updates")
-        commit = next(step for step in create_steps if step.get("name") == "Commit and push implementation branch")
-        create_pr = next(step for step in create_steps if step.get("name") == "Create or update implementation pull request")
+        handoff = next(step for step in create_steps if step.get("name") == "prepare-workflow-handoff-directory")
+        prepare = next(step for step in create_steps if step.get("name") == "prepare-implementation-context")
+        worktree = next(step for step in create_steps if step.get("name") == "check-implementation-worktree-changes")
+        validate = next(step for step in create_steps if step.get("name") == "validate-implementation-output")
+        workflow_update = next(step for step in create_steps if step.get("name") == "check-whether-workflow-update-token-is-required")
+        app_token = next(step for step in create_steps if step.get("name") == "create-github-app-token-for-workflow-updates")
+        commit = next(step for step in create_steps if step.get("name") == "commit-and-push-implementation-branch")
+        create_pr = next(step for step in create_steps if step.get("name") == "create-or-update-implementation-pull-request")
         step_names = [step.get("name") for step in create_steps]
 
         self.assertEqual(handoff["id"], "handoff")
@@ -280,8 +279,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn('${{ steps.handoff.outputs.dir }}/pr-metadata.json', validate["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/validation-output.txt', validate["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/validation-error.txt', validate["run"])
-        self.assertLess(step_names.index("Check whether workflow update token is required"), step_names.index("Create GitHub App token for workflow updates"))
-        self.assertLess(step_names.index("Create GitHub App token for workflow updates"), step_names.index("Commit and push implementation branch"))
+        self.assertLess(step_names.index("check-whether-workflow-update-token-is-required"), step_names.index("create-github-app-token-for-workflow-updates"))
+        self.assertLess(step_names.index("create-github-app-token-for-workflow-updates"), step_names.index("commit-and-push-implementation-branch"))
         self.assertEqual(workflow_update["id"], "workflow_update")
         self.assertEqual(workflow_update["if"], commit["if"])
         self.assertIn(".github/workflows/", workflow_update["run"])
@@ -301,7 +300,34 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--github-output \"$GITHUB_OUTPUT\"", create_pr["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/issue_context.json', create_pr["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/pr-metadata.json', create_pr["run"])
-        self.assertNotIn("Dispatch AI PR review", step_names)
+        self.assertLess(step_names.index("create-or-update-implementation-pull-request"), step_names.index("dispatch-ai-pr-review"))
+        dispatch = next(step for step in create_steps if step.get("name") == "dispatch-ai-pr-review")
+        self.assertEqual(
+            dispatch["if"],
+            "steps.pr.outputs.pr_url != '' && (steps.pr.outputs.created == 'true' || steps.workflow_update.outputs.required != 'true')",
+        )
+        self.assertEqual(dispatch["env"]["PR_CREATED"], "${{ steps.pr.outputs.created }}")
+        self.assertIn('if [ "$PR_CREATED" = true ]; then', dispatch["run"])
+        self.assertIn("args+=(--allow-draft)", dispatch["run"])
+        self.assertIn(".github/scripts/dispatch_pr_review.py", dispatch["run"])
+
+    def test_other_pr_creating_workflows_dispatch_review_after_success(self) -> None:
+        workflows = {
+            "update-dedupe.yml": "update",
+            "update-pr-review.yml": "update",
+            "update-triage.yml": "update",
+        }
+        for filename, job_name in workflows.items():
+            with self.subTest(filename=filename):
+                data = workflow(f".github/workflows/{filename}")
+                self.assertEqual(data["permissions"]["actions"], "write")
+                job_steps = steps(data, job_name)
+                create_index = next(i for i, step in enumerate(job_steps) if step.get("id") == "pr")
+                dispatch_index = next(i for i, step in enumerate(job_steps) if step.get("name") == "dispatch-ai-pr-review")
+                self.assertEqual(dispatch_index, create_index + 1)
+                dispatch = job_steps[dispatch_index]
+                self.assertEqual(dispatch["if"], "steps.pr.outcome == 'success'")
+                self.assertIn(".github/scripts/dispatch_pr_review.py", dispatch["run"])
 
     def test_update_dedupe_pr_body_includes_captured_evidence_summary(self) -> None:
         data = workflow(".github/workflows/update-dedupe.yml")
@@ -309,16 +335,16 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         step_names = [step.get("name") for step in update_steps]
 
         self.assertLess(
-            step_names.index("Capture dedupe guidance summary"),
-            step_names.index("Remove temporary feedback"),
+            step_names.index("capture-dedupe-guidance-summary"),
+            step_names.index("remove-temporary-feedback"),
         )
 
-        capture = next(step for step in update_steps if step.get("name") == "Capture dedupe guidance summary")
+        capture = next(step for step in update_steps if step.get("name") == "capture-dedupe-guidance-summary")
         self.assertEqual(capture["id"], "guidance")
         self.assertIn("update-dedupe-output/status.json", capture["run"])
         self.assertIn("GITHUB_OUTPUT", capture["run"])
 
-        create_pr = next(step for step in update_steps if step.get("name") == "Create or update pull request")
+        create_pr = next(step for step in update_steps if step.get("name") == "create-or-update-pull-request")
         self.assertEqual(create_pr["env"]["GUIDANCE_REASON"], "${{ steps.guidance.outputs.reason }}")
         self.assertIn("body_file=\"$(mktemp)\"", create_pr["run"])
         self.assertIn("trap 'rm -f \"$body_file\"' EXIT", create_pr["run"])
@@ -327,24 +353,24 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertNotIn("--body \"$body\"", create_pr["run"])
         self.assertNotIn("${{ steps.guidance.outputs.reason }}", create_pr["run"])
 
-        changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
+        changes = next(step for step in update_steps if step.get("name") == "check-for-guidance-changes")
         self.assertIn("git status --porcelain -- .github/skills/dedupe-issue-repo", changes["run"])
 
     def test_update_triage_pr_requires_changed_status_and_allowed_file_diff(self) -> None:
         data = workflow(".github/workflows/update-triage.yml")
         update_steps = steps(data, "update")
 
-        capture = next(step for step in update_steps if step.get("name") == "Capture triage guidance summary")
+        capture = next(step for step in update_steps if step.get("name") == "capture-triage-guidance-summary")
         self.assertEqual(capture["id"], "guidance")
         self.assertIn("update-triage-output/status.json", capture["run"])
         self.assertIn("guidance_status = status.get(\"status\")", capture["run"])
         self.assertIn("status={guidance_status}", capture["run"])
 
-        changes = next(step for step in update_steps if step.get("name") == "Check for guidance changes")
+        changes = next(step for step in update_steps if step.get("name") == "check-for-guidance-changes")
         self.assertIn(".github/skills/triage-issue-repo/SKILL.md", changes["run"])
         self.assertIn(".github/issue-triage/config.json", changes["run"])
 
-        create_pr = next(step for step in update_steps if step.get("name") == "Create or update pull request")
+        create_pr = next(step for step in update_steps if step.get("name") == "create-or-update-pull-request")
         self.assertEqual(
             create_pr["if"],
             "steps.guidance.outputs.status == 'changed' && steps.changes.outputs.changed == 'true'",
@@ -373,12 +399,13 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("needs.preflight.outputs.should_run == 'true'", respond_job["if"])
         self.assertIn("needs.preflight.outputs.branch_strategy != 'blocked'", respond_job["if"])
         self.assertEqual(respond_job["permissions"]["contents"], "write")
+        self.assertEqual(respond_job["permissions"]["actions"], "write")
         self.assertEqual(respond_job["permissions"]["pull-requests"], "write")
         self.assertEqual(respond_job["permissions"]["issues"], "write")
 
         preflight_steps = steps(data, "preflight")
-        preflight_handoff = next(step for step in preflight_steps if step.get("name") == "Prepare workflow handoff directory")
-        prepare = next(step for step in preflight_steps if step.get("name") == "Prepare PR comment context")
+        preflight_handoff = next(step for step in preflight_steps if step.get("name") == "prepare-workflow-handoff-directory")
+        prepare = next(step for step in preflight_steps if step.get("name") == "prepare-pr-comment-context")
         self.assertEqual(preflight_handoff["id"], "handoff")
         self.assertIn("$RUNNER_TEMP/aicodingflow-pr-comment-preflight", preflight_handoff["run"])
         self.assertIn(".github/scripts/prepare_pr_comment_context.py", prepare["run"])
@@ -388,8 +415,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--github-output \"$GITHUB_OUTPUT\"", prepare["run"])
 
         respond_steps = steps(data, "respond")
-        handoff = next(step for step in respond_steps if step.get("name") == "Prepare workflow handoff directory")
-        checkout = next(step for step in respond_steps if step.get("name") == "Checkout PR head")
+        handoff = next(step for step in respond_steps if step.get("name") == "prepare-workflow-handoff-directory")
+        checkout = next(step for step in respond_steps if step.get("name") == "checkout-pr-head")
         self.assertEqual(handoff["id"], "handoff")
         self.assertIn("$RUNNER_TEMP/aicodingflow-pr-comment-response", handoff["run"])
         self.assertIn("$GITHUB_WORKSPACE/pr-worktree/.codex-runtime/handoff", handoff["run"])
@@ -401,7 +428,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertEqual(checkout["with"]["path"], "pr-worktree")
         self.assertNotIn("Configure push remote", [step.get("name") for step in respond_steps])
 
-        diff_step = next(step for step in respond_steps if step.get("name") == "Snapshot PR diff")
+        diff_step = next(step for step in respond_steps if step.get("name") == "snapshot-pr-diff")
         self.assertEqual(diff_step["working-directory"], "pr-worktree")
         self.assertEqual(diff_step["env"]["GITHUB_TOKEN"], "${{ github.token }}")
         self.assertNotIn("git_config=\"$(mktemp)\"", diff_step["run"])
@@ -419,12 +446,12 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--base-sha \"${{ steps.context.outputs.base_sha }}\"", diff_step["run"])
         self.assertIn('--output "${{ steps.handoff.outputs.dir }}/pr_diff.txt"', diff_step["run"])
 
-        prepare_workspace = next(step for step in respond_steps if step.get("name") == "Prepare implementation workspace")
+        prepare_workspace = next(step for step in respond_steps if step.get("name") == "prepare-implementation-workspace")
         self.assertIn("rm -rf pr-worktree/.codex-runtime", prepare_workspace["run"])
         self.assertIn("cp -R .agents/skills pr-worktree/.codex-runtime/skills", prepare_workspace["run"])
         self.assertNotIn("pr-worktree/.agents/skills", prepare_workspace["run"])
 
-        worktree = next(step for step in respond_steps if step.get("name") == "Check PR comment response worktree changes")
+        worktree = next(step for step in respond_steps if step.get("name") == "check-pr-comment-response-worktree-changes")
         self.assertNotIn("':!pr_comment_context.json'", worktree["run"])
         self.assertNotIn("':!pr_event.json'", worktree["run"])
         self.assertNotIn("':!review_comment_ids.json'", worktree["run"])
@@ -432,9 +459,9 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("':!.codex-runtime'", worktree["run"])
 
         gated_steps = [
-            "Respond to PR comment",
-            "Commit and push PR comment response branch",
-            "Apply PR comment response result",
+            "respond-to-pr-comment",
+            "commit-and-push-pr-comment-response-branch",
+            "apply-pr-comment-response-result",
         ]
         for name in gated_steps:
             with self.subTest(step=name):
@@ -442,7 +469,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
                 self.assertIn("steps.context.outputs.should_run == 'true'", step["if"])
                 self.assertIn("steps.context.outputs.branch_strategy != 'blocked'", step["if"])
 
-        ai_step = next(step for step in respond_steps if step.get("name") == "Respond to PR comment")
+        ai_step = next(step for step in respond_steps if step.get("name") == "respond-to-pr-comment")
         prompt = ai_step["with"]["prompt"]
         compact_prompt = compact(prompt)
         self.assertIn("Treat PR body, PR comments, review bodies, review comments", compact_prompt)
@@ -472,12 +499,12 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertNotIn("GH_TOKEN", ai_step.get("env", {}))
         self.assertNotIn("GITHUB_TOKEN", ai_step.get("env", {}))
 
-        commit = next(step for step in respond_steps if step.get("name") == "Commit and push PR comment response branch")
-        workflow_update = next(step for step in respond_steps if step.get("name") == "Check whether workflow update token is required")
-        app_token = next(step for step in respond_steps if step.get("name") == "Create GitHub App token for workflow updates")
+        commit = next(step for step in respond_steps if step.get("name") == "commit-and-push-pr-comment-response-branch")
+        workflow_update = next(step for step in respond_steps if step.get("name") == "check-whether-workflow-update-token-is-required")
+        app_token = next(step for step in respond_steps if step.get("name") == "create-github-app-token-for-workflow-updates")
         step_names = [step.get("name") for step in respond_steps]
-        self.assertLess(step_names.index("Check whether workflow update token is required"), step_names.index("Create GitHub App token for workflow updates"))
-        self.assertLess(step_names.index("Create GitHub App token for workflow updates"), step_names.index("Commit and push PR comment response branch"))
+        self.assertLess(step_names.index("check-whether-workflow-update-token-is-required"), step_names.index("create-github-app-token-for-workflow-updates"))
+        self.assertLess(step_names.index("create-github-app-token-for-workflow-updates"), step_names.index("commit-and-push-pr-comment-response-branch"))
         self.assertEqual(workflow_update["id"], "workflow_update")
         self.assertEqual(workflow_update["if"], commit["if"])
         self.assertEqual(workflow_update["working-directory"], "pr-worktree")
@@ -495,6 +522,13 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertEqual(commit["env"]["WORKFLOW_UPDATE_TOKEN"], "${{ steps.app-token.outputs.token }}")
         self.assertIn('${{ steps.handoff.outputs.dir }}/pr_comment_context.json', commit["run"])
         self.assertIn('${{ steps.handoff.outputs.dir }}/pr-metadata.json', commit["run"])
+        dispatch = next(step for step in respond_steps if step.get("name") == "dispatch-ai-pr-review")
+        self.assertLess(step_names.index("apply-pr-comment-response-result"), step_names.index("dispatch-ai-pr-review"))
+        self.assertEqual(
+            dispatch["if"],
+            "steps.apply.outputs.pr_url != '' && steps.workflow_update.outputs.required != 'true'",
+        )
+        self.assertIn(".github/scripts/dispatch_pr_review.py", dispatch["run"])
 
 
 if __name__ == "__main__":

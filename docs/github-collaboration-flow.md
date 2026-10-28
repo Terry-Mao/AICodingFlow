@@ -21,6 +21,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 | `APP_PRIVATE_KEY` | Actions secret | GitHub App private key；App 需要 `Contents: Read and write` 和 `Workflows: Read and write`。 |
 
 目标仓库已有自己的 CI 时，不要在 CI 成功路径中再次 dispatch `review-pr.yml`。自动审查由该 workflow 的 `pull_request_target` 入口直接触发；CI 保持自己的测试编排。若需要测试通过后才审查，应先关闭直接触发入口，再设计单独的 CI 分发路径，避免两个入口同时运行。
+使用 `GITHUB_TOKEN` 创建或更新 PR 的工作流在 PR 操作完成后显式 dispatch `review-pr.yml`；默认跳过 draft PR。implementation 工作流新建 PR 时，即使之前使用 GitHub App token 推送 workflow 文件，也显式分发并允许审查新建的 draft PR。仅更新已有 PR 且使用 App token 推送时，依靠推送产生的 `pull_request_target` 事件，跳过显式分发。常规 PR 仍由 `pull_request_target` 触发。
 
 所有 Codex workflow 使用同一组模型配置。`CODEX_API_KEY` 和 `CODEX_API_ENDPOINT` 必须配置；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
 
@@ -65,7 +66,7 @@ Workflow：
 - `duplicate_of` 和 `follow_up_questions` 互斥。
 - 仓库可以用 `triage-issue-repo` 和 `dedupe-issue-repo` 补充本地规则，但不能改变核心输出 schema 和 protected label 规则。
 
-## Create Spec From Issue
+## Create Spec from Issue
 
 Workflow：
 
@@ -100,7 +101,7 @@ Workflow：
 
 当 spec PR 获得 `plan-approved` label 时，workflow 会解析关联 issue，并移除 `ready-to-spec`。如果 issue 已经带有 `ready-to-implement`，且已分配给 `AGENT_LOGIN`，它会 dispatch `create-implementation-from-issue.yml`；否则只记录 skip reason，不会自动添加 `ready-to-implement`。
 
-## Create Implementation From Issue
+## Create Implementation from Issue
 
 Workflow：
 
@@ -154,7 +155,7 @@ Workflow：
 
 AI PR Review 会：
 
-1. preflight 确认 PR 是 open、same-repo、非 draft。
+1. preflight 确认 PR 是 open；自动 PR 事件要求 same-repo、非 draft，新建 implementation PR 的显式分发可审查 draft。
 2. 生成稳定的 `pr_description.txt`。
 3. 生成带行号的 `pr_diff.txt`。
 4. 如果能找到相关 spec，生成 `spec_context.md`。
@@ -166,10 +167,11 @@ AI PR Review 会：
 每次 Action 只执行一次 Review。流程按同一 PR 已发布 Review 的不同 base/head SHA 快照
 计算轮次；相同快照重跑在 AI 审查前跳过。前三轮对比当轮 base 和当前 head 的完整 PR diff；第四轮起在历史提交可追溯
 且 base 未变化时重点比较上次已审查 head 与当前 head 的 diff，并审视反复局部修复是否需要调整整体方案。
-所有 PR 正文由 CI 校验 Summary、Testing、Risk、How to revert；自动生成的 PR
-也需填写这些章节。正文编辑始终重新校验正文；非草稿 PR 同时重新运行测试。
+CI 在非草稿 PR 更新和 merge queue 检查时运行测试，不校验 PR 正文；
+仅编辑正文不会重新运行 CI。
 自动审查由 `pull_request_target` 直接触发，不等待 CI 结果；`workflow_dispatch`
-和 PR 评论命令保留作手动触发入口，CI 不再自动分发审查。
+和 PR 评论命令保留作手动触发入口。使用 `GITHUB_TOKEN` 创建或更新 PR 的工作流
+通过 `workflow_dispatch` 显式分发；CI 不再自动分发审查。
 如果当前 head 已发布 Review，重跑会跳过 AI 生成并恢复该 head 的审查状态。
 
 发布规则：
@@ -208,6 +210,7 @@ Workflow：
 4. Codex 把 `implementation_summary.md`、`pr-metadata.json`，以及必要时的 `resolved_review_comments.json` 写到 `pr-worktree/.codex-runtime/handoff/`。
 5. workflow 校验输出，提交并推送到原 PR 分支或 agent response branch。
 6. `apply_pr_comment_result.py` 发布总结，并在有权限和有效 comment id 时处理 resolved review comments。
+7. 使用 `GITHUB_TOKEN` 推送非 draft PR 时显式分发 AI PR Review；使用 GitHub App token 推送 workflow 文件时由 PR 事件触发。新建的 follow-up draft PR 暂不审查。
 
 当请求要求处理“所有 inline comments”“所有 unresolved comments”或某类 comments 时，Codex 会读取 `review_comment_ids.json`，而不是只处理触发 comment 本身。`is_outdated` 只表示原始 diff 位置过期，不代表问题已经解决。
 

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 from subprocess import CompletedProcess
 from unittest import mock
 
@@ -54,9 +58,10 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
         }
 
         with mock.patch.object(finalize, "edit_pr", return_value="https://github.test/pr/123") as edit_pr:
-            pr_url = finalize.finalize("owner/repo", context, metadata)
+            pr_url, created = finalize.finalize("owner/repo", context, metadata)
 
         self.assertEqual(pr_url, "https://github.test/pr/123")
+        self.assertFalse(created)
         edit_pr.assert_called_once_with(
             "owner/repo",
             "123",
@@ -83,9 +88,10 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
                 return_value="https://github.test/pr/124",
             ) as create_pr,
         ):
-            pr_url = finalize.finalize("owner/repo", context, metadata)
+            pr_url, created = finalize.finalize("owner/repo", context, metadata)
 
         self.assertEqual(pr_url, "https://github.test/pr/124")
+        self.assertTrue(created)
         create_pr.assert_called_once_with(
             "owner/repo",
             "main",
@@ -93,6 +99,48 @@ class ImplementationProgressAndFinalizeTest(unittest.TestCase):
             "feat: implement issue",
             "Closes #18\n\n## Summary\n- Done",
         )
+
+    def test_finalize_updates_existing_branch_pr_without_marking_it_created(self) -> None:
+        context = {"spec_context_source": "directory", "default_branch": "main"}
+        metadata = {"branch_name": "spec/implement-issue-18", "pr_title": "feat: implement issue", "pr_summary": "Body"}
+
+        with (
+            mock.patch.object(finalize, "open_pr_for_branch", return_value={"number": 124}),
+            mock.patch.object(finalize, "edit_pr", return_value="https://github.test/pr/124") as edit_pr,
+            mock.patch.object(finalize, "create_pr") as create_pr,
+        ):
+            pr_url, created = finalize.finalize("owner/repo", context, metadata)
+
+        self.assertEqual(pr_url, "https://github.test/pr/124")
+        self.assertFalse(created)
+        edit_pr.assert_called_once_with("owner/repo", "124", "feat: implement issue", "Body")
+        create_pr.assert_not_called()
+
+    def test_main_reports_whether_pr_was_created(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            context = root / "context.json"
+            metadata = root / "metadata.json"
+            context.write_text(json.dumps({"default_branch": "main"}), encoding="utf-8")
+            metadata.write_text(json.dumps({"branch_name": "feature"}), encoding="utf-8")
+            for created in (True, False):
+                with self.subTest(created=created):
+                    output = root / "github-output.txt"
+                    output.write_text("", encoding="utf-8")
+                    argv = [
+                        "finalize_implementation_pr.py", "--repo", "owner/repo",
+                        "--context", str(context), "--metadata", str(metadata),
+                        "--github-output", str(output),
+                    ]
+                    with (
+                        mock.patch.object(sys, "argv", argv),
+                        mock.patch.object(finalize, "finalize", return_value=("https://github.test/pr/124", created)),
+                    ):
+                        finalize.main()
+                    self.assertEqual(
+                        output.read_text(encoding="utf-8"),
+                        f"pr_url=https://github.test/pr/124\ncreated={str(created).lower()}\n",
+                    )
 
     def test_create_pr_creates_draft_pr(self) -> None:
         with mock.patch.object(

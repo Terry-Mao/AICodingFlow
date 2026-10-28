@@ -34,10 +34,6 @@ Prioritize findings that affect this repository's skills and PR-review automatio
   added, deleted, or renamed within the same PR diff; workflow prompts may point
   at the post-merge path introduced by that PR.
 - Documentation examples must match the actual repository layout and commands.
-- When `docs/product/wiki/` compiled content changes durable product or workflow
-  facts, verify the authoritative `docs/product/raw/` source in the same PR
-  supports the new fact; do not require raw changes for wiki-only recompiles
-  that merely reflect already-updated raw sources.
 - Validators and report checks that parse `#<number>` references should
   distinguish issue references from PR/source references and enforce issue URL
   requirements only in an explicit issue or related-issue context.

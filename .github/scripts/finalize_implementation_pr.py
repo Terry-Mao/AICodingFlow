@@ -73,19 +73,19 @@ def create_pr(repo: str, base: str, head: str, title: str, body: str) -> str:
     return result.stdout.strip()
 
 
-def finalize(repo: str, context: dict[str, Any], metadata: dict[str, Any]) -> str:
+def finalize(repo: str, context: dict[str, Any], metadata: dict[str, Any]) -> tuple[str, bool]:
     title = metadata["pr_title"]
     body = metadata["pr_summary"]
     branch_name = metadata["branch_name"]
 
     if context.get("spec_context_source") == "approved-pr" and context.get("selected_spec_pr_number"):
-        return edit_pr(repo, str(context["selected_spec_pr_number"]), title, body)
+        return edit_pr(repo, str(context["selected_spec_pr_number"]), title, body), False
 
     existing = open_pr_for_branch(repo, branch_name)
     if existing:
-        return edit_pr(repo, str(existing["number"]), title, body)
+        return edit_pr(repo, str(existing["number"]), title, body), False
 
-    return create_pr(repo, str(context["default_branch"]), branch_name, title, body)
+    return create_pr(repo, str(context["default_branch"]), branch_name, title, body), True
 
 
 def main() -> None:
@@ -98,9 +98,9 @@ def main() -> None:
 
     context = json.loads(Path(args.context).read_text(encoding="utf-8"))
     metadata = json.loads(Path(args.metadata).read_text(encoding="utf-8"))
-    pr_url = finalize(args.repo, context, metadata)
+    pr_url, created = finalize(args.repo, context, metadata)
     print(pr_url)
-    write_github_output(args.github_output, {"pr_url": pr_url})
+    write_github_output(args.github_output, {"pr_url": pr_url, "created": str(created).lower()})
 
 
 if __name__ == "__main__":

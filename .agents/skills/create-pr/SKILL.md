@@ -18,6 +18,12 @@ churn, and missing validation. Sync the base into the branch when needed; if
 that creates conflicts, resolve, validate, commit, and push the resolution.
 
 Build a concise title and body from the issue, branch, commits, or user request.
+Use a Conventional Commit title for the PR: `<type>[(scope)]: <description>`.
+Choose the type from the actual change (for example, `feat`, `fix`, `docs`,
+`refactor`, `test`, or `chore`); include a scope only when it clarifies the
+change. Keep the description in the repository's prose language, for example
+`fix(ci): 修复审查分发`. When updating a PR, keep an existing title if it follows
+this format and still describes the complete diff; otherwise revise it.
 Include `## Summary`, `## Testing`, `## Risk`, and `## How to revert`, plus a
 known issue link (`Closes`, `Fixes`, or `Refs`). State actual test results,
 the relevant risk and a concrete rollback action; never invent results or an

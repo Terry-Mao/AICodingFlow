@@ -1,4 +1,4 @@
-name: Create Spec From Issue
+name: create-spec-from-issue
 
 on:
   workflow_dispatch:
@@ -16,6 +16,7 @@ on:
     types: [created]
 
 permissions:
+  actions: write
   contents: write
   issues: read
   pull-requests: write
@@ -51,7 +52,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Prepare workflow handoff directory
+      - name: prepare-workflow-handoff-directory
         id: handoff
         run: |
           dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
@@ -59,7 +60,7 @@ jobs:
           mkdir -p "$dir"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare issue context
+      - name: prepare-issue-context
         id: issue
         env:
           GH_TOKEN: ${{ github.token }}
@@ -76,18 +77,18 @@ jobs:
             --comments-output "${{ steps.handoff.outputs.dir }}/issue_comments.txt" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Stop when issue is not ready
+      - name: stop-when-issue-is-not-ready
         if: steps.issue.outputs.should_run != 'true'
         run: |
           echo "${{ steps.issue.outputs.skip_reason }}"
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         if: steps.issue.outputs.should_run == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
+      - name: configure-codex-api-endpoint
         if: steps.issue.outputs.should_run == 'true'
         id: codex_endpoint
         env:
@@ -104,7 +105,7 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Create specs
+      - name: create-specs
         if: steps.issue.outputs.should_run == 'true'
         uses: openai/codex-action@v1
         with:
@@ -157,14 +158,14 @@ jobs:
             Do not modify .agents, .github, tests, README, or production code.
             Do not run git commands, commit, push, create PRs, or call GitHub APIs.
 
-      - name: Validate spec output
+      - name: validate-spec-output
         if: steps.issue.outputs.should_run == 'true'
         run: |
           python3 .github/scripts/validate_spec_output.py \
             --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
             --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
 
-      - name: Check for spec changes
+      - name: check-for-spec-changes
         if: steps.issue.outputs.should_run == 'true'
         id: changes
         run: |
@@ -174,15 +175,24 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create or update spec pull request
+      - name: create-or-update-spec-pull-request
         if: steps.issue.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true'
+        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/finalize_spec_pr.py \
             --repo "${{ github.repository }}" \
             --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
-            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outputs.pr_url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --pr-url "$PR_URL"
 
       - uses: actions/upload-artifact@v7
         if: always()

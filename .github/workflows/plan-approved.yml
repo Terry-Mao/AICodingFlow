@@ -1,4 +1,4 @@
-name: Plan Approved
+name: plan-approved
 
 on:
   pull_request:
@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Sync linked issue state
+      - name: sync-linked-issue-state
         id: approval
         env:
           GH_TOKEN: ${{ github.token }}
@@ -58,7 +58,7 @@ jobs:
             --agent-login "$AGENT_LOGIN" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Report approval result
+      - name: report-approval-result
         run: |
           echo "linked issue: ${{ steps.approval.outputs.issue_number || 'none' }}"
           echo "removed ready-to-spec: ${{ steps.approval.outputs.removed_ready_to_spec }}"

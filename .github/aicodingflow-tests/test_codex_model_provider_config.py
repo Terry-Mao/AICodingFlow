@@ -8,9 +8,6 @@ from script_imports import ROOT
 CODEX_WORKFLOWS = (
     ".github/workflows/create-implementation-from-issue.yml",
     ".github/workflows/create-spec-from-issue.yml",
-    ".github/workflows/product-change-report.yml",
-    ".github/workflows/product-docs-sync.yml",
-    ".github/workflows/product-wiki-compile.yml",
     ".github/workflows/respond-to-pr-comment.yml",
     ".github/workflows/review-pr.yml",
     ".github/workflows/triage-issue.yml",
