@@ -133,20 +133,23 @@ def fingerprint(finding: dict[str, Any]) -> str:
 def matched_issue(finding: dict[str, Any], issues: list[dict[str, Any]]) -> dict[str, Any] | None:
     marker = f"nightly-review-fingerprint:{fingerprint(finding)}"
     title = normalized_title(finding["title"])
+    matches = []
     for issue in issues:
         old_title = normalized_title(str(issue.get("title") or ""))
         old_body = str(issue.get("body") or "")
         if marker in old_body:
-            return issue
+            matches.append(issue)
+            continue
         if finding["path"] in old_body and (
             title == old_title or difflib.SequenceMatcher(None, title, old_title).ratio() >= 0.9
         ):
-            return issue
-    return None
+            matches.append(issue)
+    return next((issue for issue in matches if issue.get("state") != "closed"), None) or (matches[0] if matches else None)
 
 
-def issue_body(finding: dict[str, Any], context: dict[str, Any]) -> str:
+def issue_body(finding: dict[str, Any], context: dict[str, Any], *, closed_issue_number: int | None = None) -> str:
     marker = fingerprint(finding)
+    previous_note = f"先前报告：#{closed_issue_number}（已关闭；当前扫描再次发现）。\n\n" if closed_issue_number else ""
     if finding["security"]:
         details = (
             "## 实际影响\n\n"
@@ -163,6 +166,7 @@ def issue_body(finding: dict[str, Any], context: dict[str, Any]) -> str:
         f"<!-- nightly-review-fingerprint:{marker} -->\n"
         f"## 问题位置\n\n`{finding['path']}:{finding['line']}`\n\n"
         f"{details}\n"
+        f"{previous_note}"
         f"扫描提交：`{context['commit']}`；扫描日期：{context['scan_date']}（北京时间）；"
         f"轮巡分片：{context['shard']}/{context['cycle_days']}。\n"
     )
@@ -208,10 +212,15 @@ def publish(repo: str, default_branch: str, findings: list[dict[str, Any]], issu
         if marker in seen:
             skipped += 1
             continue
-        existing = next(
+        referenced = next(
             (issue for issue in issues if issue.get("number") == finding["duplicate_issue_number"]),
             None,
-        ) if finding["duplicate_issue_number"] is not None else matched_issue(finding, issues)
+        ) if finding["duplicate_issue_number"] is not None else None
+        matched = matched_issue(finding, issues)
+        existing = next(
+            (issue for issue in (referenced, matched) if issue and issue.get("state") != "closed"),
+            None,
+        )
         if existing:
             if existing and is_nightly_issue(existing):
                 number = existing["number"]
@@ -220,16 +229,19 @@ def publish(repo: str, default_branch: str, findings: list[dict[str, Any]], issu
                     try_dispatch(number, check_existing=True)
             skipped += 1
             continue
+        closed_issue = referenced or matched
+        closed_number = closed_issue["number"] if closed_issue and closed_issue.get("state") == "closed" else None
         title = finding["title"].strip()
         if not title.lower().startswith("bug:"):
             title = f"bug: {title}"
+        body = issue_body(finding, context, closed_issue_number=closed_number)
         response = run_gh_json([
             "api", f"repos/{repo}/issues", "--method", "POST",
-            "-f", f"title={title}", "-f", f"body={issue_body(finding, context)}",
+            "-f", f"title={title}", "-f", f"body={body}",
         ])
         if not isinstance(response, dict) or not isinstance(response.get("number"), int):
             raise SystemExit("GitHub did not confirm issue creation")
-        issues.append({"number": response["number"], "title": title, "body": issue_body(finding, context)})
+        issues.append({"number": response["number"], "title": title, "body": body, "state": "open"})
         seen.add(marker)
         created += 1
         print(f"Created issue #{response['number']}: {title}")

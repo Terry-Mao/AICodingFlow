@@ -55,6 +55,10 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertFalse(prepare.is_reviewable_path("docs/architecture/workflow.md"))
         self.assertFalse(prepare.is_reviewable_path("tests/test_server.py"))
         self.assertFalse(prepare.is_reviewable_path(".github/aicodingflow-tests/test_script.py"))
+        for path in ("src/foo_test.go", "src/test_foo.py", "web/Button.test.tsx", "web/Button.spec.tsx"):
+            with self.subTest(path=path):
+                self.assertFalse(prepare.is_reviewable_path(path))
+        self.assertTrue(prepare.is_reviewable_path("web/Button.tsx"))
         self.assertFalse(prepare.is_reviewable_path("vendor/lib.py"))
         self.assertFalse(prepare.is_reviewable_path("package-lock.json"))
 
@@ -132,6 +136,24 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
             self.assertEqual(publish.publish("owner/repo", "main", [item, item], [], context), (1, 1, []))
             create.assert_called_once()
             dispatch.assert_called_once_with("owner/repo", "main", 8)
+
+    def test_closed_match_creates_regression_issue_and_prefers_open_match(self) -> None:
+        item = finding()
+        context = {"commit": "a" * 40, "scan_date": "2026-10-28", "shard": 3, "cycle_days": 7}
+        closed = {"number": 7, "title": item["title"], "body": "`src/example.py:2`", "state": "closed"}
+        open_issue = {"number": 8, "title": item["title"], "body": "`src/example.py:2`", "state": "open"}
+        self.assertEqual(publish.matched_issue(item, [closed, open_issue])["number"], 8)
+        with mock.patch.object(publish, "run_gh_json", return_value={"number": 9}) as create, mock.patch.object(publish, "dispatch_triage") as dispatch:
+            self.assertEqual(publish.publish("owner/repo", "main", [item], [closed], context), (1, 0, []))
+            self.assertIn("先前报告：#7", create.call_args.args[0][-1])
+            dispatch.assert_called_once_with("owner/repo", "main", 9)
+        with mock.patch.object(publish, "run_gh_json", return_value={"number": 10}) as create, mock.patch.object(publish, "dispatch_triage") as dispatch:
+            self.assertEqual(publish.publish("owner/repo", "main", [finding(duplicate_issue_number=7)], [closed], context), (1, 0, []))
+            create.assert_called_once()
+            dispatch.assert_called_once_with("owner/repo", "main", 10)
+        with mock.patch.object(publish, "has_triage_comment", return_value=True), mock.patch.object(publish, "run_gh_json") as create:
+            self.assertEqual(publish.publish("owner/repo", "main", [finding(duplicate_issue_number=7)], [closed, open_issue], context), (0, 1, []))
+            create.assert_not_called()
 
     def test_long_issue_body_keeps_late_path_for_deduplication(self) -> None:
         item = finding()
@@ -260,7 +282,25 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertIn("NIGHTLY_REVIEW_CYCLE_DAYS", workflow)
         self.assertIn("publish_nightly_findings.py", workflow)
         self.assertIn("actions: write", workflow)
-        self.assertIn("if: always()", workflow)
+        self.assertIn("sandbox: read-only", workflow)
+        self.assertIn("findings_json: ${{ steps.codex.outputs.final-message }}", workflow)
+        self.assertLess(workflow.index("  prepare:"), workflow.index("  review:"))
+        self.assertLess(workflow.index("  review:"), workflow.index("  publish:"))
+        prepare_job = workflow.split("  prepare:\n", 1)[1].split("  review:\n", 1)[0]
+        review_job = workflow.split("  review:\n", 1)[1].split("  publish:\n", 1)[0]
+        publish_job = workflow.split("  publish:\n", 1)[1]
+        self.assertIn("name: nightly-review-input-${{ github.run_id }}", prepare_job)
+        self.assertNotIn("issues: write", prepare_job)
+        self.assertNotIn("actions: write", prepare_job)
+        self.assertNotIn("issues: write", review_job)
+        self.assertNotIn("actions: write", review_job)
+        self.assertNotIn("GH_TOKEN:", review_job)
+        self.assertEqual(review_job.count("uses: openai/codex-action@v1"), 1)
+        self.assertTrue(review_job.rstrip().endswith("issues, or post comments. The publisher validates your final message."))
+        self.assertIn("ref: ${{ needs.prepare.outputs.commit }}", publish_job)
+        self.assertIn("name: nightly-review-input-${{ github.run_id }}", publish_job)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", publish_job)
+        self.assertIn("if: always()", publish_job)
 
 
 if __name__ == "__main__":

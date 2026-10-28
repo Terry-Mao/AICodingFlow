@@ -7,6 +7,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -56,6 +57,8 @@ def selected_shard(value: str, scan_date: dt.date, cycle_days: int) -> int:
 def is_reviewable_path(path: str) -> bool:
     item = Path(path)
     if any(part in EXCLUDED_PARTS for part in item.parts) or item.name in EXCLUDED_NAMES:
+        return False
+    if re.search(r"(?:^test_|_test\.|\.test\.|\.spec\.)", item.name, flags=re.IGNORECASE):
         return False
     if item.name.endswith((".min.js", ".min.css")):
         return False
@@ -151,7 +154,7 @@ def main() -> None:
     write_json(args.output_dir / "issues.json", issue_snapshot(args.repo) if files else [])
     if args.github_output:
         with args.github_output.open("a", encoding="utf-8") as output:
-            output.write(f"file_count={len(files)}\nshard={shard}\ncycle_days={cycle_days}\n")
+            output.write(f"file_count={len(files)}\nshard={shard}\ncycle_days={cycle_days}\ncommit={commit}\n")
     print(f"Nightly review: shard {shard}/{cycle_days}, {len(files)} focus files of {len(project_files)}, commit {commit}")
 
 
