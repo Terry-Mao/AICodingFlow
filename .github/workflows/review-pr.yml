@@ -1,4 +1,4 @@
-name: AI PR Review
+name: review-pr
 
 on:
   workflow_dispatch:
@@ -46,12 +46,12 @@ jobs:
       skip_reason: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head and base' || steps.pr.outputs.skip_reason }}
 
     steps:
-      - name: Checkout workflow scripts
+      - name: checkout-workflow-scripts
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
-      - name: Resolve pull request
+      - name: resolve-pull-request
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -66,7 +66,7 @@ jobs:
             --output "$RUNNER_TEMP/pr_event.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Check whether this head was already reviewed
+      - name: check-whether-this-head-was-already-reviewed
         id: seen
         if: steps.pr.outputs.reviewable == 'true'
         env:
@@ -82,12 +82,12 @@ jobs:
             --check-existing \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Report skipped review
+      - name: report-skipped-review
         if: steps.pr.outputs.reviewable != 'true' || steps.seen.outputs.already_reviewed == 'true'
         run: |
           echo "PR #${{ steps.pr.outputs.number }}: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head and base' || steps.pr.outputs.skip_reason }}; skipping AI review."
 
-      - name: Restore status for an already reviewed snapshot
+      - name: restore-status-for-an-already-reviewed-snapshot
         if: steps.seen.outputs.already_reviewed == 'true' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
@@ -108,12 +108,12 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
-      - name: Checkout workflow scripts
+      - name: checkout-workflow-scripts
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
-      - name: Resolve pull request
+      - name: resolve-pull-request
         id: pr
         env:
           GH_TOKEN: ${{ github.token }}
@@ -128,7 +128,7 @@ jobs:
             --output "$RUNNER_TEMP/pr_event.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Mark PR review status pending
+      - name: mark-pr-review-status-pending
         if: steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
@@ -141,7 +141,7 @@ jobs:
             -f description="AI PR review is running" \
             -f target_url="$RUN_URL"
 
-      - name: Checkout PR head
+      - name: checkout-pr-head
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
@@ -150,12 +150,12 @@ jobs:
           ref: ${{ steps.pr.outputs.head_sha }}
           path: pr-worktree
 
-      - name: Snapshot PR description
+      - name: snapshot-pr-description
         env:
           PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
         run: python3 .github/scripts/write_pr_description.py --output pr-worktree/pr_description.txt
 
-      - name: Snapshot PR diff
+      - name: snapshot-pr-diff
         env:
           GITHUB_TOKEN: ${{ github.token }}
         working-directory: pr-worktree
@@ -167,7 +167,7 @@ jobs:
             --base-sha "${{ steps.pr.outputs.base_sha }}" \
             --output pr_diff.txt
 
-      - name: Prepare cross-run review round
+      - name: prepare-cross-run-review-round
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
@@ -182,11 +182,11 @@ jobs:
             --output pr-worktree/review_round_context.json \
             --incremental-diff pr-worktree/review_incremental_diff.txt
 
-      - name: Select review skill
+      - name: select-review-skill
         id: review_skill
         run: python3 .github/scripts/select_review_skill.py --diff pr-worktree/pr_diff.txt
 
-      - name: Snapshot spec context
+      - name: snapshot-spec-context
         if: steps.review_skill.outputs.needs_spec_context == 'true'
         env:
           PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
@@ -197,7 +197,7 @@ jobs:
             --changed-files-from-diff pr-worktree/pr_diff.txt \
             --output pr-worktree/spec_context.md
 
-      - name: Snapshot review discussion context
+      - name: snapshot-review-discussion-context
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
@@ -207,7 +207,7 @@ jobs:
             --pr-number "${{ steps.pr.outputs.number }}" \
             --output pr-worktree/review_discussion_context.json
 
-      - name: Prepare review workspace
+      - name: prepare-review-workspace
         run: |
           rm -rf pr-worktree/.agents/skills
           rm -rf pr-worktree/.agents/contracts
@@ -218,12 +218,12 @@ jobs:
           cp -R .agents/contracts pr-worktree/.agents/contracts
           cp -R .github/skills pr-worktree/.github/skills
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
+      - name: configure-codex-api-endpoint
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -239,7 +239,7 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Run AI review
+      - name: run-ai-review
         uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1.11
         timeout-minutes: 20
         with:
@@ -276,16 +276,16 @@ jobs:
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
-      - name: Normalize review output path
+      - name: normalize-review-output-path
         run: |
           if [ ! -f pr-worktree/review.json ] && [ -f review.json ]; then
             mv review.json pr-worktree/review.json
           fi
 
-      - name: Validate review output
+      - name: validate-review-output
         run: python3 .github/scripts/validate_review_json.py pr-worktree/pr_diff.txt pr-worktree/review.json
 
-      - name: Post PR review
+      - name: post-pr-review
         env:
           PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -305,7 +305,7 @@ jobs:
             pr-worktree/review_incremental_diff.txt
             pr-worktree/review.json
 
-      - name: Mark PR review status complete
+      - name: mark-pr-review-status-complete
         if: always() && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
         env:
           GH_TOKEN: ${{ github.token }}

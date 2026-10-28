@@ -1,4 +1,4 @@
-name: Triage Issue
+name: triage-issue
 
 on:
   workflow_dispatch:
@@ -65,7 +65,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Prepare triage context
+      - name: prepare-triage-context
         id: issue
         env:
           GH_TOKEN: ${{ github.token }}
@@ -90,18 +90,18 @@ jobs:
             --github-output "$GITHUB_OUTPUT" \
             "${args[@]}"
 
-      - name: Stop when issue is not a triage target
+      - name: stop-when-issue-is-not-a-triage-target
         if: steps.issue.outputs.should_run != 'true'
         run: |
           echo "${{ steps.issue.outputs.skip_reason }}"
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         if: steps.issue.outputs.should_run == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
+      - name: configure-codex-api-endpoint
         if: steps.issue.outputs.should_run == 'true'
         id: codex_endpoint
         env:
@@ -118,7 +118,7 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Triage issue
+      - name: triage-issue
         if: steps.issue.outputs.should_run == 'true'
         uses: openai/codex-action@v1
         env:
@@ -193,7 +193,7 @@ jobs:
             labels. The outer workflow validates triage_result.json and applies
             any GitHub updates.
 
-      - name: Validate triage result
+      - name: validate-triage-result
         if: steps.issue.outputs.should_run == 'true'
         run: |
           jq empty triage_result.json
@@ -237,7 +237,7 @@ jobs:
         with:
           name: triage-issue-${{ github.run_id }}
 
-      - name: Validate triage result
+      - name: validate-triage-result
         run: |
           jq empty triage_result.json
 
@@ -249,7 +249,7 @@ jobs:
             --context triage_context.json \
             "${args[@]}"
 
-      - name: Apply triage result
+      - name: apply-triage-result
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

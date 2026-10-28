@@ -16,39 +16,36 @@ def steps(workflow_data: dict, job: str) -> list[dict]:
 
 
 class CiWorkflowTest(unittest.TestCase):
-    def test_ci_checks_pr_body_and_runs_tests_without_dispatching_review(self) -> None:
+    def test_ci_runs_tests_without_validating_pr_body_or_dispatching_review(self) -> None:
         data = workflow(".github/workflows/ci.yml")
         triggers = data[True]
 
-        self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review", "edited"])
+        self.assertEqual(triggers["pull_request"]["types"], ["opened", "reopened", "synchronize", "ready_for_review"])
         self.assertEqual(triggers["merge_group"]["types"], ["checks_requested"])
         self.assertNotIn("actions", data["permissions"])
         self.assertEqual(data["permissions"]["contents"], "read")
         self.assertNotIn("pull-requests", data["permissions"])
         self.assertNotIn("statuses", data["permissions"])
-        self.assertEqual(set(data["jobs"]), {"pr-body", "test"})
+        self.assertEqual(set(data["jobs"]), {"test"})
 
         self.assertEqual(data["jobs"]["test"]["if"], "github.event_name == 'merge_group' || github.event.pull_request.draft == false")
 
-        body_steps = steps(data, "pr-body")
-        self.assertTrue(any("validate_pr_body" in step.get("run", "") for step in body_steps))
-
         test_steps = steps(data, "test")
-        dependencies = next(step for step in test_steps if step.get("name") == "Install Python test dependencies")
+        dependencies = next(step for step in test_steps if step.get("name") == "install-python-test-dependencies")
         self.assertIn('python3 -m venv "$RUNNER_TEMP/aicodingflow-venv"', dependencies["run"])
         self.assertIn('aicodingflow-venv/bin/python" -m pip install', dependencies["run"])
         self.assertIn('"PyYAML==6.0.3"', dependencies["run"])
 
-        project_tests = next(step for step in test_steps if step.get("name") == "Run repository unit tests")
-        delivery_tests = next(step for step in test_steps if step.get("name") == "Run delivered unit tests")
+        project_tests = next(step for step in test_steps if step.get("name") == "run-repository-unit-tests")
+        delivery_tests = next(step for step in test_steps if step.get("name") == "run-delivered-unit-tests")
         self.assertIn("python3 -m unittest discover -s .github/tests", project_tests["run"])
         self.assertIn("python3 -m unittest discover -s .github/aicodingflow-tests", delivery_tests["run"])
 
-        install_actionlint = next(step for step in test_steps if step.get("name") == "Install actionlint")
+        install_actionlint = next(step for step in test_steps if step.get("name") == "install-actionlint")
         self.assertEqual(install_actionlint["env"]["ACTIONLINT_VERSION"], "1.7.12")
         self.assertIn("sha256sum --check", install_actionlint["run"])
 
-        lint_workflows = next(step for step in test_steps if step.get("name") == "Lint GitHub Actions workflows")
+        lint_workflows = next(step for step in test_steps if step.get("name") == "lint-github-actions-workflows")
         self.assertIn("find .github/workflows", lint_workflows["run"])
         self.assertIn("-name '*.yml'", lint_workflows["run"])
         self.assertIn("-name '*.yaml'", lint_workflows["run"])

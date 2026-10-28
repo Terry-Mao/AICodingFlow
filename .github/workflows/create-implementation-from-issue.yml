@@ -1,4 +1,4 @@
-name: Create Implementation From Issue
+name: create-implementation-from-issue
 
 on:
   workflow_dispatch:
@@ -16,6 +16,7 @@ on:
     types: [created]
 
 permissions:
+  actions: write
   contents: write
   issues: write
   pull-requests: write
@@ -49,7 +50,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Prepare workflow handoff directory
+      - name: prepare-workflow-handoff-directory
         id: handoff
         run: |
           dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
@@ -57,7 +58,7 @@ jobs:
           mkdir -p "$dir"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare implementation context
+      - name: prepare-implementation-context
         id: issue
         env:
           GH_TOKEN: ${{ github.token }}
@@ -75,14 +76,14 @@ jobs:
             --spec-context-output "${{ steps.handoff.outputs.dir }}/spec_context.md" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Stop when issue is not ready
+      - name: stop-when-issue-is-not-ready
         if: steps.issue.outputs.should_run != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "${{ steps.issue.outputs.skip_reason }}"
 
-      - name: Stop when approved plan is missing
+      - name: stop-when-approved-plan-is-missing
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,13 +94,13 @@ jobs:
             --status "blocked" \
             --message "${{ steps.issue.outputs.noop_reason }}"
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
+      - name: configure-codex-api-endpoint
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         id: codex_endpoint
         env:
@@ -116,7 +117,7 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Capture implementation branch start SHAs
+      - name: capture-implementation-branch-start-shas
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         id: branch_start
         env:
@@ -129,7 +130,7 @@ jobs:
             --snapshot-output "${{ steps.handoff.outputs.dir }}/branch-start-shas.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Checkout implementation target branch
+      - name: checkout-implementation-target-branch
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         env:
           TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
@@ -146,13 +147,13 @@ jobs:
             git switch -C "$branch" "origin/$default_branch"
           fi
 
-      - name: Prepare implementation output directory
+      - name: prepare-implementation-output-directory
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         run: |
           rm -rf "${{ steps.handoff.outputs.dir }}/implementation-output"
           mkdir -p "${{ steps.handoff.outputs.dir }}/implementation-output"
 
-      - name: Implement issue
+      - name: implement-issue
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         uses: openai/codex-action@v1
         with:
@@ -237,14 +238,14 @@ jobs:
             edit GitHub issues. The outer workflow handles GitHub API writes
             after validating ${{ steps.handoff.outputs.dir }}/pr-metadata.json.
 
-      - name: Apply implementation output
+      - name: apply-implementation-output
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         run: |
           python3 .github/scripts/apply_implementation_output.py \
             --output-dir "${{ steps.handoff.outputs.dir }}/implementation-output" \
             --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
 
-      - name: Check implementation worktree changes
+      - name: check-implementation-worktree-changes
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
         id: worktree
         run: |
@@ -257,7 +258,7 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Stop when implementation produced no diff
+      - name: stop-when-implementation-produced-no-diff
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -268,7 +269,7 @@ jobs:
             --status "no changes" \
             --message "I analyzed this issue but did not produce an implementation diff."
 
-      - name: Validate implementation output
+      - name: validate-implementation-output
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true'
         id: validate
         continue-on-error: true
@@ -279,7 +280,7 @@ jobs:
             > "${{ steps.handoff.outputs.dir }}/validation-output.txt" \
             2> "${{ steps.handoff.outputs.dir }}/validation-error.txt"
 
-      - name: Update progress comment for invalid implementation output
+      - name: update-progress-comment-for-invalid-implementation-output
         if: steps.validate.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -290,7 +291,7 @@ jobs:
             --status "failed" \
             --message-file "${{ steps.handoff.outputs.dir }}/validation-error.txt"
 
-      - name: Check whether workflow update token is required
+      - name: check-whether-workflow-update-token-is-required
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
         id: workflow_update
         run: |
@@ -304,7 +305,7 @@ jobs:
           print(f"required={str(required).lower()}")
           PY
 
-      - name: Create GitHub App token for workflow updates
+      - name: create-github-app-token-for-workflow-updates
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.workflow_update.outputs.required == 'true'
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -314,7 +315,7 @@ jobs:
           permission-contents: write
           permission-workflows: write
 
-      - name: Commit and push implementation branch
+      - name: commit-and-push-implementation-branch
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
         id: implementation_branch
         env:
@@ -325,7 +326,7 @@ jobs:
             --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Stop when implementation produced no committable diff
+      - name: stop-when-implementation-produced-no-committable-diff
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -336,7 +337,7 @@ jobs:
             --status "no changes" \
             --message "I analyzed this issue but did not produce a committable implementation diff."
 
-      - name: Capture target branch end SHA
+      - name: capture-target-branch-end-sha
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'
         id: branch_end
         env:
@@ -350,7 +351,7 @@ jobs:
             --snapshot "${{ steps.handoff.outputs.dir }}/branch-start-shas.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Create or update implementation pull request
+      - name: create-or-update-implementation-pull-request
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'
         id: pr
         env:
@@ -362,7 +363,14 @@ jobs:
             --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Update progress comment
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outputs.pr_url != '' && steps.workflow_update.outputs.required != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --pr-url "$PR_URL"
+
+      - name: update-progress-comment
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -374,7 +382,7 @@ jobs:
             --message "Review the implementation changes in the PR. Complete any manual verification needed before merging." \
             --pr-url "${{ steps.pr.outputs.pr_url }}"
 
-      - name: Fail after reporting invalid implementation output
+      - name: fail-after-reporting-invalid-implementation-output
         if: steps.validate.outcome == 'failure'
         run: exit 1
 

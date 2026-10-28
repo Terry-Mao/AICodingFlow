@@ -1,4 +1,4 @@
-name: Update PR Review Guidance
+name: update-pr-review
 
 on:
   workflow_dispatch:
@@ -22,6 +22,7 @@ on:
         default: false
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -40,7 +41,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Aggregate review feedback
+      - name: aggregate-review-feedback
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -72,12 +73,12 @@ jobs:
 
           python3 .github/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
+      - name: configure-codex-api-endpoint
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -93,12 +94,12 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare guidance output directory
+      - name: prepare-guidance-output-directory
         run: |
           rm -rf update-pr-review-output
           mkdir -p update-pr-review-output
 
-      - name: Update local review guidance
+      - name: update-local-review-guidance
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
@@ -117,16 +118,16 @@ jobs:
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
             Do not modify core skills, workflow files, scripts, tests, or product code.
 
-      - name: Apply guidance output
+      - name: apply-guidance-output
         run: python3 .github/skills/update-pr-review/scripts/apply_guidance_output.py
 
-      - name: Remove temporary feedback
+      - name: remove-temporary-feedback
         run: rm -rf feedback.json update-pr-review-output
 
-      - name: Validate write surface
+      - name: validate-write-surface
         run: python3 .github/skills/update-pr-review/scripts/validate_write_surface.py
 
-      - name: Check for guidance changes
+      - name: check-for-guidance-changes
         id: changes
         run: |
           if git diff --quiet -- .github/skills/review-pr-repo .github/skills/review-spec-repo; then
@@ -135,8 +136,9 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create or update pull request
+      - name: create-or-update-pull-request
         if: steps.changes.outputs.changed == 'true'
+        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -188,3 +190,9 @@ jobs:
               --title "Update PR review guidance" \
               --body-file "$body_file"
           fi
+
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --head-branch "feat/update-pr-review"

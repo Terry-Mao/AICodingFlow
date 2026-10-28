@@ -1,4 +1,4 @@
-name: Update Dedupe Guidance
+name: update-dedupe
 
 on:
   workflow_dispatch:
@@ -17,6 +17,7 @@ on:
         default: ""
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
   issues: read
@@ -36,7 +37,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Aggregate duplicate feedback
+      - name: aggregate-duplicate-feedback
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -58,12 +59,12 @@ jobs:
           python3 .github/skills/update-dedupe/scripts/aggregate_dedupe_feedback.py "${args[@]}"
           python3 -m json.tool dedupe-feedback.json >/dev/null
 
-      - name: Install Codex sandbox prerequisites
+      - name: install-codex-sandbox-prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: Configure Codex API endpoint
+      - name: configure-codex-api-endpoint
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -79,12 +80,12 @@ jobs:
           esac
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare guidance output directory
+      - name: prepare-guidance-output-directory
         run: |
           rm -rf update-dedupe-output
           mkdir -p update-dedupe-output
 
-      - name: Update local dedupe guidance
+      - name: update-local-dedupe-guidance
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
@@ -104,10 +105,10 @@ jobs:
             Do not modify core dedupe-issue rules, workflows, scripts, tests, specs, or product code.
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
 
-      - name: Apply guidance output
+      - name: apply-guidance-output
         run: python3 .github/skills/update-dedupe/scripts/apply_guidance_output.py
 
-      - name: Capture dedupe guidance summary
+      - name: capture-dedupe-guidance-summary
         id: guidance
         run: |
           python3 <<'PY'
@@ -126,13 +127,13 @@ jobs:
               print(delimiter, file=output)
           PY
 
-      - name: Remove temporary feedback
+      - name: remove-temporary-feedback
         run: rm -rf dedupe-feedback.json update-dedupe-output
 
-      - name: Validate write surface
+      - name: validate-write-surface
         run: python3 .github/skills/update-dedupe/scripts/validate_write_surface.py
 
-      - name: Check for guidance changes
+      - name: check-for-guidance-changes
         id: changes
         run: |
           if [ -z "$(git status --porcelain -- .github/skills/dedupe-issue-repo)" ]; then
@@ -141,8 +142,9 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create or update pull request
+      - name: create-or-update-pull-request
         if: steps.changes.outputs.changed == 'true'
+        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
           GUIDANCE_REASON: ${{ steps.guidance.outputs.reason }}
@@ -193,3 +195,9 @@ jobs:
               --title "Update dedupe guidance" \
               --body-file "$body_file"
           fi
+
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --head-branch "feat/update-dedupe"
