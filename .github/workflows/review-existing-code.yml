@@ -1,4 +1,4 @@
-name: Nightly Existing Code Review
+name: Nightly Codebase Review
 
 on:
   workflow_dispatch:
