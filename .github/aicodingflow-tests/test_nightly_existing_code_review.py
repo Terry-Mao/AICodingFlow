@@ -278,6 +278,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
 
     def test_workflow_schedules_beijing_night_and_publishes_outside_agent(self) -> None:
         workflow = (ROOT / ".github/workflows/review-existing-code.yml").read_text(encoding="utf-8")
+        self.assertTrue(workflow.startswith("name: Nightly Codebase Review\n"))
         self.assertIn('cron: "30 18 * * *"', workflow)
         self.assertIn("NIGHTLY_REVIEW_CYCLE_DAYS", workflow)
         self.assertIn("publish_nightly_findings.py", workflow)
