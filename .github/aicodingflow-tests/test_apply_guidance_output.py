@@ -15,6 +15,30 @@ apply_guidance = import_script(
 
 
 class ApplyGuidanceOutputTest(unittest.TestCase):
+    def test_creates_missing_companion_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / "out"
+            proposed = output / "review-pr-repo"
+            target = root / ".github/skills/review-pr-repo/SKILL.md"
+            proposed.mkdir(parents=True)
+            (proposed / "SKILL.md").write_text("new\n", encoding="utf-8")
+            (output / "status.json").write_text(
+                json.dumps(
+                    {
+                        "status": "changed",
+                        "reason": "test",
+                        "updated_files": [".github/skills/review-pr-repo/SKILL.md"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            status = apply_guidance.apply_output(output, root)
+
+            self.assertEqual(status, "changed")
+            self.assertEqual(target.read_text(encoding="utf-8"), "new\n")
+
     def test_applies_allowed_changed_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
