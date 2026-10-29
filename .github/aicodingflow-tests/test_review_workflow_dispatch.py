@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -20,6 +24,28 @@ def compact(text: str) -> str:
 
 
 class ReviewWorkflowDispatchTest(unittest.TestCase):
+    def test_update_pr_review_detects_new_companion_skill(self) -> None:
+        data = workflow(".github/workflows/update-pr-review.yml")
+        update_steps = steps(data, "update")
+        changes = next(step for step in update_steps if step.get("name") == "check-for-guidance-changes")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            output = root / "github-output"
+            env = {**os.environ, "GITHUB_OUTPUT": str(output)}
+
+            subprocess.run(["bash", "-e", "-c", changes["run"]], cwd=root, env=env, check=True)
+            self.assertEqual(output.read_text(encoding="utf-8"), "changed=false\n")
+
+            target = root / ".github/skills/review-pr-repo/SKILL.md"
+            target.parent.mkdir(parents=True)
+            target.write_text("guidance\n", encoding="utf-8")
+            output.write_text("", encoding="utf-8")
+
+            subprocess.run(["bash", "-e", "-c", changes["run"]], cwd=root, env=env, check=True)
+            self.assertEqual(output.read_text(encoding="utf-8"), "changed=true\n")
+
     def test_review_skips_already_reviewed_snapshot_before_ai_action(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")
         preflight = steps(data, "preflight")

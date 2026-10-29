@@ -130,7 +130,7 @@ jobs:
       - name: check-for-guidance-changes
         id: changes
         run: |
-          if git diff --quiet -- .github/skills/review-pr-repo .github/skills/review-spec-repo; then
+          if [ -z "$(git status --porcelain -- .github/skills/review-pr-repo .github/skills/review-spec-repo)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"

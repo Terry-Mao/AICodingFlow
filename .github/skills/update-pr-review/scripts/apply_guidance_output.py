@@ -62,6 +62,7 @@ def apply_output(output_dir: Path, repo_root: Path) -> str:
         if not source.is_file():
             raise SystemExit(f"missing proposed guidance file: {source}")
         target = repo_root / destination
+        target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
         print(f"applied {destination}")
 
