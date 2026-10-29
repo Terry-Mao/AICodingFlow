@@ -96,7 +96,7 @@ jobs:
         run: |
           gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
             -f state="success" \
-            -f context="AI PR Review" \
+            -f context="ai-pr-review" \
             -f description="AI PR review was already published for this head" \
             -f target_url="$RUN_URL"
 
@@ -137,7 +137,7 @@ jobs:
         run: |
           gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
             -f state="pending" \
-            -f context="AI PR Review" \
+            -f context="ai-pr-review" \
             -f description="AI PR review is running" \
             -f target_url="$RUN_URL"
 
@@ -316,6 +316,6 @@ jobs:
         run: |
           gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
             -f state="$STATE" \
-            -f context="AI PR Review" \
+            -f context="ai-pr-review" \
             -f description="$DESCRIPTION" \
             -f target_url="$RUN_URL"
