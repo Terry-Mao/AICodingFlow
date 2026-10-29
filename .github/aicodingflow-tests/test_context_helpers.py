@@ -3,6 +3,8 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 from script_imports import import_script
 
@@ -35,6 +37,34 @@ class ArtifactContractTests(unittest.TestCase):
             self.assertEqual(
                 path.read_text(encoding="utf-8"),
                 "should_run=true\nreason=ok\nissue_number=243\n",
+            )
+
+    def test_write_github_output_preserves_multiline_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "github_output.txt"
+            warning = "first failure\nsecond failure\n"
+
+            artifact_contracts.write_github_output(path, {"pr_url": "https://example.test/pr", "resolve_warnings": warning})
+
+            content = path.read_text(encoding="utf-8")
+            self.assertTrue(content.startswith("pr_url=https://example.test/pr\nresolve_warnings<<"))
+            delimiter = content.splitlines()[1].split("<<", 1)[1]
+            self.assertEqual(content, f"pr_url=https://example.test/pr\nresolve_warnings<<{delimiter}\n{warning}\n{delimiter}\n")
+
+    def test_write_github_output_avoids_delimiter_in_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "github_output.txt"
+            value = "first\nghadelimiter_collision\nlast"
+            with mock.patch.object(
+                artifact_contracts.uuid,
+                "uuid4",
+                side_effect=[SimpleNamespace(hex="collision"), SimpleNamespace(hex="unique")],
+            ):
+                artifact_contracts.write_github_output(path, {"warning": value})
+
+            self.assertEqual(
+                path.read_text(encoding="utf-8"),
+                f"warning<<ghadelimiter_unique\n{value}\nghadelimiter_unique\n",
             )
 
 

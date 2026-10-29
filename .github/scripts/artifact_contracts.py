@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -22,4 +23,11 @@ def write_github_output(path: str | Path | None, values: dict[str, str]) -> None
         return
     with Path(path).open("a", encoding="utf-8") as handle:
         for key, value in values.items():
-            handle.write(f"{key}={value}\n")
+            if "\n" not in value and "\r" not in value:
+                handle.write(f"{key}={value}\n")
+                continue
+            lines = set(value.splitlines())
+            delimiter = f"ghadelimiter_{uuid.uuid4().hex}"
+            while delimiter in lines:
+                delimiter = f"ghadelimiter_{uuid.uuid4().hex}"
+            handle.write(f"{key}<<{delimiter}\n{value}\n{delimiter}\n")
