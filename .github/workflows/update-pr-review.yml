@@ -149,7 +149,13 @@ jobs:
 
           git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
           git switch -C "$branch"
-          git add .github/skills/review-pr-repo .github/skills/review-spec-repo
+          for path in \
+            .github/skills/review-pr-repo/SKILL.md \
+            .github/skills/review-spec-repo/SKILL.md; do
+            if [ -f "$path" ]; then
+              git add -- "$path"
+            fi
+          done
           git commit -m "docs(skill): update PR review guidance"
           git push --force-with-lease origin "$branch"
 

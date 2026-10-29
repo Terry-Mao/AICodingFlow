@@ -46,6 +46,37 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
             subprocess.run(["bash", "-e", "-c", changes["run"]], cwd=root, env=env, check=True)
             self.assertEqual(output.read_text(encoding="utf-8"), "changed=true\n")
 
+    def test_update_pr_review_stages_only_existing_companion_skills(self) -> None:
+        data = workflow(".github/workflows/update-pr-review.yml")
+        create_pr = next(
+            step for step in steps(data, "update")
+            if step.get("name") == "create-or-update-pull-request"
+        )
+        staging = create_pr["run"].split('git switch -C "$branch"\n', 1)[1].split("git commit", 1)[0]
+
+        for present in (
+            ("review-pr-repo",),
+            ("review-spec-repo",),
+            ("review-pr-repo", "review-spec-repo"),
+        ):
+            with self.subTest(present=present), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                subprocess.run(["git", "init", "-q", str(root)], check=True)
+                expected = []
+                for name in present:
+                    path = f".github/skills/{name}/SKILL.md"
+                    target = root / path
+                    target.parent.mkdir(parents=True)
+                    target.write_text("guidance\n", encoding="utf-8")
+                    expected.append(path)
+
+                subprocess.run(["bash", "-e", "-c", staging], cwd=root, check=True)
+                staged = subprocess.run(
+                    ["git", "diff", "--cached", "--name-only"],
+                    cwd=root, check=True, capture_output=True, text=True,
+                ).stdout.splitlines()
+                self.assertEqual(staged, sorted(expected))
+
     def test_review_skips_already_reviewed_snapshot_before_ai_action(self) -> None:
         data = workflow(".github/workflows/review-pr.yml")
         preflight = steps(data, "preflight")
