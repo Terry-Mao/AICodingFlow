@@ -58,15 +58,12 @@ def issue_number_from_branch(branch: str, *, prefix: str = "spec/issue-", includ
 
 
 def resolve_issue_number_from_pr(pr: dict[str, Any]) -> int | None:
-    for text in (
-        pr.get("body") or "",
-        pr.get("title") or "",
-        (pr.get("head") or {}).get("ref") or pr.get("headRefName") or "",
-    ):
-        issue_number = issue_number_from_text(str(text))
+    for text in (pr.get("body") or "", pr.get("title") or ""):
+        issue_number = issue_number_from_strict_text(str(text))
         if issue_number is not None:
             return issue_number
-    return None
+    branch = (pr.get("head") or {}).get("ref") or pr.get("headRefName") or ""
+    return issue_number_from_branch(str(branch), prefix="spec/issue-", include_suffix=False)
 
 
 def issue_numbers_from_closing_refs(pr: dict[str, Any]) -> list[int]:
