@@ -35,7 +35,7 @@ def finding(**changes: object) -> dict[str, object]:
 class NightlyExistingCodeReviewTest(unittest.TestCase):
     def test_configured_cycle_covers_every_shard_once(self) -> None:
         start = dt.date(2026, 10, 28)
-        for days in (1, 7, 30):
+        for days in (1, 7, 30, 90):
             with self.subTest(days=days):
                 self.assertEqual(
                     {prepare.selected_shard("", start + dt.timedelta(days=offset), days) for offset in range(days)},
@@ -60,8 +60,49 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertFalse(prepare.is_reviewable_path(path))
         self.assertTrue(prepare.is_reviewable_path("web/Button.tsx"))
+        for path in (
+            "scripts/build.mjs", "scripts/server.cjs", "scripts/setup.ps1",
+            "scripts/build.bat", "scripts/build.cmd",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(prepare.is_reviewable_path(path))
         self.assertFalse(prepare.is_reviewable_path("vendor/lib.py"))
         self.assertFalse(prepare.is_reviewable_path("package-lock.json"))
+
+    def test_large_repository_default_shard_round_trips_through_publisher(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "src"
+            source.mkdir()
+            paths = []
+            for number in range(3400):
+                path = f"src/module-{number:04d}.mjs"
+                (root / path).write_text("export const ok = true;\n", encoding="utf-8")
+                paths.append(path)
+            inventory = prepare.snapshot_files(root, paths)
+            self.assertEqual(len(inventory), 3400)
+            counts = [
+                len(prepare.focus_files(inventory, shard, prepare.DEFAULT_CYCLE_DAYS))
+                for shard in range(prepare.DEFAULT_CYCLE_DAYS)
+            ]
+            self.assertEqual(sum(counts), len(inventory))
+            self.assertLessEqual(max(counts), 65)
+
+            shard = counts.index(max(counts))
+            context = {
+                "commit": "a" * 40,
+                "cycle_days": prepare.DEFAULT_CYCLE_DAYS,
+                "shard": shard,
+                "project_files": inventory,
+                "files": prepare.focus_files(inventory, shard, prepare.DEFAULT_CYCLE_DAYS),
+            }
+            old = Path.cwd()
+            try:
+                os.chdir(root)
+                with mock.patch.object(publish.subprocess, "run", return_value=mock.Mock(stdout="a" * 40 + "\n")):
+                    self.assertEqual(len(publish.validate_snapshot(context)), len(inventory))
+            finally:
+                os.chdir(old)
 
     def test_snapshot_selects_only_matching_text_files(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -288,6 +329,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertNotRegex(workflow, r"(?m)^      - uses:")
         self.assertIn('cron: "30 18 * * *"', workflow)
         self.assertIn("NIGHTLY_REVIEW_CYCLE_DAYS", workflow)
+        self.assertIn("vars.NIGHTLY_REVIEW_CYCLE_DAYS || '90'", workflow)
         self.assertIn("publish_nightly_findings.py", workflow)
         self.assertIn("actions: write", workflow)
         self.assertIn("sandbox: read-only", workflow)

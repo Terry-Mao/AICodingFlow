@@ -75,6 +75,14 @@ def nested_sha(metadata: dict[str, object], key: str) -> str:
     return sha if isinstance(sha, str) else ""
 
 
+def nested_ref(metadata: dict[str, object], key: str) -> str:
+    value = metadata.get(key)
+    if not isinstance(value, dict):
+        return ""
+    ref = value.get("ref")
+    return ref if isinstance(ref, str) else ""
+
+
 def validate_github_pr_snapshot(
     metadata: dict[str, object],
     expected_head_sha: str,
@@ -103,7 +111,24 @@ def fetch_github_pr_diff(
 ) -> list[str]:
     metadata = fetch_github_pr_metadata(repo, pr_number, token)
     validate_github_pr_snapshot(metadata, expected_head_sha, expected_base_sha)
-    diff_lines = github_request(repo, pr_number, token, "application/vnd.github.diff").decode("utf-8").splitlines()
+    base_ref = nested_ref(metadata, "base")
+    if not base_ref or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
+        raise SystemExit("GitHub PR base repository or ref was invalid")
+    subprocess.run(
+        ["git", "fetch", "--no-tags", f"https://github.com/{repo}.git", f"refs/heads/{base_ref}"],
+        check=True,
+        capture_output=True,
+    )
+    fetched_base = subprocess.run(
+        ["git", "rev-parse", "FETCH_HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    if fetched_base != expected_base_sha:
+        raise SystemExit("GitHub PR base changed while fetching review diff")
+    merge_base = subprocess.run(
+        ["git", "merge-base", expected_base_sha, expected_head_sha],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    diff_lines = run_git_diff(merge_base, expected_head_sha, 3)
     metadata = fetch_github_pr_metadata(repo, pr_number, token)
     validate_github_pr_snapshot(metadata, expected_head_sha, expected_base_sha)
     return diff_lines

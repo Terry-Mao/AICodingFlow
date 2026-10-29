@@ -14,12 +14,12 @@ from zoneinfo import ZoneInfo
 
 from github_api import flatten_gh_pages, run_gh_json
 
-DEFAULT_CYCLE_DAYS = 7
+DEFAULT_CYCLE_DAYS = 90
 MAX_CYCLE_DAYS = 90
 SOURCE_SUFFIXES = {
-    ".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".java",
+    ".py", ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".go", ".rs", ".java",
     ".kt", ".c", ".h", ".cc", ".cpp", ".cs", ".rb", ".php",
-    ".sh", ".bash", ".zsh", ".yml", ".yaml", ".toml", ".json",
+    ".sh", ".bash", ".zsh", ".ps1", ".bat", ".cmd", ".yml", ".yaml", ".toml", ".json",
     ".pyi", ".swift", ".scala", ".sql", ".vue", ".svelte", ".dart",
     ".lua", ".ex", ".exs", ".hs", ".fs", ".fsx", ".tf", ".hcl",
     ".proto", ".graphql", ".astro",

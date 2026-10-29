@@ -163,9 +163,11 @@ jobs:
       - name: snapshot-pr-diff
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         env:
+          GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
         working-directory: pr-worktree
         run: |
+          gh auth setup-git --hostname github.com --force
           python3 ../.github/scripts/build_pr_diff.py \
             --repo "${{ github.repository }}" \
             --pr-number "${{ steps.context.outputs.pr_number }}" \
