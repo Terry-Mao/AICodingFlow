@@ -181,6 +181,7 @@ CI 在非草稿 PR 更新和 merge queue 检查时运行测试，不校验 PR �
 和 PR 评论命令保留作手动触发入口。使用 `GITHUB_TOKEN` 创建或更新 PR 的工作流
 通过 `workflow_dispatch` 显式分发；CI 不再自动分发审查。
 如果当前 head 已发布 Review，重跑会跳过 AI 生成并恢复该 head 的审查状态。
+审查状态检查的 context 为 `ai-pr-review`。它由原来的 `AI PR Review` 更名；如分支保护、规则集或外部自动化依赖旧名称，需改为 `ai-pr-review`。历史提交上的旧状态不会自动更名。
 
 发布规则：
 

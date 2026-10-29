@@ -28,6 +28,23 @@ class IssueRefsTest(unittest.TestCase):
         self.assertIsNone(issue_refs.issue_number_from_strict_text("See #99 for context"))
         self.assertIsNone(issue_refs.issue_number_from_strict_text("GH-99"))
 
+    def test_resolve_issue_number_from_pr_ignores_pr_references(self) -> None:
+        self.assertIsNone(
+            issue_refs.resolve_issue_number_from_pr(
+                {"body": "Follow-up to #123", "title": "Review changes", "head": {"ref": "spec/respond-pr-42"}}
+            )
+        )
+        self.assertEqual(
+            issue_refs.resolve_issue_number_from_pr(
+                {"body": "Follow-up to #123", "title": "Refs #302", "head": {"ref": "spec/respond-pr-42"}}
+            ),
+            302,
+        )
+
+    def test_resolve_issue_number_from_pr_accepts_explicit_branch(self) -> None:
+        self.assertEqual(issue_refs.resolve_issue_number_from_pr({"headRefName": "spec/issue-42"}), 42)
+        self.assertIsNone(issue_refs.resolve_issue_number_from_pr({"headRefName": "feat/thing-42"}))
+
     def test_issue_numbers_from_closing_refs_ignores_pr_references(self) -> None:
         pr = {
             "title": "Implement flow refs #90",

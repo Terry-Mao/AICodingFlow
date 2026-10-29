@@ -212,11 +212,21 @@ class WriteSpecContextTest(unittest.TestCase):
             ["core/foo.py", "tests/test_foo.py"],
         )
 
-    def test_resolves_issue_number_from_branch_suffix(self) -> None:
-        self.assertEqual(
-            write_spec_context.resolve_issue_number(pr_event(body="", head_ref="feat/thing-42")["pull_request"]),
-            42,
-        )
+    def test_does_not_resolve_issue_number_from_ambiguous_branch_suffix(self) -> None:
+        self.assertIsNone(write_spec_context.resolve_issue_number(pr_event(body="", head_ref="feat/thing-42")["pull_request"]))
+
+    def test_pr_reference_does_not_load_unrelated_spec_context(self) -> None:
+        event = pr_event(body="Follow-up to #123", head_ref="spec/respond-pr-42")
+        with (
+            mock.patch.object(write_spec_context, "fetch_spec_prs") as fetch_spec_prs,
+            mock.patch.object(write_spec_context, "collect_spec_entries") as collect_spec_entries,
+        ):
+            context = write_spec_context.resolve_spec_context("owner/repo", event, ["core/foo.py"])
+
+        self.assertIsNone(context["issue_number"])
+        self.assertEqual(context["spec_entries"], [])
+        fetch_spec_prs.assert_not_called()
+        collect_spec_entries.assert_not_called()
 
     def test_issue_number_token_boundaries_avoid_matching_words(self) -> None:
         self.assertIsNone(write_spec_context.issue_number_from_text("walk through 42 cases"))

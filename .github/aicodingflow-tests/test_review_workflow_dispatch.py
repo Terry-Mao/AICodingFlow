@@ -58,7 +58,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("steps.seen.outputs.already_reviewed == 'true'", restore["if"])
         self.assertEqual(restore["env"]["HEAD_SHA"], "${{ steps.pr.outputs.head_sha }}")
         self.assertIn('state="success"', restore["run"])
-        self.assertIn('context="AI PR Review"', restore["run"])
+        self.assertIn('context="ai-pr-review"', restore["run"])
 
     def test_ci_runs_tests_without_dispatching_review(self) -> None:
         data = workflow(".github/workflows/ci.yml")
