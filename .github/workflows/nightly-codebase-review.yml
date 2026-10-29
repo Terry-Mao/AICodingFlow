@@ -48,7 +48,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REQUESTED_SHARD: ${{ inputs.shard }}
-          REVIEW_CYCLE_DAYS: ${{ inputs.cycle_days || vars.NIGHTLY_REVIEW_CYCLE_DAYS || '7' }}
+          REVIEW_CYCLE_DAYS: ${{ inputs.cycle_days || vars.NIGHTLY_REVIEW_CYCLE_DAYS || '90' }}
         run: |
           python3 .github/scripts/prepare_nightly_review.py \
             --repo "${{ github.repository }}" \
