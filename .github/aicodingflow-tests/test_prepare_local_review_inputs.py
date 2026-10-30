@@ -12,6 +12,7 @@ from script_imports import ROOT, import_script
 
 
 prepare_local = import_script(".github/scripts/prepare_local_review_inputs.py", "prepare_local_review_inputs")
+validate_local = import_script(".github/scripts/validate_local_review_result.py", "validate_local_review_result")
 
 
 CODE_DIFF = [
@@ -217,7 +218,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             default_base.assert_not_called()
             resolve_ref.assert_called_once_with("HEAD")
             local_pr_event.assert_not_called()
-            local_worktree_diff.assert_called_once_with("github-base", 3)
+            local_worktree_diff.assert_called_once_with("github-base", 3, output.resolve())
 
         self.run_in_tempdir(scenario)
 
@@ -279,7 +280,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             self.assertIn("Base: main @ explicit-base-sha", description)
             default_base.assert_not_called()
             self.assertEqual(resolve_ref.call_args_list, [mock.call("HEAD"), mock.call("origin/main")])
-            local_worktree_diff.assert_called_once_with("explicit-base-sha", 3)
+            local_worktree_diff.assert_called_once_with("explicit-base-sha", 3, output.resolve())
 
         self.run_in_tempdir(scenario)
 
@@ -332,7 +333,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
             self.assertIn("Base: main @ fallback-base-sha", description)
             default_base.assert_called_once()
             self.assertEqual(resolve_ref.call_args_list, [mock.call("HEAD"), mock.call("origin/main")])
-            local_worktree_diff.assert_called_once_with("fallback-base-sha", 3)
+            local_worktree_diff.assert_called_once_with("fallback-base-sha", 3, output.resolve())
 
         self.run_in_tempdir(scenario)
 
@@ -418,6 +419,49 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
         self.assertTrue(output_dir.is_dir())
         self.assertTrue(output_dir.name.startswith("aicodingflow-local-review-"))
         self.assertNotEqual(output_dir.parent, ROOT)
+
+    def test_repo_output_dir_does_not_change_spec_review_or_baseline(self) -> None:
+        def scenario(directory: Path) -> None:
+            base_sha = self.init_repo(directory)
+            spec = directory / "specs/issue-312/product.md"
+            spec.parent.mkdir(parents=True)
+            spec.write_text("spec change\n", encoding="utf-8")
+            output = directory / ".review"
+            args = prepare_local.parse_args(
+                ["--repo", "owner/repo", "--base", base_sha, "--output-dir", str(output), "--github-output", ""]
+            )
+
+            with mock.patch.object(prepare_local, "github_pr_event_for_current_branch", return_value=None):
+                self.assertEqual(prepare_local.run(args), 0)
+                (output / "review.json").write_text("{}\n", encoding="utf-8")
+                self.assertEqual(prepare_local.run(args), 0)
+
+            diff_text = (output / "pr_diff.txt").read_text(encoding="utf-8")
+            self.assertEqual(
+                prepare_local.select_review_skill.select_skill(diff_text),
+                prepare_local.select_review_skill.SPEC_REVIEW_SKILL,
+            )
+            self.assertEqual(
+                [line for line in diff_text.splitlines() if line.startswith("FILE ")],
+                ["FILE specs/issue-312/product.md"],
+            )
+            baseline = validate_local.read_baseline_records(str(output / ".local_review_baseline.status"))
+            self.assertEqual([record[2] for record in baseline], ["specs/issue-312/product.md"])
+            self.assertEqual(
+                validate_local.validate_records_against_baseline(validate_local.git_status_records(), baseline, output),
+                [],
+            )
+
+            (output / "notes.txt").write_text("business file\n", encoding="utf-8")
+            self.assertEqual(
+                validate_local.validate_records_against_baseline(validate_local.git_status_records(), baseline, output),
+                ["unexpected file change during local review: .review/notes.txt"],
+            )
+            (output / "notes.txt").unlink()
+            with mock.patch("sys.argv", ["validate_local_review_result.py", "--baseline-status", str(output / ".local_review_baseline.status")]):
+                self.assertEqual(validate_local.main(), 0)
+
+        self.run_in_tempdir(scenario)
 
     def test_remote_repo_from_url_accepts_ssh_https_and_dotted_names(self) -> None:
         self.assertEqual(

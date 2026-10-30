@@ -7,6 +7,22 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+LOCAL_REVIEW_ARTIFACT_NAMES = frozenset(
+    {
+        "pr_description.txt",
+        "pr_diff.txt",
+        "spec_context.md",
+        "review_discussion_context.json",
+        "review.json",
+        ".local_review_baseline.status",
+    }
+)
+
+
+def is_local_review_artifact(path: str, output_dir: Path) -> bool:
+    candidate = Path(path).resolve()
+    return candidate.parent == output_dir.resolve() and candidate.name in LOCAL_REVIEW_ARTIFACT_NAMES
+
 
 def load_json(path: str | Path | None, *, default: Any = None) -> Any:
     if not path:
