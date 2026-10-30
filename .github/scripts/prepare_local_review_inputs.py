@@ -174,7 +174,7 @@ def local_pr_event(repo: str, base: str, base_sha: str, head_sha: str) -> dict[s
     }
 
 
-def github_pr_event(repo: str, branch: str) -> dict[str, Any]:
+def github_pr_event(repo: str, branch: str) -> dict[str, Any] | None:
     fields = ",".join(
         [
             "number",
@@ -190,7 +190,16 @@ def github_pr_event(repo: str, branch: str) -> dict[str, Any]:
             "headRefOid",
         ]
     )
-    data = json.loads(run_command(["gh", "pr", "view", branch, "--repo", repo, "--json", fields]))
+    results = json.loads(
+        run_command(
+            ["gh", "pr", "list", "--state", "open", "--head", branch, "--repo", repo, "--json", fields, "--limit", "1"]
+        )
+    )
+    if not results:
+        return None
+    data = results[0]
+    if data.get("state") != "OPEN" or data.get("headRefName") != branch:
+        return None
     return {
         "pull_request": {
             "number": data.get("number") or "",
