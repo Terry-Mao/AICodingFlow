@@ -204,6 +204,27 @@ class WriteSpecContextTest(unittest.TestCase):
         self.assertEqual(context["changed_files"], ["core/foo.py", "tests/test_foo.py"])
         self.assertEqual(context["pr_files"], [{"filename": "core/foo.py"}, {"filename": "tests/test_foo.py"}])
 
+    def test_local_issue_branch_loads_spec_context_without_pr(self) -> None:
+        event = pr_event(body="", head_ref="fix/local-review-issue-refs-42")
+        event["pull_request"]["number"] = ""
+        with (
+            mock.patch.object(write_spec_context, "fetch_pr_files") as fetch_pr_files,
+            mock.patch.object(write_spec_context, "fetch_spec_prs", return_value=[]),
+            mock.patch.object(
+                write_spec_context,
+                "collect_spec_entries",
+                return_value=[{"path": "specs/issue-42/tech.md", "content": "# Tech\n"}],
+            ) as collect_spec_entries,
+        ):
+            context = write_spec_context.resolve_spec_context("owner/repo", event, ["core/foo.py"])
+
+        self.assertEqual(context["issue_number"], 42)
+        self.assertEqual(context["spec_context_source"], "directory")
+        fetch_pr_files.assert_not_called()
+        collect_spec_entries.assert_called_once_with(
+            "owner/repo", ["specs/issue-42/product.md", "specs/issue-42/tech.md"], "base-sha"
+        )
+
     def test_changed_files_from_diff_text_reads_pr_diff_file_entries(self) -> None:
         self.assertEqual(
             write_spec_context.changed_files_from_diff_text(

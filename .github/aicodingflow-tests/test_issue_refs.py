@@ -45,6 +45,25 @@ class IssueRefsTest(unittest.TestCase):
         self.assertEqual(issue_refs.resolve_issue_number_from_pr({"headRefName": "spec/issue-42"}), 42)
         self.assertIsNone(issue_refs.resolve_issue_number_from_pr({"headRefName": "feat/thing-42"}))
 
+    def test_resolve_issue_number_from_local_issue_branches(self) -> None:
+        for branch in ("feat/thing-42", "fix/local-review-issue-refs-42", "spec/implement-issue-42",
+                       "spec/implement-issue-42-add-retry-logic"):
+            with self.subTest(branch=branch):
+                self.assertEqual(
+                    issue_refs.resolve_issue_number_from_pr({"number": "", "head": {"ref": branch}}),
+                    42,
+                )
+
+        for branch in ("spec/respond-pr-42", "feat/thing-42-extra", "other/thing-42"):
+            with self.subTest(branch=branch):
+                self.assertIsNone(issue_refs.resolve_issue_number_from_pr({"number": "", "head": {"ref": branch}}))
+
+        self.assertIsNone(issue_refs.resolve_issue_number_from_pr({"number": 7, "headRefName": "feat/thing-42"}))
+        self.assertEqual(
+            issue_refs.resolve_issue_number_from_pr({"number": "", "body": "Refs #99", "headRefName": "feat/thing-42"}),
+            99,
+        )
+
     def test_issue_numbers_from_closing_refs_ignores_pr_references(self) -> None:
         pr = {
             "title": "Implement flow refs #90",

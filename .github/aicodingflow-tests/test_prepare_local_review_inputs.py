@@ -362,9 +362,9 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
 
     def test_github_pr_event_for_current_branch_fetches_description(self) -> None:
         def fake_run(args: list[str], env: dict[str, str] | None = None) -> str:
-            if args[:5] == ["gh", "pr", "view", "fix/github-pr", "--repo"]:
+            if args[:8] == ["gh", "pr", "list", "--state", "open", "--head", "fix/github-pr", "--repo"]:
                 return """
-                {
+                [{
                   "number": 12,
                   "state": "OPEN",
                   "isDraft": false,
@@ -376,7 +376,7 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
                   "baseRefOid": "github-base",
                   "headRefName": "fix/github-pr",
                   "headRefOid": "github-head"
-                }
+                }]
                 """
             raise AssertionError(args)
 
@@ -389,6 +389,22 @@ class PrepareLocalReviewInputsTest(unittest.TestCase):
         self.assertIsNotNone(event)
         self.assertEqual(event["pull_request"]["title"], "fix: github pr")
         self.assertEqual(event["pull_request"]["body"], "remote body")
+
+    def test_github_pr_event_for_current_branch_ignores_old_pr(self) -> None:
+        responses = (
+            "[]",
+            '[{"state":"CLOSED","headRefName":"fix/github-pr"}]',
+            '[{"state":"MERGED","headRefName":"fix/github-pr"}]',
+        )
+        for response in responses:
+            with self.subTest(response=response):
+                with ExitStack() as stack:
+                    stack.enter_context(mock.patch.object(prepare_local, "current_branch", return_value="fix/github-pr"))
+                    run_command = stack.enter_context(mock.patch.object(prepare_local, "run_command", return_value=response))
+                    self.assertIsNone(prepare_local.github_pr_event_for_current_branch("owner/repo"))
+                    command = run_command.call_args.args[0]
+                    self.assertEqual(command[:7], ["gh", "pr", "list", "--state", "open", "--head", "fix/github-pr"])
+                    self.assertIn("owner/repo", command)
 
     def test_github_pr_event_for_current_branch_returns_none_when_fetch_fails(self) -> None:
         with (
