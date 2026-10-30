@@ -16,6 +16,10 @@ STRICT_ISSUE_PATTERNS = [
     re.compile(r"(?<![A-Za-z0-9-])issue(?![A-Za-z0-9-])\s+#?(\d+)(?![A-Za-z0-9-])", re.IGNORECASE),
 ]
 BRANCH_SUFFIX_RE = re.compile(r"(?:^|/)[A-Za-z0-9-]+-(\d+)$")
+LOCAL_ISSUE_BRANCH_PATTERNS = [
+    re.compile(r"^(?:feat|fix|refactor|docs|test|perf|chore)/[a-z0-9]+(?:-[a-z0-9]+)*-(\d+)$"),
+    re.compile(r"^spec/implement-issue-(\d+)(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?$"),
+]
 ISSUE_REFERENCE_KEYWORD_RE = re.compile(
     r"\b(?:refs?|references?|relates\s+to|fixes?|closes?|resolves?)\b[:\s]+[^\n\r]*",
     re.IGNORECASE,
@@ -63,7 +67,14 @@ def resolve_issue_number_from_pr(pr: dict[str, Any]) -> int | None:
         if issue_number is not None:
             return issue_number
     branch = (pr.get("head") or {}).get("ref") or pr.get("headRefName") or ""
-    return issue_number_from_branch(str(branch), prefix="spec/issue-", include_suffix=False)
+    issue_number = issue_number_from_branch(str(branch), prefix="spec/issue-", include_suffix=False)
+    if issue_number is not None or "number" not in pr or pr["number"]:
+        return issue_number
+    for pattern in LOCAL_ISSUE_BRANCH_PATTERNS:
+        match = pattern.fullmatch(str(branch))
+        if match:
+            return int(match.group(1))
+    return None
 
 
 def issue_numbers_from_closing_refs(pr: dict[str, Any]) -> list[int]:
