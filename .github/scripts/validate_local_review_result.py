@@ -8,6 +8,8 @@ import sys
 import argparse
 from pathlib import Path
 
+from artifact_contracts import is_local_review_artifact
+
 
 def parse_status_records(raw: bytes) -> list[tuple[str, str, str]]:
     parts = raw.decode("utf-8", errors="replace").split("\0")
@@ -47,9 +49,12 @@ def status_records_by_path(records: list[tuple[str, str, str]]) -> dict[str, tup
 
 
 def validate_records_against_baseline(
-    records: list[tuple[str, str, str]], baseline_records: list[tuple[str, str, str]]
+    records: list[tuple[str, str, str]], baseline_records: list[tuple[str, str, str]], output_dir: Path | None = None
 ) -> list[str]:
     errors: list[str] = []
+    if output_dir is not None:
+        records = [record for record in records if not is_local_review_artifact(record[2], output_dir)]
+        baseline_records = [record for record in baseline_records if not is_local_review_artifact(record[2], output_dir)]
     current_status = status_records_by_path(records)
     baseline_status = status_records_by_path(baseline_records)
 
@@ -83,7 +88,8 @@ def main() -> int:
 
     records = git_status_records()
     if args.baseline_status:
-        errors = validate_records_against_baseline(records, read_baseline_records(args.baseline_status))
+        output_dir = Path(args.baseline_status).resolve().parent
+        errors = validate_records_against_baseline(records, read_baseline_records(args.baseline_status), output_dir)
         Path(args.baseline_status).unlink(missing_ok=True)
     else:
         errors = validate_records(records)

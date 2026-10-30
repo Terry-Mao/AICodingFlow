@@ -16,21 +16,13 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from artifact_contracts import write_github_output  # noqa: E402
+from artifact_contracts import LOCAL_REVIEW_ARTIFACT_NAMES, is_local_review_artifact, write_github_output  # noqa: E402
 import build_pr_diff  # noqa: E402
 import select_review_skill  # noqa: E402
 import write_pr_description  # noqa: E402
 import write_spec_context  # noqa: E402
 
 
-LEGACY_ROOT_REVIEW_PATH_NAMES = {
-    "pr_description.txt",
-    "pr_diff.txt",
-    "spec_context.md",
-    "review_discussion_context.json",
-    "review.json",
-    ".local_review_baseline.status",
-}
 StatusRecord = tuple[str, str, str, str]
 
 
@@ -92,12 +84,14 @@ def git_status_raw() -> bytes:
     ).stdout
 
 
-def is_temp_review_path(path: str) -> bool:
-    return Path(path).as_posix() in LEGACY_ROOT_REVIEW_PATH_NAMES
+def is_temp_review_path(path: str, output_dir: Path | None = None) -> bool:
+    return Path(path).as_posix() in LOCAL_REVIEW_ARTIFACT_NAMES or (
+        output_dir is not None and is_local_review_artifact(path, output_dir)
+    )
 
 
-def filtered_status_records() -> list[StatusRecord]:
-    return [record for record in parse_status_records(git_status_raw()) if not is_temp_review_path(record[2])]
+def filtered_status_records(output_dir: Path | None = None) -> list[StatusRecord]:
+    return [record for record in parse_status_records(git_status_raw()) if not is_temp_review_path(record[2], output_dir)]
 
 
 def resolve_ref(ref: str) -> str:
@@ -250,14 +244,14 @@ def run_git_with_index(args: list[str], index_path: str) -> str:
     return run_command(["git", *args], env=env)
 
 
-def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
+def local_worktree_diff(base_sha: str, context_lines: int, output_dir: Path | None = None) -> list[str]:
     with tempfile.NamedTemporaryFile(prefix="local-review-index-", delete=False) as handle:
         index_path = handle.name
     Path(index_path).unlink(missing_ok=True)
 
     try:
         run_git_with_index(["read-tree", "HEAD"], index_path)
-        for index_status, worktree_status, path, source in filtered_status_records():
+        for index_status, worktree_status, path, source in filtered_status_records(output_dir):
             if source:
                 run_git_with_index(["rm", "--cached", "-q", "--ignore-unmatch", "--", source], index_path)
             if not Path(path).exists() and (index_status == "D" or worktree_status == "D"):
@@ -283,7 +277,7 @@ def local_worktree_diff(base_sha: str, context_lines: int) -> list[str]:
 
 
 def write_local_diff(base_sha: str, output: Path) -> str:
-    raw_diff = local_worktree_diff(base_sha, 3)
+    raw_diff = local_worktree_diff(base_sha, 3, output.parent)
     if not raw_diff:
         raise SystemExit(f"no local changes to review against {base_sha}")
     diff_text = build_pr_diff.convert(raw_diff)
@@ -292,7 +286,7 @@ def write_local_diff(base_sha: str, output: Path) -> str:
 
 
 def write_baseline_status(output_dir: Path) -> Path:
-    records = filtered_status_records()
+    records = filtered_status_records(output_dir)
     path = output_dir / ".local_review_baseline.status"
     path.write_bytes(serialize_status_records(records))
     return path
