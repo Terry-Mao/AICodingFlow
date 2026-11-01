@@ -31,11 +31,11 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 | --- | --- |
 | `ready-to-spec` | issue 已准备进入 spec 编写。 |
 | `ready-to-implement` | issue 已准备进入实现。 |
-| `plan-approved` | spec PR 已批准，可作为 implementation 的 spec context。 |
+| `plan-approved` | spec PR 已批准，可作为 implementation 的 spec context；满足实现条件时会调度 implementation。 |
 | `@AGENT_LOGIN /review` | 在非 draft PR conversation comment 中手动触发 AI review。 |
 | `@AGENT_LOGIN /fix` | 在 PR conversation、PR review 或 inline review comment 中请求 Codex 修复。 |
 
-`ready-to-spec` 和 `ready-to-implement` 是人工维护的阶段门。triage 不会自动添加这两个 label。`plan-approved` 只作为 spec context 的批准信号，不直接触发 implementation workflow。
+`ready-to-spec` 和 `ready-to-implement` 是人工维护的阶段门。triage 不会自动添加这两个 label。spec PR 获得 `plan-approved` 后，若关联 issue 已带 `ready-to-implement` 且已分配给 `AGENT_LOGIN`，`plan-approved.yml` 会调度 implementation；否则只同步 issue 状态，不会自动添加 `ready-to-implement`。
 
 ## Issue Triage
 
