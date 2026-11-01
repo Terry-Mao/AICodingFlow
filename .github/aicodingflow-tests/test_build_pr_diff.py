@@ -62,7 +62,7 @@ class BuildPrDiffTest(unittest.TestCase):
                     "api_version": request.get_header("X-github-api-version"),
                 }
             )
-            return Response(b'{"head":{"sha":"head-sha"},"base":{"sha":"base-sha","ref":"main"}}')
+            return Response(b'{"head":{"sha":"head-sha"},"base":{"sha":"base-sha","ref":"release/1.2"}}')
 
         commands = []
 
@@ -92,7 +92,7 @@ class BuildPrDiffTest(unittest.TestCase):
         self.assertEqual([call["accept"] for call in captured], ["application/vnd.github+json"] * 2)
         self.assertEqual([call["api_version"] for call in captured], ["2022-11-28"] * 2)
         self.assertEqual(commands, [
-            ["git", "fetch", "--no-tags", "https://github.com/owner/repo.git", "refs/heads/main"],
+            ["git", "fetch", "--no-tags", "https://github.com/owner/repo.git", "refs/heads/release/1.2"],
             ["git", "rev-parse", "FETCH_HEAD"],
             ["git", "merge-base", "base-sha", "head-sha"],
         ])
@@ -120,6 +120,23 @@ class BuildPrDiffTest(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "head changed"):
                 build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
 
+    def test_fetch_github_pr_diff_fails_when_base_changes_after_diff_fetch(self) -> None:
+        metadata = [
+            {"head": {"sha": "head-sha"}, "base": {"sha": "base-sha", "ref": "release/1.2"}},
+            {"head": {"sha": "head-sha"}, "base": {"sha": "new-base", "ref": "release/1.2"}},
+        ]
+        with (
+            patch.object(build_pr_diff, "fetch_github_pr_metadata", side_effect=metadata),
+            patch.object(build_pr_diff.subprocess, "run", side_effect=[
+                subprocess.CompletedProcess([], 0),
+                subprocess.CompletedProcess([], 0, "base-sha\n"),
+                subprocess.CompletedProcess([], 0, "merge-base-sha\n"),
+            ]),
+            patch.object(build_pr_diff, "run_git_diff", return_value=[]),
+        ):
+            with self.assertRaisesRegex(SystemExit, "base changed"):
+                build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
+
     def test_fetch_github_pr_diff_rejects_changed_fetched_base(self) -> None:
         metadata = {"head": {"sha": "head-sha"}, "base": {"sha": "base-sha", "ref": "main"}}
         with (
@@ -131,6 +148,16 @@ class BuildPrDiffTest(unittest.TestCase):
         ):
             with self.assertRaisesRegex(SystemExit, "base changed while fetching"):
                 build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
+
+    def test_fetch_github_pr_diff_rejects_missing_base_ref_before_fetch(self) -> None:
+        metadata = {"head": {"sha": "head-sha"}, "base": {"sha": "base-sha"}}
+        with (
+            patch.object(build_pr_diff, "fetch_github_pr_metadata", return_value=metadata),
+            patch.object(build_pr_diff.subprocess, "run") as git_run,
+        ):
+            with self.assertRaisesRegex(SystemExit, "base repository or ref was invalid"):
+                build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
+        git_run.assert_not_called()
 
     def test_fetch_github_pr_diff_fails_when_head_changed(self) -> None:
         def fake_metadata(repo: str, pr_number: str, token: str) -> dict[str, object]:
