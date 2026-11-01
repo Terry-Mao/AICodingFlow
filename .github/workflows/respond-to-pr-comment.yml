@@ -87,7 +87,8 @@ jobs:
         if: steps.context.outputs.should_run != 'true'
         run: echo "${{ steps.context.outputs.skip_reason }}"
 
-      - uses: actions/upload-artifact@v7
+      - name: upload-pr-comment-preflight-artifacts
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: respond-to-pr-comment-preflight-${{ github.run_id }}
@@ -410,7 +411,8 @@ jobs:
         if: steps.validate.outcome == 'failure'
         run: exit 1
 
-      - uses: actions/upload-artifact@v7
+      - name: upload-pr-comment-response-artifacts
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: respond-to-pr-comment-${{ github.run_id }}

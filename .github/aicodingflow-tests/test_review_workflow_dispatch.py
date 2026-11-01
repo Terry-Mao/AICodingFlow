@@ -157,6 +157,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertLess(names.index("resolve-pull-request"), names.index("checkout-pr-head"))
 
         review_steps = steps(data, "review")
+        upload_step = next(step for step in review_steps if step.get("uses") == "actions/upload-artifact@v7")
+        self.assertEqual(upload_step["name"], "upload-pr-review-artifacts")
         checkout_pr_head = next(step for step in review_steps if step.get("name") == "checkout-pr-head")
         self.assertEqual(checkout_pr_head["with"]["persist-credentials"], False)
         self.assertEqual(checkout_pr_head["with"]["repository"], "${{ steps.pr.outputs.head_repo }}")
@@ -463,6 +465,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertEqual(respond_job["permissions"]["issues"], "write")
 
         preflight_steps = steps(data, "preflight")
+        preflight_upload = next(step for step in preflight_steps if step.get("uses") == "actions/upload-artifact@v7")
+        self.assertEqual(preflight_upload["name"], "upload-pr-comment-preflight-artifacts")
         preflight_handoff = next(step for step in preflight_steps if step.get("name") == "prepare-workflow-handoff-directory")
         prepare = next(step for step in preflight_steps if step.get("name") == "prepare-pr-comment-context")
         self.assertEqual(preflight_handoff["id"], "handoff")
@@ -474,6 +478,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--github-output \"$GITHUB_OUTPUT\"", prepare["run"])
 
         respond_steps = steps(data, "respond")
+        response_upload = next(step for step in respond_steps if step.get("uses") == "actions/upload-artifact@v7")
+        self.assertEqual(response_upload["name"], "upload-pr-comment-response-artifacts")
         handoff = next(step for step in respond_steps if step.get("name") == "prepare-workflow-handoff-directory")
         checkout = next(step for step in respond_steps if step.get("name") == "checkout-pr-head")
         self.assertEqual(handoff["id"], "handoff")
