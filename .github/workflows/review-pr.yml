@@ -294,8 +294,7 @@ jobs:
           REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
         run: python3 .github/scripts/post_pr_review.py --review pr-worktree/review.json --diff pr-worktree/pr_diff.txt
 
-      - name: upload-pr-review-artifacts
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pr-review-${{ github.run_id }}
