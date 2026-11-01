@@ -51,7 +51,7 @@ cd AICodingFlow
 $bootstrap-issue-config
 ```
 
-它会分析已有 labels、issues 和 contributors，生成或更新 `.github/issue-triage/config.json` 与 `.github/CODEOWNERS`。
+它会分析已有 labels、issues、仓库目录与模块边界、contributors，生成或更新 `.github/issue-triage/config.json` 与 `.github/CODEOWNERS`；其中 `area:*` 标签优先沿用现有名称，再根据明确的仓库组件补充。
 
 ### 使用其他模型服务
 
