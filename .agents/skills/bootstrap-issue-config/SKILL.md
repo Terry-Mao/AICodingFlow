@@ -33,7 +33,13 @@ This skill produces two files:
 - If issues use labels that are not yet captured, add them to the appropriate category.
 - Look at `.github/ISSUE_TEMPLATE/` for template files — template names and labels referenced in templates can inform label discovery.
 
-### 3. Generate or update `config.json`
+### 3. Identify repository areas
+
+- Inspect the repository's top-level directories, README, package or build manifests, and existing `CODEOWNERS` paths to identify maintained components or subsystems. Use recent issue titles and labels to confirm the areas people actually report problems against.
+- Reuse existing `area:*` label names when they fit. Add a new `area:<short-name>` only for a distinct, stable component that an issue triager can recognize from an issue report or relevant code path. Do not generate one label per directory, and do not invent product areas from generic directories such as `tests`, `docs`, or `.github` unless they represent meaningful issue categories in this repository.
+- Give each new area label a 6-character hex color and a description naming its scope. Include it in `config.json` and create it on GitHub in step 6. If the repository has no clear component boundaries, retain existing area labels and state that no new areas were inferred.
+
+### 4. Generate or update `config.json`
 
 - Read any existing `.github/issue-triage/config.json`.
 - Merge newly discovered labels into the existing `labels` object. Do **not** remove labels that already exist in the config — only add or update.
@@ -57,7 +63,7 @@ This skill produces two files:
 - Write the result to `.github/issue-triage/config.json`.
 - Validate with `jq . .github/issue-triage/config.json`.
 
-### 4. Generate or update `.github/CODEOWNERS`
+### 5. Generate or update `.github/CODEOWNERS`
 
 - Inspect `CODEOWNERS` if it exists for initial ownership hints.
 - Use `git log --format='%aN <%aE>' --since='6 months ago' -- <path>` and `gh api` to identify recent contributors to major directories.
@@ -72,7 +78,7 @@ This skill produces two files:
   ```
 - Each line maps a path glob to one or more `@username` owners.
 
-### 5. Create missing labels
+### 6. Create missing labels
 
 - For every label in the final `config.json` that does not already exist on the repository, create it:
   ```
@@ -80,7 +86,7 @@ This skill produces two files:
   ```
 - Skip labels that already exist (the `gh label create` command will error on duplicates — ignore those errors).
 
-### 6. Note repo-local companion skills (do not scaffold)
+### 7. Note repo-local companion skills (do not scaffold)
 
 The reusable agent roles that support a repo-specific companion are:
 
@@ -93,11 +99,12 @@ Do **not** create these files during bootstrap. The prompt-construction layer tr
 
 If a companion file already exists in the repo, leave it untouched; bootstrap is additive.
 
-### 7. Validate and summarize
+### 8. Validate and summarize
 
 - Re-validate `config.json` with `jq`.
 - Print a short summary of:
   - How many labels were discovered vs. newly created.
+  - Which `area:*` labels were reused or inferred, and the repository evidence for any new ones.
   - How many codeowner entries were written.
   - Which repo-local companion skills are already present in the repo (if any).
   - Any warnings (e.g. no issues found, no CODEOWNERS file).
