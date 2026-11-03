@@ -23,19 +23,22 @@ def pr(
     title: str = "docs(spec): create issue 57 specs",
     head_ref: str = "spec/issue-57",
     labels: list[str] | None = None,
+    state: str = "open",
 ) -> dict:
     return {
         "number": 66,
         "title": title,
         "body": body,
+        "state": state,
         "labels": [{"name": label} for label in (labels or ["plan-approved"])],
         "head": {"ref": head_ref, "repo": {"full_name": "owner/repo"}},
     }
 
 
-def issue(*, labels: list[str], assignees: list[str] | None = None) -> dict:
+def issue(*, labels: list[str], assignees: list[str] | None = None, state: str = "OPEN") -> dict:
     return {
         "number": 57,
+        "state": state,
         "labels": [{"name": label} for label in labels],
         "assignees": [{"login": login} for login in (assignees or [])],
     }
@@ -103,6 +106,40 @@ class HandlePlanApprovedTest(unittest.TestCase):
         self.assertEqual(outputs["issue_number"], "57")
         self.assertEqual(outputs["skip_reason"], "pull request is not a spec PR")
         fetch_issue.assert_not_called()
+
+    def test_closed_spec_pr_does_not_modify_issue(self) -> None:
+        args = self.args_for_event({"pull_request": pr(state="closed")})
+
+        with mock.patch.object(handle_plan_approved, "fetch_issue") as fetch_issue:
+            outputs = handle_plan_approved.handle_plan_approved(args)
+
+        self.assertEqual(outputs["skip_reason"], "pull request is not open")
+        self.assertEqual(outputs["implementation_dispatched"], "false")
+        fetch_issue.assert_not_called()
+
+    def test_closed_issue_does_not_remove_label_or_dispatch(self) -> None:
+        args = self.args_for_event({"pull_request": pr()})
+
+        with (
+            mock.patch.object(
+                handle_plan_approved,
+                "fetch_issue",
+                return_value=issue(
+                    labels=["ready-to-spec", "ready-to-implement"],
+                    assignees=["codex"],
+                    state="CLOSED",
+                ),
+            ),
+            mock.patch.object(handle_plan_approved, "remove_ready_to_spec_label") as remove_label,
+            mock.patch.object(handle_plan_approved, "dispatch_implementation") as dispatch,
+        ):
+            outputs = handle_plan_approved.handle_plan_approved(args)
+
+        self.assertEqual(outputs["skip_reason"], "issue is not open")
+        self.assertEqual(outputs["removed_ready_to_spec"], "false")
+        self.assertEqual(outputs["implementation_dispatched"], "false")
+        remove_label.assert_not_called()
+        dispatch.assert_not_called()
 
     def test_removes_ready_to_spec_and_dispatches_when_issue_is_ready_and_assigned(self) -> None:
         args = self.args_for_event(

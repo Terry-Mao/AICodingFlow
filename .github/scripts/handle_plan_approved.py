@@ -155,6 +155,8 @@ def resolve_event_pr(args: argparse.Namespace, event: dict[str, Any]) -> dict[st
 
 def validate_spec_pr(pr: dict[str, Any]) -> tuple[int | None, str]:
     issue_number = resolve_linked_issue_number(pr)
+    if pr.get("state") != "open":
+        return issue_number, "pull request is not open"
     if issue_number is None:
         return None, "linked issue not found"
     if not is_spec_pr(pr, issue_number):
@@ -190,6 +192,8 @@ def handle_plan_approved(args: argparse.Namespace) -> dict[str, str]:
         return build_outputs(issue_number=issue_number, skip_reason=skip_reason)
 
     issue = fetch_issue(args.repo, issue_number)
+    if issue.get("state") != "OPEN":
+        return build_outputs(issue_number=issue_number, skip_reason="issue is not open")
     issue_labels = set(label_names(issue))
     issue_assignees = set(assignee_logins(issue))
 

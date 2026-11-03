@@ -17,6 +17,28 @@ prepare_impl = import_script(
 
 
 class PrepareIssueImplementationContextTest(unittest.TestCase):
+    def should_run(self, args: argparse.Namespace, event: dict, issue: dict) -> tuple[bool, str]:
+        return prepare_impl.should_run(args, event, {"state": "OPEN", **issue})
+
+    def test_closed_issue_never_starts_implementation(self) -> None:
+        issue = {
+            "state": "CLOSED",
+            "labels": [{"name": "ready-to-implement"}],
+            "assignees": [{"login": "codex"}],
+        }
+        triggers = (
+            ("issues", {"action": "labeled", "label": {"name": "ready-to-implement"}}),
+            ("workflow_dispatch", {}),
+            ("issue_comment", {"comment": {"body": "@codex please implement"}}),
+        )
+        for event_name, event in triggers:
+            with self.subTest(event_name=event_name):
+                args = argparse.Namespace(event_name=event_name, agent_login="codex")
+                self.assertEqual(
+                    prepare_impl.should_run(args, event, issue),
+                    (False, "issue is not open"),
+                )
+
     def test_implementation_target_branch_uses_issue_number(self) -> None:
         self.assertEqual(prepare_impl.implementation_target_branch(18), "spec/implement-issue-18")
 
@@ -33,7 +55,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (True, "ready-to-implement label added to issue assigned to codex[bot]"),
         )
 
@@ -47,7 +69,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (False, "issue label event is not ready-to-implement"),
         )
 
@@ -61,7 +83,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (True, "ready-to-implement issue assigned to codex"),
         )
 
@@ -78,7 +100,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (False, "issue assignment event is not for codex"),
         )
 
@@ -92,7 +114,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         issue = {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]}
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (False, "issue event action is not an implementation trigger: reopened"),
         )
 
@@ -104,11 +126,11 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            prepare_impl.should_run(args, {}, {"labels": [], "assignees": [{"login": "codex"}]}),
+            self.should_run(args, {}, {"labels": [], "assignees": [{"login": "codex"}]}),
             (False, "issue is missing ready-to-implement"),
         )
         self.assertEqual(
-            prepare_impl.should_run(
+            self.should_run(
                 args,
                 {},
                 {"labels": [{"name": "ready-to-implement"}], "assignees": []},
@@ -116,7 +138,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
             (False, "ready-to-implement issue is not assigned to or mentioning the configured agent"),
         )
         self.assertEqual(
-            prepare_impl.should_run(
+            self.should_run(
                 args,
                 {},
                 {"labels": [{"name": "ready-to-implement"}], "assignees": [{"login": "codex"}]},
@@ -134,7 +156,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         issue = {"labels": [{"name": "ready-to-implement"}], "assignees": []}
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (True, "ready-to-implement comment mentioned @codex"),
         )
 
@@ -151,7 +173,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         issue = {"labels": [{"name": "ready-to-implement"}], "assignees": []}
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (False, "PR comments are handled by review-pr workflow"),
         )
 
@@ -165,7 +187,7 @@ class PrepareIssueImplementationContextTest(unittest.TestCase):
         issue = {"labels": [{"name": "ready-to-implement"}], "assignees": []}
 
         self.assertEqual(
-            prepare_impl.should_run(args, event, issue),
+            self.should_run(args, event, issue),
             (False, "ready-to-implement issue is not assigned to or mentioning the configured agent"),
         )
 

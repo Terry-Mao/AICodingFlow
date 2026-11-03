@@ -117,6 +117,9 @@ def should_run(args: argparse.Namespace, event: dict[str, Any], issue: dict[str,
     if args.event_name == "issue_comment" and is_pull_request_issue_event(event):
         return False, "PR comments are handled by review-pr workflow"
 
+    if issue.get("state") != "OPEN":
+        return False, "issue is not open"
+
     labels = set(label_names(issue))
     if READY_LABEL not in labels:
         return False, f"issue is missing {READY_LABEL}"
