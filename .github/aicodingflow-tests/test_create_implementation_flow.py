@@ -27,6 +27,7 @@ class CreateImplementationFlowTest(unittest.TestCase):
     def test_standalone_directory_spec_flow_reaches_draft_pr_creation(self) -> None:
         issue = {
             "number": 18,
+            "state": "OPEN",
             "title": "Implement issue",
             "body": "",
             "author": {"login": "maintainer"},
