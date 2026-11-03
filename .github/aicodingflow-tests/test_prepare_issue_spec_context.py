@@ -229,7 +229,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
     def test_should_run_for_ready_to_spec_comment_mention(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
-            event_path.write_text(json.dumps({"comment": {"body": "@codex please spec this"}}), encoding="utf-8")
+            event_path.write_text(json.dumps({"comment": {"body": "@codex please spec this", "author_association": "MEMBER"}}), encoding="utf-8")
             args = argparse.Namespace(
                 force=False,
                 event_name="issue_comment",
@@ -243,11 +243,32 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 (True, "ready-to-spec comment mentioned @codex"),
             )
 
+    def test_untrusted_comment_mention_cannot_trigger_spec_generation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            args = argparse.Namespace(
+                force=False,
+                event_name="issue_comment",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": [{"login": "codex"}]}
+            for association in ("NONE", "CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", ""):
+                with self.subTest(association=association):
+                    event_path.write_text(
+                        json.dumps({"comment": {"body": "@codex please spec this", "author_association": association}}),
+                        encoding="utf-8",
+                    )
+                    self.assertEqual(
+                        prepare_issue_spec_context.should_run(args, issue),
+                        (False, f"comment author association is not trusted: {association or 'unknown'}"),
+                    )
+
     def test_should_run_for_visible_html_block_mention(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
             event_path.write_text(
-                json.dumps({"comment": {"body": "<div>\n@codex please spec\n</div>"}}),
+                json.dumps({"comment": {"body": "<div>\n@codex please spec\n</div>", "author_association": "COLLABORATOR"}}),
                 encoding="utf-8",
             )
             args = argparse.Namespace(
@@ -278,7 +299,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             )
             for comment, should_trigger in cases:
                 with self.subTest(comment=comment):
-                    event_path.write_text(json.dumps({"comment": {"body": comment}}), encoding="utf-8")
+                    event_path.write_text(json.dumps({"comment": {"body": comment, "author_association": "OWNER"}}), encoding="utf-8")
                     result, _ = prepare_issue_spec_context.should_run(args, issue)
                     self.assertEqual(result, should_trigger)
 
@@ -311,7 +332,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
             event_path.write_text(
-                json.dumps({"comment": {"body": "@codex-action should handle this\n> @codex old text"}}),
+                json.dumps({"comment": {"body": "@codex-action should handle this\n> @codex old text", "author_association": "MEMBER"}}),
                 encoding="utf-8",
             )
             args = argparse.Namespace(
@@ -473,7 +494,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
             event_path.write_text(
-                json.dumps({"comment": {"body": "paragraph\n2.     @codex /spec"}}),
+                json.dumps({"comment": {"body": "paragraph\n2.     @codex /spec", "author_association": "MEMBER"}}),
                 encoding="utf-8",
             )
             args = argparse.Namespace(
@@ -511,7 +532,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             )
             for comment in comments:
                 with self.subTest(comment=comment):
-                    event_path.write_text(json.dumps({"comment": {"body": comment}}), encoding="utf-8")
+                    event_path.write_text(json.dumps({"comment": {"body": comment, "author_association": "MEMBER"}}), encoding="utf-8")
                     self.assertEqual(
                         prepare_issue_spec_context.should_run(args, issue),
                         (False, "ready-to-spec issue is not assigned to or mentioning the configured agent"),

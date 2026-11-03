@@ -21,10 +21,6 @@ permissions:
   issues: read
   pull-requests: write
 
-concurrency:
-  group: create-spec-from-issue-${{ inputs.issue || github.event.issue.number }}
-  cancel-in-progress: true
-
 jobs:
   create-spec:
     if: >-
@@ -32,7 +28,7 @@ jobs:
       (
         github.event.issue.pull_request == null &&
         (
-          (github.event_name == 'issue_comment' && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
+          (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
           (github.event.action == 'labeled' && github.event.label.name == 'ready-to-spec' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
           (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-spec'))
         )
@@ -42,6 +38,9 @@ jobs:
         !contains(github.event.issue.labels.*.name, 'ready-to-implement')
       )
     runs-on: ubuntu-latest
+    concurrency:
+      group: create-spec-from-issue-${{ inputs.issue || github.event.issue.number }}
+      cancel-in-progress: true
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       PYTHONDONTWRITEBYTECODE: "1"
