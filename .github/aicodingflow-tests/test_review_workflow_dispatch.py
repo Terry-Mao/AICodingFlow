@@ -45,6 +45,9 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
             )
             for source, name in trusted_skills:
                 shutil.copytree(ROOT / source, root / source)
+                untrusted_source = root / "pr-worktree" / source / "SKILL.md"
+                untrusted_source.parent.mkdir(parents=True)
+                untrusted_source.write_text("untrusted\n", encoding="utf-8")
                 untrusted = root / "pr-worktree/.codex-runtime/skills" / name
                 untrusted.mkdir(parents=True)
                 (untrusted / "SKILL.md").write_text("untrusted\n", encoding="utf-8")
@@ -591,9 +594,17 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("Use only the stable local JSON and snapshot files", compact_prompt)
         self.assertIn("do not fetch additional GitHub", compact_prompt)
         self.assertIn("or call GitHub APIs", compact_prompt)
-        self.assertIn(".codex-runtime/skills/implement-specs/SKILL.md", compact_prompt)
+        for skill in ("implement-specs", "spec-driven-implementation", "implement-issue"):
+            self.assertIn(f".codex-runtime/skills/{skill}/SKILL.md", compact_prompt)
         self.assertIn("Use these runtime copies as authoritative", compact_prompt)
-        self.assertIn("do not read those skill paths from the PR worktree", compact_prompt)
+        self.assertIn(
+            "under .github/skills/ or .agents/skills/ to the matching .codex-runtime/skills/ paths",
+            compact_prompt,
+        )
+        self.assertIn(
+            "Do not read skill files from the PR worktree's .github/skills/ or .agents/skills/ directories",
+            compact_prompt,
+        )
         self.assertNotIn(".codex-runtime/skills/implement-specs/scripts/fetch_github_context.py", prompt)
         self.assertNotIn(".github/skills/implement-specs/SKILL.md", prompt)
         self.assertNotIn("GH_TOKEN", ai_step.get("env", {}))
