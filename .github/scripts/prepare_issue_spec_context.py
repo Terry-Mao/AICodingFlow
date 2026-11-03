@@ -28,21 +28,26 @@ from github_event import (
 )
 
 
-class _CodeTagTracker(HTMLParser):
+class _VisibleHtml(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.depth = 0
+        self.hidden_depth = 0
+        self.text: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"code", "pre"}:
-            self.depth += 1
+        if tag in {"code", "pre", "blockquote", "script", "style"}:
+            self.hidden_depth += 1
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in {"code", "pre"}:
-            self.depth = max(0, self.depth - 1)
+        if tag in {"code", "pre", "blockquote", "script", "style"}:
+            self.hidden_depth = max(0, self.hidden_depth - 1)
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         pass
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden_depth:
+            self.text.append(data)
 
 
 def spec_paths(issue_number: int) -> dict[str, str]:
@@ -113,17 +118,25 @@ def comment_mentions_login(comment: str, login: str) -> bool:
         return False
     pattern = re.compile(rf"(?<![A-Za-z0-9-])@{re.escape(login)}(?![A-Za-z0-9-])")
     quote_depth = 0
-    html_code = _CodeTagTracker()
+    html = _VisibleHtml()
     for block in MarkdownIt("commonmark").parse(comment):
         if block.type == "blockquote_open":
             quote_depth += 1
         elif block.type == "blockquote_close":
             quote_depth -= 1
+        elif block.type == "html_block" and not quote_depth:
+            previous_text_count = len(html.text)
+            html.feed(block.content)
+            if any(pattern.search(text) for text in html.text[previous_text_count:]):
+                return True
         elif block.type == "inline" and not quote_depth:
             for inline in block.children or []:
                 if inline.type == "html_inline":
-                    html_code.feed(inline.content)
-                elif inline.type == "text" and not html_code.depth and not inline.markup.startswith("\\@"):
+                    previous_text_count = len(html.text)
+                    html.feed(inline.content)
+                    if any(pattern.search(text) for text in html.text[previous_text_count:]):
+                        return True
+                elif inline.type == "text" and not html.hidden_depth and not inline.markup.startswith("\\@"):
                     if pattern.search(inline.content):
                         return True
     return False

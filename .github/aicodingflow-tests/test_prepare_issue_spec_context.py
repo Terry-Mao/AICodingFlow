@@ -243,6 +243,25 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 (True, "ready-to-spec comment mentioned @codex"),
             )
 
+    def test_should_run_for_visible_html_block_mention(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(
+                json.dumps({"comment": {"body": "<div>\n@codex please spec\n</div>"}}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                force=False,
+                event_name="issue_comment",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": []}
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (True, "ready-to-spec comment mentioned @codex"),
+            )
+
     def test_should_not_run_for_pull_request_comment_mention(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
@@ -301,6 +320,9 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             "- item\n\n> quoted\n\n    @codex /spec",
             "<code>@codex /spec</code>",
             "<code data-note='>'>@codex /spec</code>",
+            "<div><pre>@codex /spec</pre></div>",
+            "<!-- @codex /spec -->",
+            "<script>@codex /spec</script>",
             "\\@codex /spec",
         )
         for comment in code_only:
@@ -312,6 +334,8 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             "- item\n\n# Heading\n@codex please spec",
             "<code>sample</code> @codex please spec",
             "<code/> @codex please spec",
+            "<div>@codex please spec</div>",
+            "<div>\n@codex please spec\n</div>",
         )
         for comment in visible_after_block:
             with self.subTest(comment=comment):
