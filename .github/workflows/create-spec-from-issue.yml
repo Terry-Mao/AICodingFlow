@@ -56,7 +56,7 @@ jobs:
         run: |
           python3 -m venv "$RUNNER_TEMP/aicodingflow-spec-venv"
           "$RUNNER_TEMP/aicodingflow-spec-venv/bin/python" -m pip install \
-            --disable-pip-version-check -r .github/requirements-spec-context.txt
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
           echo "$RUNNER_TEMP/aicodingflow-spec-venv/bin" >> "$GITHUB_PATH"
 
       - name: prepare-workflow-handoff-directory

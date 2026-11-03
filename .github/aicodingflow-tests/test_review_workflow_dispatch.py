@@ -329,14 +329,14 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
 
         create_steps = steps(data, "create-spec")
         parser_install = next(step for step in create_steps if step.get("name") == "install-markdown-parser")
-        self.assertIn("-r .github/requirements-spec-context.txt", parser_install["run"])
+        self.assertIn("-r .github/scripts/requirements-spec-context.txt", parser_install["run"])
         self.assertLess(
             create_steps.index(parser_install),
             next(index for index, step in enumerate(create_steps) if step.get("name") == "prepare-issue-context"),
         )
         ci_data = workflow(".github/workflows/ci.yml")
         ci_install = next(step for step in steps(ci_data, "test") if step.get("name") == "install-python-test-dependencies")
-        self.assertIn("-r .github/requirements-spec-context.txt", ci_install["run"])
+        self.assertIn("-r .github/scripts/requirements-spec-context.txt", ci_install["run"])
         handoff = next(step for step in create_steps if step.get("name") == "prepare-workflow-handoff-directory")
         prepare = next(step for step in create_steps if step.get("name") == "prepare-issue-context")
         validate = next(step for step in create_steps if step.get("name") == "validate-spec-output")

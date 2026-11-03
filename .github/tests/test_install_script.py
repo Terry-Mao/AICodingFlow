@@ -110,9 +110,18 @@ class InstallScriptTest(unittest.TestCase):
             self.assertFalse((target / ".github/skills/dedupe-issue-repo/SKILL.md").exists())
             self.assertFalse((target / ".github/agents/product-wiki-query.md").exists())
             self.assertTrue((target / ".github/scripts/validate_spec_output.py").is_file())
+            requirements = target / ".github/scripts/requirements-spec-context.txt"
+            self.assertEqual(
+                requirements.read_text(encoding="utf-8"),
+                (ROOT / ".github/scripts/requirements-spec-context.txt").read_text(encoding="utf-8"),
+            )
             self.assertFalse((target / ".github/tests").exists())
             self.assertFalse((target / ".github/aicodingflow-tests").exists())
-            self.assertTrue((target / ".github/workflows/create-spec-from-issue.yml").is_file())
+            spec_workflow = target / ".github/workflows/create-spec-from-issue.yml"
+            self.assertIn(
+                "-r .github/scripts/requirements-spec-context.txt",
+                spec_workflow.read_text(encoding="utf-8"),
+            )
 
     def test_does_not_install_aicodingflow_repository_ci_workflow(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
