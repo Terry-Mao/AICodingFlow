@@ -51,6 +51,13 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: install-markdown-parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-review-venv"
+          "$RUNNER_TEMP/aicodingflow-review-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-review-venv/bin" >> "$GITHUB_PATH"
+
       - name: resolve-pull-request
         id: pr
         env:
@@ -112,6 +119,13 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
+
+      - name: install-markdown-parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-review-venv"
+          "$RUNNER_TEMP/aicodingflow-review-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-review-venv/bin" >> "$GITHUB_PATH"
 
       - name: resolve-pull-request
         id: pr

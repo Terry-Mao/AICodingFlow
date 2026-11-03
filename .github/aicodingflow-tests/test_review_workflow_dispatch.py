@@ -25,6 +25,26 @@ def compact(text: str) -> str:
 
 
 class ReviewWorkflowDispatchTest(unittest.TestCase):
+    def test_pr_comment_jobs_install_markdown_parser_before_context(self) -> None:
+        data = workflow(".github/workflows/respond-to-pr-comment.yml")
+        for job in ("preflight", "respond"):
+            with self.subTest(job=job):
+                job_steps = steps(data, job)
+                install = next(step for step in job_steps if step.get("name") == "install-markdown-parser")
+                self.assertIn("-r .github/scripts/requirements-spec-context.txt", install["run"])
+                context_index = next(i for i, step in enumerate(job_steps) if step.get("name") == "prepare-pr-comment-context")
+                self.assertLess(job_steps.index(install), context_index)
+
+    def test_pr_review_jobs_install_markdown_parser_before_resolving_event(self) -> None:
+        data = workflow(".github/workflows/review-pr.yml")
+        for job in ("preflight", "review"):
+            with self.subTest(job=job):
+                job_steps = steps(data, job)
+                install = next(step for step in job_steps if step.get("name") == "install-markdown-parser")
+                self.assertIn("-r .github/scripts/requirements-spec-context.txt", install["run"])
+                resolve_index = next(i for i, step in enumerate(job_steps) if step.get("name") == "resolve-pull-request")
+                self.assertLess(job_steps.index(install), resolve_index)
+
     def test_respond_workspace_prepares_trusted_implementation_skills(self) -> None:
         data = workflow(".github/workflows/respond-to-pr-comment.yml")
         respond_steps = steps(data, "respond")
@@ -326,6 +346,13 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
     def test_create_spec_workflow_dispatches_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-spec-from-issue.yml")
         self.assertEqual(data["permissions"]["actions"], "write")
+        self.assertNotIn("concurrency", data)
+        create_job = data["jobs"]["create-spec"]
+        self.assertEqual(create_job["concurrency"]["cancel-in-progress"], True)
+        self.assertIn("github.event.comment.author_association", create_job["if"])
+        self.assertIn("OWNER", create_job["if"])
+        self.assertIn("MEMBER", create_job["if"])
+        self.assertIn("COLLABORATOR", create_job["if"])
 
         create_steps = steps(data, "create-spec")
         parser_install = next(step for step in create_steps if step.get("name") == "install-markdown-parser")

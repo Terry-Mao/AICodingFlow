@@ -51,6 +51,8 @@ class ResolvePrEventTest(unittest.TestCase):
         self.assertTrue(resolver.comment_has_fix_command("@codex /fix", "codex"))
         self.assertTrue(resolver.comment_has_fix_command("@codex /fix please address this", "codex"))
         self.assertTrue(resolver.comment_has_fix_command("hello\n@codex /fix this edge case", "codex"))
+        self.assertTrue(resolver.comment_has_fix_command("~~~\n@codex /fix example\n~~~\n@codex /fix real", "codex"))
+        self.assertTrue(resolver.comment_has_fix_command("Intro\n@codex /fix change **this**", "codex"))
 
     def test_comment_has_fix_command_rejects_invisible_or_partial_commands(self) -> None:
         invalid_bodies = [
@@ -59,10 +61,28 @@ class ResolvePrEventTest(unittest.TestCase):
             "@codex-bot /fix",
             "> @codex /fix",
             "```\n@codex /fix\n```",
+            "    @codex /fix example",
+            "\t@codex /fix example",
+            "  \t@codex /fix example",
+            "~~~\n@codex /fix example\n~~~",
+            "  ~~~markdown\n@codex /fix example\n  ~~~",
+            "````text\n```\n@codex /fix example\n````",
+            "~~~~\n```\n@codex /fix example\n~~~\n~~~~",
+            "~~~\n@codex /fix example",
+            "Intro\n    @codex /fix example",
+            "- @codex /fix example",
+            "- example\n\n    ~~~\n    @codex /fix example\n    ~~~",
+            "`\n@codex /fix example\n`",
+            "\\@codex /fix example",
         ]
         for body in invalid_bodies:
             with self.subTest(body=body):
                 self.assertFalse(resolver.comment_has_fix_command(body, "codex"))
+
+    def test_comment_has_review_command_ignores_code_examples(self) -> None:
+        for body in ("    @codex /review", "~~~\n@codex /review\n~~~"):
+            with self.subTest(body=body):
+                self.assertFalse(resolver.comment_has_review_command(body, "codex"))
 
     def test_pull_request_event_reuses_existing_payload(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

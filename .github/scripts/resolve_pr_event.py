@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from markdown_it import MarkdownIt
+
 from artifact_contracts import write_github_output
 
 
@@ -39,22 +41,43 @@ def comment_has_agent_command(
     if not normalized_command.startswith("/"):
         normalized_command = f"/{normalized_command}"
     expected = f"@{agent_login.strip()} {normalized_command}"
-    in_fenced_code = False
 
-    for line in body.splitlines():
-        stripped_left = line.lstrip()
-        if stripped_left.startswith(">"):
-            continue
-        if stripped_left.startswith("```"):
-            in_fenced_code = not in_fenced_code
-            continue
-        if in_fenced_code:
-            continue
-        stripped = line.strip()
-        if stripped == expected:
-            return True
-        if allow_trailing_text and stripped.startswith(f"{expected} "):
-            return True
+    def matches_command(line: str) -> bool:
+        return line == expected or (allow_trailing_text and line.startswith(f"{expected} "))
+
+    source_lines = body.splitlines()
+    container_depth = 0
+    in_top_level_paragraph = False
+
+    for block in MarkdownIt("commonmark").parse(body):
+        if block.type in {"blockquote_open", "bullet_list_open", "ordered_list_open"}:
+            container_depth += 1
+        elif block.type in {"blockquote_close", "bullet_list_close", "ordered_list_close"}:
+            container_depth -= 1
+        elif block.type == "paragraph_open":
+            in_top_level_paragraph = container_depth == 0
+        elif block.type == "paragraph_close":
+            in_top_level_paragraph = False
+        elif block.type == "inline" and in_top_level_paragraph and block.map:
+            visible_lines = [""]
+            for inline in block.children or []:
+                if inline.type == "text":
+                    parts = inline.content.split("\n")
+                    visible_lines[-1] += parts[0]
+                    visible_lines.extend(parts[1:])
+                elif inline.type in {"softbreak", "hardbreak"}:
+                    visible_lines.append("")
+                else:
+                    visible_lines[-1] += "\0"
+            paragraph_lines = source_lines[block.map[0] : block.map[1]]
+            if len(visible_lines) != len(paragraph_lines):
+                continue
+            for source, visible in zip(paragraph_lines, visible_lines):
+                indent = source[: len(source) - len(source.lstrip(" \t"))]
+                if len(indent.expandtabs(4)) >= 4:
+                    continue
+                if matches_command(source.strip()) and matches_command(visible.strip()):
+                    return True
 
     return False
 
