@@ -117,9 +117,12 @@ def comment_mentions_login(comment: str, login: str) -> bool:
             paragraph_open = False
             list_content_indent = 0
             continue
-        list_item = re.match(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])[ \t]+", expanded)
+        list_item = re.match(r"^( {0,3})([-+*]|[0-9]{1,9}[.)])( +)", expanded)
         if list_item:
-            list_content_indent = len(list_item.group())
+            padding = len(list_item.group(3))
+            if padding > 4 or not expanded[list_item.end():].strip():
+                padding = 1
+            list_content_indent = len(list_item.group(1)) + len(list_item.group(2)) + padding
         elif indent < list_content_indent:
             list_content_indent = 0
         container_indent = list_content_indent if list_item or indent >= list_content_indent else 0
@@ -134,6 +137,9 @@ def comment_mentions_login(comment: str, login: str) -> bool:
         setext = paragraph_open and re.fullmatch(r" {0,3}(?:=+|-+)[ \t]*", content)
         thematic = re.fullmatch(thematic_pattern, content)
         if setext or thematic:
+            paragraph_open = False
+            continue
+        if list_item and len(content) - len(content.lstrip(" ")) >= 4:
             paragraph_open = False
             continue
         if indent >= 4:

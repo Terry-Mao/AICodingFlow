@@ -352,6 +352,26 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             with self.subTest(comment=comment):
                 self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
 
+    def test_list_item_padding_of_five_spaces_starts_code(self) -> None:
+        code_only = (
+            "-     @codex /spec",
+            "1.     @codex /spec",
+            "- parent\n  -     @codex /spec",
+        )
+        for comment in code_only:
+            with self.subTest(comment=comment):
+                self.assertFalse(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
+        visible_comments = (
+            "-    @codex please spec",
+            "1.    @codex please spec",
+            "-     sample\n\n  @codex please spec",
+            "1.     sample\n\n@codex please spec",
+        )
+        for comment in visible_comments:
+            with self.subTest(comment=comment):
+                self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
     def test_should_not_run_for_mention_only_in_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
@@ -366,6 +386,8 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 "Example:\n```yaml\nagent: @codex\n```\nUse `@codex` here.",
                 "- item\n\n    ~~~text\n    @codex /spec\n    ~~~",
                 "- ```text\n  @codex /spec\n  ```",
+                "-     @codex /spec",
+                "1.     @codex /spec",
                 "Title\n===\n    @codex /spec",
                 "---\n    @codex /spec",
             )
