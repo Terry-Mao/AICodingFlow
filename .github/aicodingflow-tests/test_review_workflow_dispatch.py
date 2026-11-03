@@ -475,6 +475,24 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
             "steps.guidance.outputs.status == 'changed' && steps.changes.outputs.changed == 'true'",
         )
 
+    def test_review_events_checkout_trusted_workflow_sources(self) -> None:
+        data = workflow(".github/workflows/respond-to-pr-comment.yml")
+        for event_name in ("pull_request_review", "pull_request_review_comment"):
+            with self.subTest(event=event_name):
+                self.assertIn(event_name, data[True])
+                for job in ("preflight", "respond"):
+                    job_steps = steps(data, job)
+                    checkout = next(step for step in job_steps if step.get("name") == "checkout-workflow-scripts")
+                    self.assertIs(job_steps[0], checkout)
+                    self.assertEqual(checkout["uses"], "actions/checkout@v6")
+                    self.assertEqual(checkout["with"]["ref"], "${{ github.event.repository.default_branch }}")
+                    self.assertIs(checkout["with"]["persist-credentials"], False)
+
+        respond_steps = steps(data, "respond")
+        prepare = next(step for step in respond_steps if step.get("name") == "prepare-implementation-workspace")
+        self.assertIn("cp -R .agents/skills pr-worktree/.codex-runtime/skills", prepare["run"])
+        self.assertIn("cp -R .github/skills/implement-specs", prepare["run"])
+
     def test_respond_to_pr_comment_workflow_has_secure_triggers_and_gates(self) -> None:
         data = workflow(".github/workflows/respond-to-pr-comment.yml")
         triggers = data[True]
