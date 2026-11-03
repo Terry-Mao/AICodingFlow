@@ -113,13 +113,21 @@ def event_comment_body(event_path: str | None) -> str:
     return event_comment_body_from_event(load_event(event_path))
 
 
+def _mask_escaped_at_signs(comment: str) -> str:
+    def mask(match: re.Match[str]) -> str:
+        backslashes = match.group(1)
+        return backslashes + ("\ue000" if len(backslashes) % 2 else "@")
+
+    return re.sub(r"(\\+)@", mask, comment)
+
+
 def comment_mentions_login(comment: str, login: str) -> bool:
     if not login:
         return False
     pattern = re.compile(rf"(?<![A-Za-z0-9-])@{re.escape(login)}(?![A-Za-z0-9-])")
     quote_depth = 0
     html = _VisibleHtml()
-    for block in MarkdownIt("commonmark").parse(comment):
+    for block in MarkdownIt("commonmark").parse(_mask_escaped_at_signs(comment)):
         if block.type == "blockquote_open":
             quote_depth += 1
         elif block.type == "blockquote_close":
@@ -136,7 +144,7 @@ def comment_mentions_login(comment: str, login: str) -> bool:
                     html.feed(inline.content)
                     if any(pattern.search(text) for text in html.text[previous_text_count:]):
                         return True
-                elif inline.type == "text" and not html.hidden_depth and not inline.markup.startswith("\\@"):
+                elif inline.type == "text" and not html.hidden_depth:
                     if pattern.search(inline.content):
                         return True
     return False

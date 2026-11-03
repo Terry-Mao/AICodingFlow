@@ -262,6 +262,26 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 (True, "ready-to-spec comment mentioned @codex"),
             )
 
+    def test_should_run_distinguishes_escaped_and_real_mentions_in_one_paragraph(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            args = argparse.Namespace(
+                force=False,
+                event_name="issue_comment",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": []}
+            cases = (
+                ("please \\@codex /spec", False),
+                ("\\@codex is literal, @codex /spec", True),
+            )
+            for comment, should_trigger in cases:
+                with self.subTest(comment=comment):
+                    event_path.write_text(json.dumps({"comment": {"body": comment}}), encoding="utf-8")
+                    result, _ = prepare_issue_spec_context.should_run(args, issue)
+                    self.assertEqual(result, should_trigger)
+
     def test_should_not_run_for_pull_request_comment_mention(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
@@ -312,6 +332,12 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
         self.assertTrue(prepare_issue_spec_context.comment_mentions_login("please @codex[bot]", "codex[bot]"))
         self.assertFalse(prepare_issue_spec_context.comment_mentions_login("please @codex-action", "codex"))
         self.assertFalse(prepare_issue_spec_context.comment_mentions_login("> @codex quoted", "codex"))
+
+    def test_escaped_at_sign_only_masks_its_own_mention(self) -> None:
+        self.assertFalse(prepare_issue_spec_context.comment_mentions_login("please \\@codex /spec", "codex"))
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("\\@codex is literal, @codex /spec", "codex"))
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("please \\@codex, then @codex /spec", "codex"))
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("\\\\@codex /spec", "codex"))
 
     def test_comment_mentions_login_uses_markdown_block_boundaries(self) -> None:
         code_only = (
