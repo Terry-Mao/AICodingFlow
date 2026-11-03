@@ -377,6 +377,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             "paragraph\n2.     @codex /spec",
             "paragraph\n10.     @codex /spec",
             "- item\n  paragraph\n  2.     @codex /spec",
+            "- outer\nparagraph\n  2.     @codex /spec",
         )
         for comment in visible_comments:
             with self.subTest(comment=comment):
@@ -386,6 +387,8 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             "2.     @codex /spec",
             "- outer\n2.     @codex /spec",
             "- outer\n10.     @codex /spec",
+            "- outer\nparagraph\n2.     @codex /spec",
+            "- outer\n  - inner\nparagraph\n2.     @codex /spec",
             "paragraph\n\n2.     @codex /spec",
             "paragraph\n1.     @codex /spec",
             "paragraph\n-     @codex /spec",
@@ -429,6 +432,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 "-     @codex /spec",
                 "1.     @codex /spec",
                 "- outer\n2.     @codex /spec",
+                "- outer\nparagraph\n2.     @codex /spec",
                 "Title\n===\n    @codex /spec",
                 "---\n    @codex /spec",
             )

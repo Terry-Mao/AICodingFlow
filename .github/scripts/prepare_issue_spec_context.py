@@ -127,7 +127,8 @@ def comment_mentions_login(comment: str, login: str) -> bool:
             if padding > 4 or not expanded[list_item.end():].strip():
                 padding = 1
             list_content_indent = len(list_item.group(1)) + len(list_item.group(2)) + padding
-        elif indent < list_content_indent:
+        # A lazy continuation keeps its list container until the paragraph ends.
+        elif indent < list_content_indent and not paragraph_open:
             list_content_indent = 0
         container_indent = list_content_indent if list_item or indent >= list_content_indent else 0
         content = expanded[container_indent:]
