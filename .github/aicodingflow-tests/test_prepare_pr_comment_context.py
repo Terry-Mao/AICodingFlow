@@ -221,6 +221,20 @@ class PreparePrCommentContextTest(unittest.TestCase):
         self.assertFalse(context["should_run"])
         self.assertIn("missing valid", context["skip_reason"])
 
+    def test_code_examples_do_not_trigger_fix_for_any_comment_entry(self) -> None:
+        entries = (
+            ("issue_comment", issue_comment_event),
+            ("pull_request_review_comment", review_comment_event),
+            ("pull_request_review", review_body_event),
+        )
+        for event_name, event_factory in entries:
+            for body in ("    @codex /fix example", "~~~\n@codex /fix example\n~~~"):
+                with self.subTest(event_name=event_name, body=body):
+                    context = self.build_context(event_name, event_factory(body=body))
+                    self.assertFalse(context["trigger_command_present"])
+                    self.assertFalse(context["should_run"])
+                    self.assertIn("missing valid", context["skip_reason"])
+
     def test_fork_pr_uses_fallback_branch(self) -> None:
         context = self.build_context(
             "issue_comment",
