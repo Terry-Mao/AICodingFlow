@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -24,6 +25,42 @@ def compact(text: str) -> str:
 
 
 class ReviewWorkflowDispatchTest(unittest.TestCase):
+    def test_respond_workspace_prepares_trusted_implementation_skills(self) -> None:
+        data = workflow(".github/workflows/respond-to-pr-comment.yml")
+        respond_steps = steps(data, "respond")
+        prepare = next(step for step in respond_steps if step.get("name") == "prepare-implementation-workspace")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            handoff = root / "pr-worktree/.codex-runtime/handoff"
+            snapshot = root / "snapshot"
+            snapshot.mkdir()
+            for name in ("pr_comment_context.json", "pr_event.json", "review_comment_ids.json"):
+                (snapshot / name).write_text("{}\n", encoding="utf-8")
+
+            trusted_skills = (
+                (".agents/skills/spec-driven-implementation", "spec-driven-implementation"),
+                (".github/skills/implement-specs", "implement-specs"),
+                (".github/skills/implement-issue", "implement-issue"),
+            )
+            for source, name in trusted_skills:
+                shutil.copytree(ROOT / source, root / source)
+                untrusted = root / "pr-worktree/.codex-runtime/skills" / name
+                untrusted.mkdir(parents=True)
+                (untrusted / "SKILL.md").write_text("untrusted\n", encoding="utf-8")
+
+            command = prepare["run"].replace("${{ steps.handoff.outputs.dir }}", str(handoff))
+            command = command.replace("${{ steps.handoff.outputs.temp_dir }}", str(snapshot))
+            subprocess.run(["bash", "-e", "-c", command], cwd=root, check=True)
+
+            for source, name in trusted_skills:
+                with self.subTest(skill=name):
+                    self.assertEqual(
+                        (root / source / "SKILL.md").read_bytes(),
+                        (handoff.parent / "skills" / name / "SKILL.md").read_bytes(),
+                    )
+            self.assertTrue((handoff.parent / "skills/implement-specs/scripts/fetch_github_context.py").is_file())
+
     def test_update_pr_review_detects_new_companion_skill(self) -> None:
         data = workflow(".github/workflows/update-pr-review.yml")
         update_steps = steps(data, "update")
@@ -555,6 +592,8 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("do not fetch additional GitHub", compact_prompt)
         self.assertIn("or call GitHub APIs", compact_prompt)
         self.assertIn(".codex-runtime/skills/implement-specs/SKILL.md", compact_prompt)
+        self.assertIn("Use these runtime copies as authoritative", compact_prompt)
+        self.assertIn("do not read those skill paths from the PR worktree", compact_prompt)
         self.assertNotIn(".codex-runtime/skills/implement-specs/scripts/fetch_github_context.py", prompt)
         self.assertNotIn(".github/skills/implement-specs/SKILL.md", prompt)
         self.assertNotIn("GH_TOKEN", ai_step.get("env", {}))
