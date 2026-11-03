@@ -384,6 +384,8 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
 
         code_only = (
             "2.     @codex /spec",
+            "- outer\n2.     @codex /spec",
+            "- outer\n10.     @codex /spec",
             "paragraph\n\n2.     @codex /spec",
             "paragraph\n1.     @codex /spec",
             "paragraph\n-     @codex /spec",
@@ -426,6 +428,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 "- ```text\n  @codex /spec\n  ```",
                 "-     @codex /spec",
                 "1.     @codex /spec",
+                "- outer\n2.     @codex /spec",
                 "Title\n===\n    @codex /spec",
                 "---\n    @codex /spec",
             )
