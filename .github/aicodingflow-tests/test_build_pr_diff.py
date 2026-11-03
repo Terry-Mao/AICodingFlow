@@ -68,8 +68,7 @@ class BuildPrDiffTest(unittest.TestCase):
 
         def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
             commands.append(command)
-            output = "base-sha\n" if command[1] == "rev-parse" else "merge-base-sha\n"
-            return subprocess.CompletedProcess(command, 0, output)
+            return subprocess.CompletedProcess(command, 0, "merge-base-sha\n")
 
         with (
             patch.object(build_pr_diff.urllib.request, "urlopen", fake_urlopen),
@@ -92,11 +91,104 @@ class BuildPrDiffTest(unittest.TestCase):
         self.assertEqual([call["accept"] for call in captured], ["application/vnd.github+json"] * 2)
         self.assertEqual([call["api_version"] for call in captured], ["2022-11-28"] * 2)
         self.assertEqual(commands, [
-            ["git", "fetch", "--no-tags", "https://github.com/owner/repo.git", "refs/heads/release/1.2"],
-            ["git", "rev-parse", "FETCH_HEAD"],
+            ["git", "cat-file", "-e", "base-sha^{commit}"],
             ["git", "merge-base", "base-sha", "head-sha"],
         ])
         local_diff.assert_called_once_with("merge-base-sha", "head-sha", 3)
+
+    def test_fetch_github_pr_diff_uses_snapshot_when_base_branch_advances(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q", "-b", "main", str(root)], check=True)
+            commit = ["git", "-C", str(root), "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit"]
+            (root / "base.txt").write_text("original\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "base.txt"], check=True)
+            subprocess.run([*commit, "-qm", "base"], check=True)
+            base_sha = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+            subprocess.run(["git", "-C", str(root), "checkout", "-qb", "feature"], check=True)
+            (root / "feature.txt").write_text("feature\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "feature.txt"], check=True)
+            subprocess.run([*commit, "-qm", "feature"], check=True)
+            head_sha = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+            subprocess.run(["git", "-C", str(root), "checkout", "-q", "main"], check=True)
+            (root / "base.txt").write_text("advanced\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "base.txt"], check=True)
+            subprocess.run([*commit, "-qm", "advance base"], check=True)
+            self.assertNotEqual(
+                subprocess.check_output(["git", "-C", str(root), "rev-parse", "main"], text=True).strip(),
+                base_sha,
+            )
+
+            metadata = {"head": {"sha": head_sha}, "base": {"sha": base_sha}}
+            old = Path.cwd()
+            try:
+                os.chdir(root)
+                with patch.object(build_pr_diff, "fetch_github_pr_metadata", return_value=metadata) as fetch_metadata:
+                    diff = build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", head_sha, base_sha)
+            finally:
+                os.chdir(old)
+            self.assertEqual(fetch_metadata.call_count, 2)
+            self.assertIn("diff --git a/feature.txt b/feature.txt", diff)
+            self.assertFalse(any("base.txt" in line for line in diff))
+
+    def test_fetch_github_pr_diff_fetches_missing_snapshot_base_from_upstream(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            upstream = Path(directory) / "upstream"
+            fork = Path(directory) / "fork"
+            subprocess.run(["git", "init", "-q", "-b", "main", str(upstream)], check=True)
+            commit = ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit"]
+            (upstream / "base.txt").write_text("initial\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(upstream), "add", "base.txt"], check=True)
+            subprocess.run(["git", "-C", str(upstream), *commit, "-qm", "initial"], check=True)
+            subprocess.run(["git", "clone", "-q", str(upstream), str(fork)], check=True)
+            subprocess.run(["git", "-C", str(fork), "checkout", "-qb", "feature"], check=True)
+            (fork / "feature.txt").write_text("feature\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(fork), "add", "feature.txt"], check=True)
+            subprocess.run(["git", "-C", str(fork), *commit, "-qm", "feature"], check=True)
+            head_sha = subprocess.check_output(["git", "-C", str(fork), "rev-parse", "HEAD"], text=True).strip()
+            (upstream / "base.txt").write_text("snapshot\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(upstream), "add", "base.txt"], check=True)
+            subprocess.run(["git", "-C", str(upstream), *commit, "-qm", "snapshot base"], check=True)
+            base_sha = subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "HEAD"], text=True).strip()
+            (upstream / "base.txt").write_text("live tip\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(upstream), "add", "base.txt"], check=True)
+            subprocess.run(["git", "-C", str(upstream), *commit, "-qm", "advance base"], check=True)
+            self.assertNotEqual(
+                subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "HEAD"], text=True).strip(),
+                base_sha,
+            )
+            self.assertNotEqual(subprocess.run(
+                ["git", "-C", str(fork), "cat-file", "-e", f"{base_sha}^{{commit}}"],
+                capture_output=True,
+            ).returncode, 0)
+
+            metadata = {"head": {"sha": head_sha}, "base": {"sha": base_sha, "ref": "main"}}
+            real_run = subprocess.run
+            fetched = []
+
+            def run_with_local_upstream(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                if command[:2] == ["git", "fetch"]:
+                    fetched.append(command)
+                    command = [*command]
+                    command[3] = str(upstream)
+                return real_run(command, **kwargs)
+
+            old = Path.cwd()
+            try:
+                os.chdir(fork)
+                with (
+                    patch.object(build_pr_diff, "fetch_github_pr_metadata", return_value=metadata) as fetch_metadata,
+                    patch.object(build_pr_diff.subprocess, "run", run_with_local_upstream),
+                ):
+                    diff = build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", head_sha, base_sha)
+            finally:
+                os.chdir(old)
+            self.assertEqual(fetched, [[
+                "git", "fetch", "--no-tags", "https://github.com/owner/repo.git", "refs/heads/main",
+            ]])
+            self.assertEqual(fetch_metadata.call_count, 2)
+            self.assertIn("diff --git a/feature.txt b/feature.txt", diff)
+            self.assertFalse(any("base.txt" in line for line in diff))
 
     def test_fetch_github_pr_diff_fails_when_head_changes_after_diff_fetch(self) -> None:
         metadata = [
@@ -112,7 +204,6 @@ class BuildPrDiffTest(unittest.TestCase):
             patch.object(build_pr_diff, "fetch_github_pr_metadata", fake_metadata),
             patch.object(build_pr_diff.subprocess, "run", side_effect=[
                 subprocess.CompletedProcess([], 0),
-                subprocess.CompletedProcess([], 0, "base-sha\n"),
                 subprocess.CompletedProcess([], 0, "merge-base-sha\n"),
             ]),
             patch.object(build_pr_diff, "run_git_diff", return_value=[]),
@@ -129,35 +220,12 @@ class BuildPrDiffTest(unittest.TestCase):
             patch.object(build_pr_diff, "fetch_github_pr_metadata", side_effect=metadata),
             patch.object(build_pr_diff.subprocess, "run", side_effect=[
                 subprocess.CompletedProcess([], 0),
-                subprocess.CompletedProcess([], 0, "base-sha\n"),
                 subprocess.CompletedProcess([], 0, "merge-base-sha\n"),
             ]),
             patch.object(build_pr_diff, "run_git_diff", return_value=[]),
         ):
             with self.assertRaisesRegex(SystemExit, "base changed"):
                 build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
-
-    def test_fetch_github_pr_diff_rejects_changed_fetched_base(self) -> None:
-        metadata = {"head": {"sha": "head-sha"}, "base": {"sha": "base-sha", "ref": "main"}}
-        with (
-            patch.object(build_pr_diff, "fetch_github_pr_metadata", return_value=metadata),
-            patch.object(build_pr_diff.subprocess, "run", side_effect=[
-                subprocess.CompletedProcess([], 0),
-                subprocess.CompletedProcess([], 0, "new-base-sha\n"),
-            ]),
-        ):
-            with self.assertRaisesRegex(SystemExit, "base changed while fetching"):
-                build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
-
-    def test_fetch_github_pr_diff_rejects_missing_base_ref_before_fetch(self) -> None:
-        metadata = {"head": {"sha": "head-sha"}, "base": {"sha": "base-sha"}}
-        with (
-            patch.object(build_pr_diff, "fetch_github_pr_metadata", return_value=metadata),
-            patch.object(build_pr_diff.subprocess, "run") as git_run,
-        ):
-            with self.assertRaisesRegex(SystemExit, "base repository or ref was invalid"):
-                build_pr_diff.fetch_github_pr_diff("owner/repo", "42", "token", "head-sha", "base-sha")
-        git_run.assert_not_called()
 
     def test_fetch_github_pr_diff_fails_when_head_changed(self) -> None:
         def fake_metadata(repo: str, pr_number: str, token: str) -> dict[str, object]:

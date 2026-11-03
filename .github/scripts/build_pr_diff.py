@@ -102,6 +102,24 @@ def validate_github_pr_snapshot(
         )
 
 
+def ensure_base_commit(repo: str, metadata: dict[str, object], expected_base_sha: str) -> None:
+    commit = f"{expected_base_sha}^{{commit}}"
+    if subprocess.run(["git", "cat-file", "-e", commit], capture_output=True).returncode == 0:
+        return
+
+    base_ref = nested_ref(metadata, "base")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) or not base_ref:
+        raise SystemExit("GitHub PR base repository or ref was invalid")
+    if subprocess.run(["git", "check-ref-format", f"refs/heads/{base_ref}"], capture_output=True).returncode:
+        raise SystemExit("GitHub PR base repository or ref was invalid")
+    subprocess.run(
+        ["git", "fetch", "--no-tags", f"https://github.com/{repo}.git", f"refs/heads/{base_ref}"],
+        check=True, capture_output=True,
+    )
+    if subprocess.run(["git", "cat-file", "-e", commit], capture_output=True).returncode:
+        raise SystemExit(f"GitHub PR base commit {expected_base_sha} is unavailable after fetching {base_ref}")
+
+
 def fetch_github_pr_diff(
     repo: str,
     pr_number: str,
@@ -111,19 +129,7 @@ def fetch_github_pr_diff(
 ) -> list[str]:
     metadata = fetch_github_pr_metadata(repo, pr_number, token)
     validate_github_pr_snapshot(metadata, expected_head_sha, expected_base_sha)
-    base_ref = nested_ref(metadata, "base")
-    if not base_ref or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
-        raise SystemExit("GitHub PR base repository or ref was invalid")
-    subprocess.run(
-        ["git", "fetch", "--no-tags", f"https://github.com/{repo}.git", f"refs/heads/{base_ref}"],
-        check=True,
-        capture_output=True,
-    )
-    fetched_base = subprocess.run(
-        ["git", "rev-parse", "FETCH_HEAD"], check=True, capture_output=True, text=True
-    ).stdout.strip()
-    if fetched_base != expected_base_sha:
-        raise SystemExit("GitHub PR base changed while fetching review diff")
+    ensure_base_commit(repo, metadata, expected_base_sha)
     merge_base = subprocess.run(
         ["git", "merge-base", expected_base_sha, expected_head_sha],
         check=True, capture_output=True, text=True,
