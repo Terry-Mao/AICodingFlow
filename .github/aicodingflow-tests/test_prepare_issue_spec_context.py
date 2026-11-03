@@ -308,6 +308,12 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             "Intro\n\n    @codex in indented code",
             "# Heading\n    @codex in indented code",
             "- item\n\n        @codex in list code",
+            "- item\n\n    ~~~text\n    @codex /spec\n    ~~~",
+            "- item\n    ```text\n    @codex /spec\n    ```",
+            "Title\n===\n    @codex /spec",
+            "Title\n---\n    @codex /spec",
+            "---\n    @codex /spec",
+            "* * *\n    @codex /spec",
         )
         for comment in code_only:
             with self.subTest(comment=comment):
@@ -315,6 +321,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
 
         self.assertTrue(prepare_issue_spec_context.comment_mentions_login("`@codex`\n@codex please spec", "codex"))
         self.assertTrue(prepare_issue_spec_context.comment_mentions_login("```\n@codex\n```\n@codex please spec", "codex"))
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("- item\n\n    ~~~\n    @codex\n    ~~~\n    @codex please spec", "codex"))
 
     def test_comment_mentions_login_keeps_indented_paragraph_and_list_text(self) -> None:
         visible_comments = (
@@ -330,10 +337,6 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
     def test_should_not_run_for_mention_only_in_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
-            event_path.write_text(
-                json.dumps({"comment": {"body": "Example:\n```yaml\nagent: @codex\n```\nUse `@codex` here."}}),
-                encoding="utf-8",
-            )
             args = argparse.Namespace(
                 force=False,
                 event_name="issue_comment",
@@ -341,10 +344,19 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
                 agent_login="codex",
             )
             issue = {"labels": [{"name": "ready-to-spec"}], "assignees": []}
-            self.assertEqual(
-                prepare_issue_spec_context.should_run(args, issue),
-                (False, "ready-to-spec issue is not assigned to or mentioning the configured agent"),
+            comments = (
+                "Example:\n```yaml\nagent: @codex\n```\nUse `@codex` here.",
+                "- item\n\n    ~~~text\n    @codex /spec\n    ~~~",
+                "Title\n===\n    @codex /spec",
+                "---\n    @codex /spec",
             )
+            for comment in comments:
+                with self.subTest(comment=comment):
+                    event_path.write_text(json.dumps({"comment": {"body": comment}}), encoding="utf-8")
+                    self.assertEqual(
+                        prepare_issue_spec_context.should_run(args, issue),
+                        (False, "ready-to-spec issue is not assigned to or mentioning the configured agent"),
+                    )
 
     def test_should_not_run_without_ready_to_spec(self) -> None:
         args = argparse.Namespace(

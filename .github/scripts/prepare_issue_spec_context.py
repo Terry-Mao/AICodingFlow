@@ -93,9 +93,18 @@ def comment_mentions_login(comment: str, login: str) -> bool:
     visible_lines: list[str] = []
     fence_char = ""
     fence_width = 0
+    fence_container_indent = 0
     paragraph_open = False
     list_content_indent = 0
+    thematic_pattern = r" {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})"
     for line in comment.splitlines():
+        expanded = line.expandtabs(4)
+        indent = len(expanded) - len(expanded.lstrip(" "))
+        if fence_char:
+            closing = rf"^ {{0,3}}{re.escape(fence_char)}{{{fence_width},}}[ \t]*$"
+            if indent >= fence_container_indent and re.match(closing, expanded[fence_container_indent:]):
+                fence_char = ""
+            continue
         if not line.strip():
             paragraph_open = False
             visible_lines.append("")
@@ -104,30 +113,35 @@ def comment_mentions_login(comment: str, login: str) -> bool:
             paragraph_open = False
             list_content_indent = 0
             continue
-        if fence_char:
-            closing = rf"^ {{0,3}}{re.escape(fence_char)}{{{fence_width},}}[ \t]*$"
-            if re.match(closing, line):
-                fence_char = ""
+        if re.fullmatch(thematic_pattern, expanded):
+            paragraph_open = False
+            list_content_indent = 0
             continue
-        opening = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        list_item = re.match(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])[ \t]+", expanded)
+        if list_item:
+            list_content_indent = len(list_item.group())
+        elif indent < list_content_indent:
+            list_content_indent = 0
+        container_indent = list_content_indent if indent >= list_content_indent else 0
+        content = expanded[container_indent:]
+        opening = re.match(r"^ {0,3}(`{3,}|~{3,})", content)
         if opening:
             fence_char = opening.group(1)[0]
             fence_width = len(opening.group(1))
+            fence_container_indent = container_indent
             paragraph_open = False
             continue
-        expanded = line.expandtabs(4)
-        indent = len(expanded) - len(expanded.lstrip(" "))
+        setext = paragraph_open and re.fullmatch(r" {0,3}(?:=+|-+)[ \t]*", content)
+        thematic = re.fullmatch(thematic_pattern, content)
+        if setext or thematic:
+            paragraph_open = False
+            continue
         if indent >= 4:
             if not paragraph_open and (not list_content_indent or indent >= list_content_indent + 4):
                 continue
             paragraph_open = True
         else:
-            list_item = re.match(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])[ \t]+", line)
-            if list_item:
-                list_content_indent = len(list_item.group())
-            else:
-                list_content_indent = 0
-            paragraph_open = not bool(re.match(r"^ {0,3}#{1,6}(?:[ \t]|$)", line))
+            paragraph_open = not bool(re.match(r"^ {0,3}#{1,6}(?:[ \t]|$)", content))
         visible_lines.append(line)
 
     visible_comment = "\n".join(visible_lines)
