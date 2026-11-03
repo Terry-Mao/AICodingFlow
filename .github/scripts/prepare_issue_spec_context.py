@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import os
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+
+from markdown_it import MarkdownIt
 
 from artifact_contracts import load_json, write_github_output, write_json
 from context_snapshot import flatten_pages, format_issue_comments, remove_triggering_comment
@@ -23,6 +26,29 @@ from github_event import (
     label_names,
     triggering_comment_snapshot,
 )
+
+
+class _VisibleHtml(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.hidden_depth = 0
+        self.text: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"code", "pre", "blockquote", "script", "style"}:
+            self.hidden_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"code", "pre", "blockquote", "script", "style"}:
+            self.hidden_depth = max(0, self.hidden_depth - 1)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        pass
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden_depth:
+            self.text.append(data)
+
 
 def spec_paths(issue_number: int) -> dict[str, str]:
     spec_dir = f"specs/issue-{issue_number}"
@@ -87,13 +113,41 @@ def event_comment_body(event_path: str | None) -> str:
     return event_comment_body_from_event(load_event(event_path))
 
 
+def _mask_escaped_at_signs(comment: str) -> str:
+    def mask(match: re.Match[str]) -> str:
+        backslashes = match.group(1)
+        return backslashes + ("\ue000" if len(backslashes) % 2 else "@")
+
+    return re.sub(r"(\\+)@", mask, comment)
+
+
 def comment_mentions_login(comment: str, login: str) -> bool:
     if not login:
         return False
-    visible_lines = [line for line in comment.splitlines() if not line.lstrip().startswith(">")]
-    visible_comment = "\n".join(visible_lines)
     pattern = re.compile(rf"(?<![A-Za-z0-9-])@{re.escape(login)}(?![A-Za-z0-9-])")
-    return bool(pattern.search(visible_comment))
+    quote_depth = 0
+    html = _VisibleHtml()
+    for block in MarkdownIt("commonmark").parse(_mask_escaped_at_signs(comment)):
+        if block.type == "blockquote_open":
+            quote_depth += 1
+        elif block.type == "blockquote_close":
+            quote_depth -= 1
+        elif block.type == "html_block" and not quote_depth:
+            previous_text_count = len(html.text)
+            html.feed(block.content)
+            if any(pattern.search(text) for text in html.text[previous_text_count:]):
+                return True
+        elif block.type == "inline" and not quote_depth:
+            for inline in block.children or []:
+                if inline.type == "html_inline":
+                    previous_text_count = len(html.text)
+                    html.feed(inline.content)
+                    if any(pattern.search(text) for text in html.text[previous_text_count:]):
+                        return True
+                elif inline.type == "text" and not html.hidden_depth:
+                    if pattern.search(inline.content):
+                        return True
+    return False
 
 
 def triggering_comment(event_path: str | None) -> dict[str, Any] | None:

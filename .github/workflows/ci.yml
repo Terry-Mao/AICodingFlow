@@ -30,7 +30,8 @@ jobs:
         run: |
           python3 -m venv "$RUNNER_TEMP/aicodingflow-venv"
           "$RUNNER_TEMP/aicodingflow-venv/bin/python" -m pip install \
-            --disable-pip-version-check "PyYAML==6.0.3"
+            --disable-pip-version-check "PyYAML==6.0.3" \
+            -r .github/scripts/requirements-spec-context.txt
           echo "$RUNNER_TEMP/aicodingflow-venv/bin" >> "$GITHUB_PATH"
 
       - name: run-repository-unit-tests
