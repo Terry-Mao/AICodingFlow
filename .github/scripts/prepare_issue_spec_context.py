@@ -90,8 +90,28 @@ def event_comment_body(event_path: str | None) -> str:
 def comment_mentions_login(comment: str, login: str) -> bool:
     if not login:
         return False
-    visible_lines = [line for line in comment.splitlines() if not line.lstrip().startswith(">")]
+    visible_lines: list[str] = []
+    fence_char = ""
+    fence_width = 0
+    for line in comment.splitlines():
+        if line.lstrip().startswith(">"):
+            continue
+        if fence_char:
+            closing = rf"^ {{0,3}}{re.escape(fence_char)}{{{fence_width},}}[ \t]*$"
+            if re.match(closing, line):
+                fence_char = ""
+            continue
+        opening = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if opening:
+            fence_char = opening.group(1)[0]
+            fence_width = len(opening.group(1))
+            continue
+        if line.startswith(("    ", "\t")):
+            continue
+        visible_lines.append(line)
+
     visible_comment = "\n".join(visible_lines)
+    visible_comment = re.sub(r"(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)", " ", visible_comment)
     pattern = re.compile(rf"(?<![A-Za-z0-9-])@{re.escape(login)}(?![A-Za-z0-9-])")
     return bool(pattern.search(visible_comment))
 

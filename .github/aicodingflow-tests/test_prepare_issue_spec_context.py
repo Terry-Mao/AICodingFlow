@@ -294,6 +294,44 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
         self.assertFalse(prepare_issue_spec_context.comment_mentions_login("please @codex-action", "codex"))
         self.assertFalse(prepare_issue_spec_context.comment_mentions_login("> @codex quoted", "codex"))
 
+    def test_comment_mentions_login_ignores_code(self) -> None:
+        code_only = (
+            "```text\n@codex /spec\n```",
+            "~~~~log\n@codex /spec\n~~~~",
+            "````\n@codex\n```\n@codex\n````",
+            "Here is `@codex` in a sample.",
+            "Here is ``@codex`` in a sample.",
+            "Here is `a multiline\n@codex` sample.",
+            "@co`sample`dex is not a mention",
+            "    @codex in indented code",
+            "\t@codex in indented code",
+        )
+        for comment in code_only:
+            with self.subTest(comment=comment):
+                self.assertFalse(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("`@codex`\n@codex please spec", "codex"))
+        self.assertTrue(prepare_issue_spec_context.comment_mentions_login("```\n@codex\n```\n@codex please spec", "codex"))
+
+    def test_should_not_run_for_mention_only_in_code(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(
+                json.dumps({"comment": {"body": "Example:\n```yaml\nagent: @codex\n```\nUse `@codex` here."}}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                force=False,
+                event_name="issue_comment",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": []}
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (False, "ready-to-spec issue is not assigned to or mentioning the configured agent"),
+            )
+
     def test_should_not_run_without_ready_to_spec(self) -> None:
         args = argparse.Namespace(
             force=False,
