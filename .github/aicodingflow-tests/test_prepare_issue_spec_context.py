@@ -305,6 +305,9 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             "@co`sample`dex is not a mention",
             "    @codex in indented code",
             "\t@codex in indented code",
+            "Intro\n\n    @codex in indented code",
+            "# Heading\n    @codex in indented code",
+            "- item\n\n        @codex in list code",
         )
         for comment in code_only:
             with self.subTest(comment=comment):
@@ -312,6 +315,17 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
 
         self.assertTrue(prepare_issue_spec_context.comment_mentions_login("`@codex`\n@codex please spec", "codex"))
         self.assertTrue(prepare_issue_spec_context.comment_mentions_login("```\n@codex\n```\n@codex please spec", "codex"))
+
+    def test_comment_mentions_login_keeps_indented_paragraph_and_list_text(self) -> None:
+        visible_comments = (
+            "Please\n    @codex please spec",
+            "- item @codex please spec",
+            "- item\n    @codex please spec",
+            "- item\n\n    @codex please spec",
+        )
+        for comment in visible_comments:
+            with self.subTest(comment=comment):
+                self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
 
     def test_should_not_run_for_mention_only_in_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

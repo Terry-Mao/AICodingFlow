@@ -93,8 +93,16 @@ def comment_mentions_login(comment: str, login: str) -> bool:
     visible_lines: list[str] = []
     fence_char = ""
     fence_width = 0
+    paragraph_open = False
+    list_content_indent = 0
     for line in comment.splitlines():
+        if not line.strip():
+            paragraph_open = False
+            visible_lines.append("")
+            continue
         if line.lstrip().startswith(">"):
+            paragraph_open = False
+            list_content_indent = 0
             continue
         if fence_char:
             closing = rf"^ {{0,3}}{re.escape(fence_char)}{{{fence_width},}}[ \t]*$"
@@ -105,9 +113,21 @@ def comment_mentions_login(comment: str, login: str) -> bool:
         if opening:
             fence_char = opening.group(1)[0]
             fence_width = len(opening.group(1))
+            paragraph_open = False
             continue
-        if line.startswith(("    ", "\t")):
-            continue
+        expanded = line.expandtabs(4)
+        indent = len(expanded) - len(expanded.lstrip(" "))
+        if indent >= 4:
+            if not paragraph_open and (not list_content_indent or indent >= list_content_indent + 4):
+                continue
+            paragraph_open = True
+        else:
+            list_item = re.match(r"^ {0,3}(?:[-+*]|[0-9]{1,9}[.)])[ \t]+", line)
+            if list_item:
+                list_content_indent = len(list_item.group())
+            else:
+                list_content_indent = 0
+            paragraph_open = not bool(re.match(r"^ {0,3}#{1,6}(?:[ \t]|$)", line))
         visible_lines.append(line)
 
     visible_comment = "\n".join(visible_lines)
