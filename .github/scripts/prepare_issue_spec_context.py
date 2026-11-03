@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import os
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+
+from markdown_it import MarkdownIt
 
 from artifact_contracts import load_json, write_github_output, write_json
 from context_snapshot import flatten_pages, format_issue_comments, remove_triggering_comment
@@ -23,6 +26,24 @@ from github_event import (
     label_names,
     triggering_comment_snapshot,
 )
+
+
+class _CodeTagTracker(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"code", "pre"}:
+            self.depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"code", "pre"}:
+            self.depth = max(0, self.depth - 1)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        pass
+
 
 def spec_paths(issue_number: int) -> dict[str, str]:
     spec_dir = f"specs/issue-{issue_number}"
@@ -90,75 +111,22 @@ def event_comment_body(event_path: str | None) -> str:
 def comment_mentions_login(comment: str, login: str) -> bool:
     if not login:
         return False
-    visible_lines: list[str] = []
-    fence_char = ""
-    fence_width = 0
-    fence_container_indent = 0
-    paragraph_open = False
-    list_content_indent = 0
-    thematic_pattern = r" {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})"
-    for line in comment.splitlines():
-        expanded = line.expandtabs(4)
-        indent = len(expanded) - len(expanded.lstrip(" "))
-        if fence_char:
-            closing = rf"^ {{0,3}}{re.escape(fence_char)}{{{fence_width},}}[ \t]*$"
-            if indent >= fence_container_indent and re.match(closing, expanded[fence_container_indent:]):
-                fence_char = ""
-            continue
-        if not line.strip():
-            paragraph_open = False
-            visible_lines.append("")
-            continue
-        if line.lstrip().startswith(">"):
-            paragraph_open = False
-            list_content_indent = 0
-            continue
-        if re.fullmatch(thematic_pattern, expanded):
-            paragraph_open = False
-            list_content_indent = 0
-            continue
-        list_item = re.match(r"^( {0,3})([-+*]|[0-9]{1,9}[.)])( +)", expanded)
-        if list_item and paragraph_open and (not list_content_indent or indent >= list_content_indent):
-            marker = list_item.group(2)
-            if marker[0].isdigit() and int(marker[:-1]) != 1:
-                list_item = None
-        if list_item:
-            padding = len(list_item.group(3))
-            if padding > 4 or not expanded[list_item.end():].strip():
-                padding = 1
-            list_content_indent = len(list_item.group(1)) + len(list_item.group(2)) + padding
-        # A lazy continuation keeps its list container until the paragraph ends.
-        elif indent < list_content_indent and not paragraph_open:
-            list_content_indent = 0
-        container_indent = list_content_indent if list_item or indent >= list_content_indent else 0
-        content = expanded[container_indent:]
-        opening = re.match(r"^ {0,3}(`{3,}|~{3,})", content)
-        if opening:
-            fence_char = opening.group(1)[0]
-            fence_width = len(opening.group(1))
-            fence_container_indent = container_indent
-            paragraph_open = False
-            continue
-        setext = paragraph_open and re.fullmatch(r" {0,3}(?:=+|-+)[ \t]*", content)
-        thematic = re.fullmatch(thematic_pattern, content)
-        if setext or thematic:
-            paragraph_open = False
-            continue
-        if list_item and len(content) - len(content.lstrip(" ")) >= 4:
-            paragraph_open = False
-            continue
-        if indent >= 4:
-            if not paragraph_open and (not list_content_indent or indent >= list_content_indent + 4):
-                continue
-            paragraph_open = True
-        else:
-            paragraph_open = not bool(re.match(r"^ {0,3}#{1,6}(?:[ \t]|$)", content))
-        visible_lines.append(line)
-
-    visible_comment = "\n".join(visible_lines)
-    visible_comment = re.sub(r"(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)", " ", visible_comment)
     pattern = re.compile(rf"(?<![A-Za-z0-9-])@{re.escape(login)}(?![A-Za-z0-9-])")
-    return bool(pattern.search(visible_comment))
+    quote_depth = 0
+    html_code = _CodeTagTracker()
+    for block in MarkdownIt("commonmark").parse(comment):
+        if block.type == "blockquote_open":
+            quote_depth += 1
+        elif block.type == "blockquote_close":
+            quote_depth -= 1
+        elif block.type == "inline" and not quote_depth:
+            for inline in block.children or []:
+                if inline.type == "html_inline":
+                    html_code.feed(inline.content)
+                elif inline.type == "text" and not html_code.depth and not inline.markup.startswith("\\@"):
+                    if pattern.search(inline.content):
+                        return True
+    return False
 
 
 def triggering_comment(event_path: str | None) -> dict[str, Any] | None:

@@ -294,6 +294,29 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
         self.assertFalse(prepare_issue_spec_context.comment_mentions_login("please @codex-action", "codex"))
         self.assertFalse(prepare_issue_spec_context.comment_mentions_login("> @codex quoted", "codex"))
 
+    def test_comment_mentions_login_uses_markdown_block_boundaries(self) -> None:
+        code_only = (
+            "- item\n\n---\n    @codex /spec",
+            "- item\n\n# Heading\n    @codex /spec",
+            "- item\n\n> quoted\n\n    @codex /spec",
+            "<code>@codex /spec</code>",
+            "<code data-note='>'>@codex /spec</code>",
+            "\\@codex /spec",
+        )
+        for comment in code_only:
+            with self.subTest(comment=comment):
+                self.assertFalse(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
+        visible_after_block = (
+            "- item\n\n---\n@codex please spec",
+            "- item\n\n# Heading\n@codex please spec",
+            "<code>sample</code> @codex please spec",
+            "<code/> @codex please spec",
+        )
+        for comment in visible_after_block:
+            with self.subTest(comment=comment):
+                self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
     def test_comment_mentions_login_ignores_code(self) -> None:
         code_only = (
             "```text\n@codex /spec\n```",
