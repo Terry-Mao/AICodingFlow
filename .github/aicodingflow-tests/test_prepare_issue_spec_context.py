@@ -372,6 +372,44 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             with self.subTest(comment=comment):
                 self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
 
+    def test_non_one_ordered_marker_does_not_interrupt_paragraph(self) -> None:
+        visible_comments = (
+            "paragraph\n2.     @codex /spec",
+            "paragraph\n10.     @codex /spec",
+            "- item\n  paragraph\n  2.     @codex /spec",
+        )
+        for comment in visible_comments:
+            with self.subTest(comment=comment):
+                self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
+        code_only = (
+            "2.     @codex /spec",
+            "paragraph\n\n2.     @codex /spec",
+            "paragraph\n1.     @codex /spec",
+            "paragraph\n-     @codex /spec",
+        )
+        for comment in code_only:
+            with self.subTest(comment=comment):
+                self.assertFalse(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            event_path.write_text(
+                json.dumps({"comment": {"body": "paragraph\n2.     @codex /spec"}}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                force=False,
+                event_name="issue_comment",
+                event_path=str(event_path),
+                agent_login="codex",
+            )
+            issue = {"labels": [{"name": "ready-to-spec"}], "assignees": []}
+            self.assertEqual(
+                prepare_issue_spec_context.should_run(args, issue),
+                (True, "ready-to-spec comment mentioned @codex"),
+            )
+
     def test_should_not_run_for_mention_only_in_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"

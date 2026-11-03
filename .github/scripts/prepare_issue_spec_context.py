@@ -118,6 +118,10 @@ def comment_mentions_login(comment: str, login: str) -> bool:
             list_content_indent = 0
             continue
         list_item = re.match(r"^( {0,3})([-+*]|[0-9]{1,9}[.)])( +)", expanded)
+        if list_item and paragraph_open:
+            marker = list_item.group(2)
+            if marker[0].isdigit() and int(marker[:-1]) != 1:
+                list_item = None
         if list_item:
             padding = len(list_item.group(3))
             if padding > 4 or not expanded[list_item.end():].strip():
