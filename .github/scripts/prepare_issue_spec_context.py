@@ -122,7 +122,7 @@ def comment_mentions_login(comment: str, login: str) -> bool:
             list_content_indent = len(list_item.group())
         elif indent < list_content_indent:
             list_content_indent = 0
-        container_indent = list_content_indent if indent >= list_content_indent else 0
+        container_indent = list_content_indent if list_item or indent >= list_content_indent else 0
         content = expanded[container_indent:]
         opening = re.match(r"^ {0,3}(`{3,}|~{3,})", content)
         if opening:

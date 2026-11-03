@@ -334,6 +334,24 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             with self.subTest(comment=comment):
                 self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
 
+    def test_list_item_marker_can_open_fenced_code(self) -> None:
+        code_only = (
+            "- ```text\n  @codex /spec\n  ```",
+            "1. ~~~text\n   @codex /spec\n   ~~~",
+            "- parent\n  - ```text\n    @codex /spec\n    ```",
+        )
+        for comment in code_only:
+            with self.subTest(comment=comment):
+                self.assertFalse(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
+        visible_after_fence = (
+            "- ```text\n  sample\n  ```\n  @codex please spec",
+            "- parent\n  - ~~~text\n    sample\n    ~~~\n    @codex please spec",
+        )
+        for comment in visible_after_fence:
+            with self.subTest(comment=comment):
+                self.assertTrue(prepare_issue_spec_context.comment_mentions_login(comment, "codex"))
+
     def test_should_not_run_for_mention_only_in_code(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             event_path = Path(directory) / "event.json"
@@ -347,6 +365,7 @@ class PrepareIssueSpecContextTest(unittest.TestCase):
             comments = (
                 "Example:\n```yaml\nagent: @codex\n```\nUse `@codex` here.",
                 "- item\n\n    ~~~text\n    @codex /spec\n    ~~~",
+                "- ```text\n  @codex /spec\n  ```",
                 "Title\n===\n    @codex /spec",
                 "---\n    @codex /spec",
             )
