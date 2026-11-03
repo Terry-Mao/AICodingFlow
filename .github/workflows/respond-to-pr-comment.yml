@@ -62,6 +62,13 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
+      - name: install-markdown-parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-pr-comment-venv"
+          "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin" >> "$GITHUB_PATH"
+
       - name: prepare-workflow-handoff-directory
         id: handoff
         run: |
@@ -118,6 +125,13 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+
+      - name: install-markdown-parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-pr-comment-venv"
+          "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin" >> "$GITHUB_PATH"
 
       - name: prepare-workflow-handoff-directory
         id: handoff
