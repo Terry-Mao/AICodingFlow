@@ -326,6 +326,13 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
     def test_create_spec_workflow_dispatches_review_after_pr_creation(self) -> None:
         data = workflow(".github/workflows/create-spec-from-issue.yml")
         self.assertEqual(data["permissions"]["actions"], "write")
+        self.assertNotIn("concurrency", data)
+        create_job = data["jobs"]["create-spec"]
+        self.assertEqual(create_job["concurrency"]["cancel-in-progress"], True)
+        self.assertIn("github.event.comment.author_association", create_job["if"])
+        self.assertIn("OWNER", create_job["if"])
+        self.assertIn("MEMBER", create_job["if"])
+        self.assertIn("COLLABORATOR", create_job["if"])
 
         create_steps = steps(data, "create-spec")
         parser_install = next(step for step in create_steps if step.get("name") == "install-markdown-parser")

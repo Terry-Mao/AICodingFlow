@@ -28,6 +28,9 @@ from github_event import (
 )
 
 
+TRUSTED_COMMENT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
+
+
 class _VisibleHtml(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -205,9 +208,13 @@ def should_run(args: argparse.Namespace, issue: dict[str, Any]) -> tuple[bool, s
     if args.event_name == "workflow_dispatch" and agent_login in assignees:
         return True, f"ready-to-spec assigned to {agent_login}"
 
-    comment = (event.get("comment") or {}).get("body") or ""
-    if args.event_name == "issue_comment" and comment_mentions_login(comment, agent_login):
-        return True, f"ready-to-spec comment mentioned @{agent_login}"
+    if args.event_name == "issue_comment":
+        comment = event.get("comment") or {}
+        association = comment.get("author_association") or ""
+        if association not in TRUSTED_COMMENT_ASSOCIATIONS:
+            return False, f"comment author association is not trusted: {association or 'unknown'}"
+        if comment_mentions_login(comment.get("body") or "", agent_login):
+            return True, f"ready-to-spec comment mentioned @{agent_login}"
 
     return False, "ready-to-spec issue is not assigned to or mentioning the configured agent"
 
