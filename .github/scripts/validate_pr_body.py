@@ -9,8 +9,18 @@ from pathlib import Path
 
 
 REQUIRED_SECTIONS = ("Summary", "Testing", "Risk", "How to revert")
-HEADING = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+# CommonMark ATX heading: up to three leading spaces, then `##` plus space/tab.
+HEADING = re.compile(r"^ {0,3}##[ \t]+(.+?)[ \t]*$")
+# A closing sequence is only stripped when whitespace-separated and at line end,
+# so `## C#` keeps its hash while `## Summary ##` normalises to `summary`.
+CLOSING_HASHES = re.compile(r"[ \t]+#+$")
 FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})([^\r\n]*)$")
+
+
+def normalize_heading(text: str) -> str | None:
+    """Return the comparable section name for an ATX H2 heading text."""
+    name = CLOSING_HASHES.sub("", text.strip()).strip().lower()
+    return name or None
 
 
 def strip_html_comments(line: str, in_comment: bool) -> tuple[str, bool]:
@@ -56,8 +66,9 @@ def parse_sections(body: str) -> tuple[dict[str, str], dict[str, int]]:
             fence_length = len(opening.group(1))
             continue
         heading = HEADING.fullmatch(line)
-        if heading:
-            current_section = heading.group(1).strip().lower()
+        name = normalize_heading(heading.group(1)) if heading else None
+        if name:
+            current_section = name
             sections[current_section] = []
             headings[current_section] = line_number
         elif current_section is not None:
