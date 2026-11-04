@@ -60,15 +60,30 @@ class CodexModelProviderConfigTest(unittest.TestCase):
         for path in CODEX_WORKFLOWS:
             with self.subTest(path=path):
                 workflow = yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
+                all_steps = [step for job in workflow["jobs"].values() for step in job.get("steps", [])]
+                claude = next(step for step in all_steps if step.get("uses") == PINNED_CLAUDE_ACTION)
                 for job in workflow["jobs"].values():
                     steps = job.get("steps", [])
                     codex = next((step for step in steps if str(step.get("uses", "")).startswith("openai/codex-action@")), None)
                     if codex is None:
                         continue
-                    claude = next(step for step in steps if step.get("uses") == PINNED_CLAUDE_ACTION)
                     self.assertEqual(codex["with"]["prompt"], claude["with"]["prompt"])
                     self.assertIn("AI_PROVIDER == 'codex'", codex["if"])
                     self.assertIn("AI_PROVIDER == 'claude'", claude["if"])
+
+    def test_pr_comment_claude_uses_read_only_job_and_validated_publisher(self) -> None:
+        workflow = yaml.safe_load((ROOT / ".github/workflows/respond-to-pr-comment.yml").read_text(encoding="utf-8"))
+        reader = workflow["jobs"]["respond_claude"]
+        publisher = workflow["jobs"]["publish_claude"]
+        self.assertEqual(reader["permissions"], {"contents": "read", "issues": "read", "pull-requests": "read"})
+        self.assertEqual(publisher["permissions"]["contents"], "write")
+        self.assertEqual(publisher["needs"], ["preflight", "respond_claude"])
+        claude = next(step for step in reader["steps"] if step.get("uses") == PINNED_CLAUDE_ACTION)
+        self.assertIn("--disallowedTools Bash,WebFetch,WebSearch", claude["with"]["claude_args"])
+        self.assertNotIn("gh auth setup-git", str(reader))
+        self.assertIn("git -C pr-worktree apply --check", str(publisher))
+        self.assertIn("validate_pr_comment_result.py", str(publisher))
+        self.assertNotIn(PINNED_CLAUDE_ACTION, str(publisher))
 
     def test_workflows_do_not_read_the_legacy_endpoint_environment_directly(self) -> None:
         for path in CODEX_WORKFLOWS:
