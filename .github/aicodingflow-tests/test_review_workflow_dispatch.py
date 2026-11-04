@@ -30,7 +30,10 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         for job in ("preflight", "respond"):
             with self.subTest(job=job):
                 job_steps = steps(data, job)
+                setup = next(step for step in job_steps if step.get("name") == "set-up-python-for-markdown-parser")
                 install = next(step for step in job_steps if step.get("name") == "install-markdown-parser")
+                self.assertEqual(setup["uses"], "actions/setup-python@v6")
+                self.assertLess(job_steps.index(setup), job_steps.index(install))
                 self.assertIn("-r .github/scripts/requirements-spec-context.txt", install["run"])
                 context_index = next(i for i, step in enumerate(job_steps) if step.get("name") == "prepare-pr-comment-context")
                 self.assertLess(job_steps.index(install), context_index)
@@ -40,7 +43,12 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         for job in ("preflight", "review"):
             with self.subTest(job=job):
                 job_steps = steps(data, job)
+                setup = next(step for step in job_steps if step.get("name") == "set-up-python-for-markdown-parser")
                 install = next(step for step in job_steps if step.get("name") == "install-markdown-parser")
+                self.assertEqual(setup["uses"], "actions/setup-python@v6")
+                self.assertEqual(setup["if"], "github.event_name == 'issue_comment'")
+                self.assertEqual(install["if"], "github.event_name == 'issue_comment'")
+                self.assertLess(job_steps.index(setup), job_steps.index(install))
                 self.assertIn("-r .github/scripts/requirements-spec-context.txt", install["run"])
                 resolve_index = next(i for i, step in enumerate(job_steps) if step.get("name") == "resolve-pull-request")
                 self.assertLess(job_steps.index(install), resolve_index)
@@ -356,6 +364,11 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
 
         create_steps = steps(data, "create-spec")
         parser_install = next(step for step in create_steps if step.get("name") == "install-markdown-parser")
+        parser_setup = next(step for step in create_steps if step.get("name") == "set-up-python-for-markdown-parser")
+        self.assertEqual(parser_setup["uses"], "actions/setup-python@v6")
+        self.assertEqual(parser_setup["if"], "github.event_name == 'issue_comment'")
+        self.assertEqual(parser_install["if"], "github.event_name == 'issue_comment'")
+        self.assertLess(create_steps.index(parser_setup), create_steps.index(parser_install))
         self.assertIn("-r .github/scripts/requirements-spec-context.txt", parser_install["run"])
         self.assertLess(
             create_steps.index(parser_install),
@@ -363,6 +376,9 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         )
         ci_data = workflow(".github/workflows/ci.yml")
         ci_install = next(step for step in steps(ci_data, "test") if step.get("name") == "install-python-test-dependencies")
+        ci_setup = next(step for step in steps(ci_data, "test") if step.get("name") == "set-up-python")
+        self.assertEqual(ci_setup["uses"], "actions/setup-python@v6")
+        self.assertLess(steps(ci_data, "test").index(ci_setup), steps(ci_data, "test").index(ci_install))
         self.assertIn("-r .github/scripts/requirements-spec-context.txt", ci_install["run"])
         handoff = next(step for step in create_steps if step.get("name") == "prepare-workflow-handoff-directory")
         prepare = next(step for step in create_steps if step.get("name") == "prepare-issue-context")

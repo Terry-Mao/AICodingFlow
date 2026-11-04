@@ -26,6 +26,11 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: set-up-python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
       - name: install-python-test-dependencies
         run: |
           python3 -m venv "$RUNNER_TEMP/aicodingflow-venv"

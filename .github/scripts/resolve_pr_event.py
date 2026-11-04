@@ -9,8 +9,6 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from markdown_it import MarkdownIt
-
 from artifact_contracts import write_github_output
 
 
@@ -36,6 +34,8 @@ def comment_has_agent_command(
 ) -> bool:
     if not isinstance(body, str) or not body.strip() or not agent_login.strip():
         return False
+
+    from markdown_it import MarkdownIt
 
     normalized_command = command.strip()
     if not normalized_command.startswith("/"):
