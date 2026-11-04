@@ -75,7 +75,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      findings_json: ${{ steps.codex.outputs.final-message }}
+      findings_json: ${{ steps.codex.outputs.final-message || steps.claude.outputs.structured_output }}
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
@@ -93,11 +93,21 @@ jobs:
           path: nightly-review-output
 
       - name: install-codex-sandbox-prerequisites
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
       - name: configure-codex-api-endpoint
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         id: codex-endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -114,6 +124,7 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: review-existing-code
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         id: codex
         uses: openai/codex-action@v1
         timeout-minutes: 20
@@ -122,7 +133,7 @@ jobs:
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex-endpoint.outputs.url }}
           sandbox: read-only
-          prompt: |
+          prompt: &agent_prompt |
             Read .github/skills/review-existing-code/SKILL.md and follow it exactly.
             Read nightly-review-output/context.json for the pinned commit,
             full project code inventory, and today's focus files. Build a
@@ -135,6 +146,22 @@ jobs:
             Markdown fence or surrounding text. Keep it below 60 KB of UTF-8.
             Do not modify files, run git commands, call GitHub APIs, create
             issues, or post comments. The publisher validates your final message.
+
+      - name: review-existing-code-claude
+        if: vars.AI_PROVIDER == 'claude'
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: >-
+            --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto
+            --allowedTools Read,Glob,Grep
+            --disallowedTools Bash,Write,Edit
+            --json-schema '{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","additionalProperties":true}}},"required":["findings"],"additionalProperties":false}'
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
 
   publish:
     needs: [prepare, review]

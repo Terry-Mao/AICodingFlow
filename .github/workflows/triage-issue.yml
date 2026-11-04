@@ -96,13 +96,22 @@ jobs:
           echo "${{ steps.issue.outputs.skip_reason }}"
 
       - name: install-codex-sandbox-prerequisites
-        if: steps.issue.outputs.should_run == 'true'
+        if: steps.issue.outputs.should_run == 'true' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: configure-codex-api-endpoint
+      - name: validate-ai-provider
         if: steps.issue.outputs.should_run == 'true'
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: configure-codex-api-endpoint
+        if: steps.issue.outputs.should_run == 'true' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -119,7 +128,7 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: triage-issue
-        if: steps.issue.outputs.should_run == 'true'
+        if: steps.issue.outputs.should_run == 'true' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         uses: openai/codex-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
@@ -128,7 +137,7 @@ jobs:
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           allow-users: "*"
-          prompt: |
+          prompt: &agent_prompt |
             Triage the GitHub issue from the stable local context files.
 
             Inputs:
@@ -193,6 +202,17 @@ jobs:
             labels. The outer workflow validates triage_result.json and applies
             any GitHub updates.
 
+      - name: triage-issue-claude
+        if: steps.issue.outputs.should_run == 'true' && vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@v1
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit
+          allowed_bots: "github-actions[bot]"
+          allowed_non_write_users: "*"
+          prompt: *agent_prompt
       - name: validate-triage-result
         if: steps.issue.outputs.should_run == 'true'
         run: |

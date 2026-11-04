@@ -216,13 +216,22 @@ jobs:
             --output "${{ steps.handoff.outputs.dir }}/spec_context.md"
 
       - name: install-codex-sandbox-prerequisites
-        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: configure-codex-api-endpoint
+      - name: validate-ai-provider
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: configure-codex-api-endpoint
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -239,13 +248,13 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: respond-to-pr-comment
-        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
-          prompt: |
+          prompt: &agent_prompt |
             First change directory to pr-worktree and do all file inspection from there.
 
             Respond to the PR comment request using these stable local inputs:
@@ -333,6 +342,16 @@ jobs:
             GitHub APIs. The outer workflow validates outputs and performs all
             GitHub writes.
 
+      - name: respond-to-pr-comment-claude
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@v1
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit,Bash
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
       - name: check-pr-comment-response-worktree-changes
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
         id: worktree

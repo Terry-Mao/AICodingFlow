@@ -74,11 +74,21 @@ jobs:
           python3 .github/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
 
       - name: install-codex-sandbox-prerequisites
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
       - name: configure-codex-api-endpoint
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -100,12 +110,13 @@ jobs:
           mkdir -p update-pr-review-output
 
       - name: update-local-review-guidance
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
-          prompt: |
+          prompt: &agent_prompt |
             Read .github/skills/update-pr-review/SKILL.md and follow it exactly.
             Use feedback.json as the aggregated review feedback.
             Do not edit .agents directly; it may be read-only in this sandbox.
@@ -118,6 +129,16 @@ jobs:
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
             Do not modify core skills, workflow files, scripts, tests, or product code.
 
+      - name: update-local-review-guidance-claude
+        if: vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@v1
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
       - name: apply-guidance-output
         run: python3 .github/skills/update-pr-review/scripts/apply_guidance_output.py
 

@@ -322,7 +322,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/nightly-codebase-review.yml").read_text(encoding="utf-8")
         self.assertTrue(workflow.startswith("name: nightly-codebase-review\n"))
         step_names = re.findall(r"^      - name: (.+)$", workflow, flags=re.MULTILINE)
-        self.assertEqual(len(step_names), 14)
+        self.assertEqual(len(step_names), 16)
         for step_name in step_names:
             with self.subTest(step_name=step_name):
                 self.assertRegex(step_name, r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
@@ -333,7 +333,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertIn("publish_nightly_findings.py", workflow)
         self.assertIn("actions: write", workflow)
         self.assertIn("sandbox: read-only", workflow)
-        self.assertIn("findings_json: ${{ steps.codex.outputs.final-message }}", workflow)
+        self.assertIn("findings_json: ${{ steps.codex.outputs.final-message || steps.claude.outputs.structured_output }}", workflow)
         self.assertLess(workflow.index("  prepare:"), workflow.index("  review:"))
         self.assertLess(workflow.index("  review:"), workflow.index("  publish:"))
         prepare_job = workflow.split("  prepare:\n", 1)[1].split("  review:\n", 1)[0]
@@ -346,7 +346,8 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertNotIn("actions: write", review_job)
         self.assertNotIn("GH_TOKEN:", review_job)
         self.assertEqual(review_job.count("uses: openai/codex-action@v1"), 1)
-        self.assertTrue(review_job.rstrip().endswith("issues, or post comments. The publisher validates your final message."))
+        self.assertEqual(review_job.count("uses: anthropics/claude-code-action@v1"), 1)
+        self.assertIn("issues, or post comments. The publisher validates your final message.", review_job)
         self.assertIn("ref: ${{ needs.prepare.outputs.commit }}", publish_job)
         self.assertIn("name: nightly-codebase-review-input-${{ github.run_id }}", publish_job)
         self.assertIn("GH_TOKEN: ${{ github.token }}", publish_job)

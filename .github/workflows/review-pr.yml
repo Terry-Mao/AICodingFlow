@@ -249,11 +249,21 @@ jobs:
           cp -R .github/skills pr-worktree/.github/skills
 
       - name: install-codex-sandbox-prerequisites
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
       - name: configure-codex-api-endpoint
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -270,6 +280,7 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: run-ai-review
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1.11
         timeout-minutes: 20
         with:
@@ -277,7 +288,7 @@ jobs:
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           allow-bots: true
-          prompt: |
+          prompt: &agent_prompt |
             First change directory to pr-worktree and do all file inspection from there.
             Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.
             Read .agents/contracts/review.md in pr-worktree and treat it as the
@@ -306,6 +317,16 @@ jobs:
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
+      - name: run-ai-review-claude
+        if: vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@v1
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
       - name: normalize-review-output-path
         run: |
           if [ ! -f pr-worktree/review.json ] && [ -f review.json ]; then
