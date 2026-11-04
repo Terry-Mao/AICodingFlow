@@ -125,6 +125,13 @@ class CodexModelProviderConfigTest(unittest.TestCase):
                 permissions = job.get("permissions", workflow.get("permissions", {}))
                 self.assertFalse(any(value == "write" for value in permissions.values()))
                 self.assertIn("Bash", step["with"]["claude_args"].split("--disallowedTools ", 1)[1])
+                checkouts = [
+                    item for item in job["steps"]
+                    if str(item.get("uses", "")).startswith("actions/checkout@")
+                ]
+                self.assertTrue(checkouts)
+                for checkout in checkouts:
+                    self.assertIs(checkout.get("with", {}).get("persist-credentials"), False)
 
     def test_guidance_update_claude_jobs_publish_validated_artifacts(self) -> None:
         for name in ("update-dedupe", "update-pr-review", "update-triage"):
