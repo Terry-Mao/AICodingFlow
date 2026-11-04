@@ -10,16 +10,24 @@ description: Address actionable feedback on an existing pull request, including 
 1. Identify the PR from the supplied URL or number, otherwise from the current
    branch. Read its head repository, branch, and SHA; check the current branch,
    worktree status, and other worktrees before editing. If already on the PR
-   head branch in the right repository, stay in this worktree. Otherwise reuse
-   its existing worktree, or follow `git-worktree` safety checks to create an
-   isolated worktree at `.worktrees/<head-branch>` from the PR head, leaving the
-   current branch and unrelated changes untouched. Fetch the PR head when
-   needed; fast-forward a clean local branch only when safe. Verify the chosen
-   branch tracks the PR head and can push to its repository. If local commits
-   or dirty changes already exist on that branch, inspect them and continue
-   only when they belong to this PR. Stop before editing if the branch diverged,
-   the target path is occupied, fork access is unavailable, or the target is
-   ambiguous. Do not rebase or reset without a request.
+   head branch in the right repository, stay in this worktree; if that branch
+   is checked out in another worktree, use that worktree. Otherwise follow
+   `git-worktree` safety checks, validate the branch name and target path, and
+   create `.worktrees/<head-branch>` without disturbing the current worktree:
+   - For an existing local PR branch, use `git worktree add <path> <branch>`;
+     do not pass `-b` or create a second branch.
+   - For a missing local branch, fetch the PR head from its repository, verify
+     the fetched SHA, then use `git worktree add --track -b <branch> <path>
+     <remote>/<branch>`. Do not branch from the PR base.
+   Verify the selected branch's upstream points to a writable remote for the
+   PR head. If an existing branch has no upstream, first verify the remote ref
+   matches the PR head, then run `git branch --set-upstream-to=<remote>/<branch>
+   <branch>`; stop if its upstream points elsewhere. Fast-forward a
+   clean branch that is behind the PR head only when safe. Inspect local commits
+   or dirty changes and continue only when they belong to this PR. Stop before
+   editing if the branch diverged, the path is occupied, fork access is
+   unavailable, or the target is ambiguous. Do not rebase or reset without a
+   request.
 2. Read repository guidance, worktree status, the current diff, unresolved
    review threads (including replies), non-empty review bodies, and top-level
    PR comments. Paginate each surface and deduplicate repeated feedback. Ignore
