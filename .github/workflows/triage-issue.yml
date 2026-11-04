@@ -58,6 +58,7 @@ jobs:
       skip_reason: ${{ steps.issue.outputs.skip_reason }}
       issue_number: ${{ steps.issue.outputs.issue_number }}
       include_issue_body: ${{ steps.issue.outputs.include_issue_body }}
+      context_sha256: ${{ steps.context_snapshot.outputs.sha256 }}
 
     steps:
       - uses: actions/checkout@v6
@@ -95,6 +96,11 @@ jobs:
         if: steps.issue.outputs.should_run != 'true'
         run: |
           echo "${{ steps.issue.outputs.skip_reason }}"
+
+      - name: snapshot-triage-context
+        if: steps.issue.outputs.should_run == 'true'
+        id: context_snapshot
+        run: echo "sha256=$(sha256sum triage_context.json | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
 
       - name: install-codex-sandbox-prerequisites
         if: steps.issue.outputs.should_run == 'true' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
@@ -257,6 +263,13 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: triage-issue-${{ github.run_id }}
+
+      - name: verify-triage-context
+        env:
+          CONTEXT_SHA256: ${{ needs.generate.outputs.context_sha256 }}
+        run: |
+          test -n "$CONTEXT_SHA256"
+          echo "$CONTEXT_SHA256  triage_context.json" | sha256sum --check
 
       - name: validate-triage-result
         run: |

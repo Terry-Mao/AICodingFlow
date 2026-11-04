@@ -158,6 +158,19 @@ class CodexModelProviderConfigTest(unittest.TestCase):
         self.assertIn("validate_spec_output.py", str(publisher))
         self.assertNotIn(PINNED_CLAUDE_ACTION, str(publisher))
 
+    def test_triage_publisher_verifies_context_from_before_agent_run(self) -> None:
+        workflow = yaml.safe_load((ROOT / ".github/workflows/triage-issue.yml").read_text(encoding="utf-8"))
+        generator = workflow["jobs"]["generate"]
+        publisher = workflow["jobs"]["apply"]
+        self.assertEqual(generator["outputs"]["context_sha256"], "${{ steps.context_snapshot.outputs.sha256 }}")
+        snapshot = next(step for step in generator["steps"] if step.get("name") == "snapshot-triage-context")
+        agent = next(step for step in generator["steps"] if step.get("uses") == PINNED_CLAUDE_ACTION)
+        verify = next(step for step in publisher["steps"] if step.get("name") == "verify-triage-context")
+        apply = next(step for step in publisher["steps"] if step.get("name") == "apply-triage-result")
+        self.assertLess(generator["steps"].index(snapshot), generator["steps"].index(agent))
+        self.assertLess(publisher["steps"].index(verify), publisher["steps"].index(apply))
+        self.assertIn("sha256sum --check", verify["run"])
+
     def test_workflows_do_not_read_the_legacy_endpoint_environment_directly(self) -> None:
         for path in CODEX_WORKFLOWS:
             with self.subTest(path=path):
