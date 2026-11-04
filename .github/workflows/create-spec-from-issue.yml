@@ -51,7 +51,14 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
+      - name: set-up-python-for-markdown-parser
+        if: github.event_name == 'issue_comment'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
       - name: install-markdown-parser
+        if: github.event_name == 'issue_comment'
         run: |
           python3 -m venv "$RUNNER_TEMP/aicodingflow-spec-venv"
           "$RUNNER_TEMP/aicodingflow-spec-venv/bin/python" -m pip install \

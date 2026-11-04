@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -94,6 +96,23 @@ class ResolvePrEventTest(unittest.TestCase):
                 resolver.resolve_event("owner/repo", "pull_request", event_path, ""),
                 event,
             )
+
+    def test_pull_request_event_runs_without_installed_markdown_parser(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            output_path = Path(directory) / "resolved.json"
+            event_path.write_text(json.dumps({"pull_request": pr_payload()}), encoding="utf-8")
+            subprocess.run(
+                [
+                    sys.executable, "-S", str(Path(__file__).resolve().parents[1] / "scripts/resolve_pr_event.py"),
+                    "--repo", "owner/repo", "--event-name", "pull_request_target",
+                    "--event-path", str(event_path), "--output", str(output_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertTrue(output_path.is_file())
 
     def test_pull_request_target_event_reuses_existing_payload(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

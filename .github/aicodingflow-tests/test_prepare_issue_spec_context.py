@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -18,6 +20,24 @@ prepare_issue_spec_context = import_script(
 
 
 class PrepareIssueSpecContextTest(unittest.TestCase):
+    def test_issue_event_runs_without_installed_markdown_parser(self) -> None:
+        script_dir = Path(__file__).resolve().parents[1] / "scripts"
+        subprocess.run(
+            [
+                sys.executable, "-S", "-c",
+                "import argparse, sys; "
+                "sys.path.insert(0, sys.argv[1]); "
+                "from prepare_issue_spec_context import should_run; "
+                "args = argparse.Namespace(event_path='', event_name='workflow_dispatch', force=False, agent_login='codex'); "
+                "issue = {'labels': [{'name': 'ready-to-spec'}], 'assignees': [{'login': 'codex'}]}; "
+                "assert should_run(args, issue)[0] is True",
+                str(script_dir),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
     def test_spec_paths_use_issue_directory_and_spec_branch(self) -> None:
         self.assertEqual(
             prepare_issue_spec_context.spec_paths(32),

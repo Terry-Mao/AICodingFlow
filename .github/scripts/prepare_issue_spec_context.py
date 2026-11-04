@@ -10,8 +10,6 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
-from markdown_it import MarkdownIt
-
 from artifact_contracts import load_json, write_github_output, write_json
 from context_snapshot import flatten_pages, format_issue_comments, remove_triggering_comment
 from github_api import fetch_default_branch, run_gh_json
@@ -127,6 +125,8 @@ def _mask_escaped_at_signs(comment: str) -> str:
 def comment_mentions_login(comment: str, login: str) -> bool:
     if not login:
         return False
+
+    from markdown_it import MarkdownIt
     pattern = re.compile(rf"(?<![A-Za-z0-9-])@{re.escape(login)}(?![A-Za-z0-9-])")
     quote_depth = 0
     html = _VisibleHtml()
