@@ -49,6 +49,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
 
       - name: prepare-workflow-handoff-directory
         id: handoff
@@ -249,12 +250,12 @@ jobs:
 
       - name: implement-issue-claude
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && vars.AI_PROVIDER == 'claude'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
         timeout-minutes: 20
         with:
           github_token: ${{ github.token }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit,Bash
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit --disallowedTools Bash,WebFetch,WebSearch
           allowed_bots: "github-actions[bot]"
           prompt: *agent_prompt
       - name: apply-implementation-output

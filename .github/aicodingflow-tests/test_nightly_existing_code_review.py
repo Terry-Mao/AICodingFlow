@@ -346,7 +346,7 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
         self.assertNotIn("actions: write", review_job)
         self.assertNotIn("GH_TOKEN:", review_job)
         self.assertEqual(review_job.count("uses: openai/codex-action@v1"), 1)
-        self.assertEqual(review_job.count("uses: anthropics/claude-code-action@v1"), 1)
+        self.assertEqual(review_job.count("uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c"), 1)
         self.assertIn("issues, or post comments. The publisher validates your final message.", review_job)
         self.assertIn("ref: ${{ needs.prepare.outputs.commit }}", publish_job)
         self.assertIn("name: nightly-codebase-review-input-${{ github.run_id }}", publish_job)

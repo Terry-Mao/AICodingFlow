@@ -236,10 +236,10 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("--output \"$RUNNER_TEMP/pr_event.json\"", resolve_step["run"])
         self.assertIn("--agent-login \"${{ vars.AGENT_LOGIN }}\"", resolve_step["run"])
 
-        pending_status_step = next(step for step in review_steps if step.get("name") == "mark-pr-review-status-pending")
+        pending_status_step = next(step for step in steps(data, "preflight") if step.get("name") == "mark-pr-review-status-pending")
         self.assertEqual(
             pending_status_step["if"],
-            "steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository",
+            "steps.pr.outputs.reviewable == 'true' && steps.seen.outputs.already_reviewed != 'true' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository",
         )
         self.assertEqual(pending_status_step["env"]["HEAD_SHA"], "${{ steps.pr.outputs.head_sha }}")
         self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", pending_status_step["run"])
@@ -256,7 +256,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         description_step = next(step for step in review_steps if step.get("name") == "snapshot-pr-description")
         spec_context_step = next(step for step in review_steps if step.get("name") == "snapshot-spec-context")
         discussion_context_step = next(step for step in review_steps if step.get("name") == "snapshot-review-discussion-context")
-        post_step = next(step for step in review_steps if step.get("name") == "post-pr-review")
+        post_step = next(step for step in steps(data, "publish") if step.get("name") == "post-pr-review")
         self.assertEqual(description_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
         self.assertIn("--output pr-worktree/pr_description.txt", description_step["run"])
         self.assertEqual(spec_context_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
@@ -267,7 +267,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn(".github/scripts/prepare_review_discussion_context.py", discussion_context_step["run"])
         self.assertIn("--pr-number \"${{ steps.pr.outputs.number }}\"", discussion_context_step["run"])
         self.assertIn("--output pr-worktree/review_discussion_context.json", discussion_context_step["run"])
-        self.assertEqual(post_step["env"]["PR_EVENT_PATH"], "${{ steps.pr.outputs.event_path }}")
+        self.assertEqual(post_step["env"]["PR_EVENT_PATH"], "${{ runner.temp }}/pr_event.json")
         self.assertEqual(post_step["env"]["REVIEW_BOT_LOGIN"], "${{ vars.REVIEW_BOT_LOGIN }}")
         self.assertIn("--review pr-worktree/review.json", post_step["run"])
         self.assertIn("--diff pr-worktree/pr_diff.txt", post_step["run"])
@@ -308,7 +308,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         )
         self.assertEqual(ai_step["timeout-minutes"], 20)
         self.assertIs(ai_step["with"]["allow-bots"], True)
-        self.assertIn("First change directory to pr-worktree", ai_step["with"]["prompt"])
+        self.assertIn("Inspect files under pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Read .agents/contracts/review.md", ai_step["with"]["prompt"])
         self.assertIn("shared review contract", ai_step["with"]["prompt"])
         self.assertIn("must not override the contract", ai_step["with"]["prompt"])
@@ -324,13 +324,24 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         validate_step = next(step for step in review_steps if step.get("name") == "validate-review-output")
         self.assertIn("pr-worktree/pr_diff.txt pr-worktree/review.json", validate_step["run"])
 
-        complete_status_step = next(step for step in review_steps if step.get("name") == "mark-pr-review-status-complete")
+        complete_status_step = next(step for step in steps(data, "publish") if step.get("name") == "mark-pr-review-status-complete")
         self.assertEqual(
             complete_status_step["if"],
-            "always() && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository",
+            "always() && needs.preflight.outputs.head_sha != '' && needs.preflight.outputs.head_repo == github.repository",
         )
-        self.assertEqual(complete_status_step["env"]["STATE"], "${{ job.status == 'success' && 'success' || 'failure' }}")
+        self.assertEqual(complete_status_step["env"]["STATE"], "${{ needs.review.result == 'success' && job.status == 'success' && 'success' || 'failure' }}")
         self.assertIn("repos/${{ github.repository }}/statuses/$HEAD_SHA", complete_status_step["run"])
+
+    def test_review_agent_cannot_publish_with_write_token(self) -> None:
+        data = workflow(".github/workflows/review-pr.yml")
+        review = data["jobs"]["review"]
+        publish = data["jobs"]["publish"]
+        self.assertEqual(review["permissions"], {"contents": "read", "pull-requests": "read"})
+        self.assertEqual(review["outputs"]["diff_sha256"], "${{ steps.diff_snapshot.outputs.sha256 }}")
+        self.assertEqual(publish["permissions"]["pull-requests"], "write")
+        self.assertEqual(publish["permissions"]["statuses"], "write")
+        self.assertIn("sha256sum --check", next(step for step in publish["steps"] if step.get("name") == "verify-review-snapshot")["run"])
+        self.assertFalse(any(step.get("name") == "post-pr-review" for step in review["steps"]))
 
     def test_triage_workflow_allows_regular_issue_authors_through_preflight(self) -> None:
         data = workflow(".github/workflows/triage-issue.yml")

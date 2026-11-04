@@ -19,6 +19,7 @@ CODEX_WORKFLOWS = (
     ".github/workflows/nightly-codebase-review.yml",
 )
 PINNED_REVIEW_ACTION = "uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56"
+PINNED_CLAUDE_ACTION = "anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c"
 
 
 class CodexModelProviderConfigTest(unittest.TestCase):
@@ -40,7 +41,7 @@ class CodexModelProviderConfigTest(unittest.TestCase):
                 self.assertIn("*/responses", contents)
                 self.assertIn("$endpoint/responses", contents)
                 self.assertIn("CODEX_API_ENDPOINT is not set", contents)
-                self.assertIn("uses: anthropics/claude-code-action@v1", contents)
+                self.assertIn(f"uses: {PINNED_CLAUDE_ACTION}", contents)
                 self.assertIn("anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}", contents)
                 self.assertIn("claude_args:", contents)
                 self.assertIn("prompt: &agent_prompt |", contents)
@@ -64,7 +65,7 @@ class CodexModelProviderConfigTest(unittest.TestCase):
                     codex = next((step for step in steps if str(step.get("uses", "")).startswith("openai/codex-action@")), None)
                     if codex is None:
                         continue
-                    claude = next(step for step in steps if step.get("uses") == "anthropics/claude-code-action@v1")
+                    claude = next(step for step in steps if step.get("uses") == PINNED_CLAUDE_ACTION)
                     self.assertEqual(codex["with"]["prompt"], claude["with"]["prompt"])
                     self.assertIn("AI_PROVIDER == 'codex'", codex["if"])
                     self.assertIn("AI_PROVIDER == 'claude'", claude["if"])

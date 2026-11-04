@@ -150,7 +150,7 @@ jobs:
       - name: review-existing-code-claude
         if: vars.AI_PROVIDER == 'claude'
         id: claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
         timeout-minutes: 20
         with:
           github_token: ${{ github.token }}
