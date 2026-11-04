@@ -24,19 +24,21 @@ permissions:
 jobs:
   create-spec:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
       (
-        github.event.issue.pull_request == null &&
+        github.event_name == 'workflow_dispatch' ||
         (
-          (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
-          (github.event.action == 'labeled' && github.event.label.name == 'ready-to-spec' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
-          (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-spec'))
+          github.event.issue.pull_request == null &&
+          (
+            (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
+            (github.event.action == 'labeled' && github.event.label.name == 'ready-to-spec' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
+            (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-spec'))
+          )
+          &&
+          contains(github.event.issue.labels.*.name, 'ready-to-spec')
+          &&
+          !contains(github.event.issue.labels.*.name, 'ready-to-implement')
         )
-        &&
-        contains(github.event.issue.labels.*.name, 'ready-to-spec')
-        &&
-        !contains(github.event.issue.labels.*.name, 'ready-to-implement')
-      )
+      ) && vars.AI_PROVIDER != 'claude'
     runs-on: ubuntu-latest
     concurrency:
       group: create-spec-from-issue-${{ inputs.issue || github.event.issue.number }}
@@ -180,6 +182,144 @@ jobs:
             Do not modify .agents, .github, tests, README, or production code.
             Do not run git commands, commit, push, create PRs, or call GitHub APIs.
 
+      - name: validate-spec-output
+        if: steps.issue.outputs.should_run == 'true'
+        run: |
+          python3 .github/scripts/validate_spec_output.py \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
+
+      - name: check-for-spec-changes
+        if: steps.issue.outputs.should_run == 'true'
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain --untracked-files=all -- "${{ steps.issue.outputs.product_spec }}" "${{ steps.issue.outputs.tech_spec }}")" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: create-or-update-spec-pull-request
+        if: steps.issue.outputs.should_run == 'true' && steps.changes.outputs.changed == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/finalize_spec_pr.py \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outputs.pr_url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --pr-url "$PR_URL"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: create-spec-from-issue-${{ github.run_id }}
+          path: |
+            ${{ steps.handoff.outputs.dir }}/issue_context.json
+            ${{ steps.handoff.outputs.dir }}/issue_comments.txt
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json
+
+  create_spec_claude:
+    if: >-
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.issue.pull_request == null &&
+          (
+            (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
+            (github.event.action == 'labeled' && github.event.label.name == 'ready-to-spec' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
+            (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-spec'))
+          ) &&
+          contains(github.event.issue.labels.*.name, 'ready-to-spec') &&
+          !contains(github.event.issue.labels.*.name, 'ready-to-implement')
+        )
+      ) && vars.AI_PROVIDER == 'claude'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      should_run: ${{ steps.issue.outputs.should_run }}
+      issue_number: ${{ steps.issue.outputs.issue_number }}
+      target_branch: ${{ steps.issue.outputs.target_branch }}
+      checkout_sha: ${{ steps.checkout_sha.outputs.sha }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: set-up-python-for-markdown-parser
+        if: github.event_name == 'issue_comment'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: install-markdown-parser
+        if: github.event_name == 'issue_comment'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-spec-venv"
+          "$RUNNER_TEMP/aicodingflow-spec-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-spec-venv/bin" >> "$GITHUB_PATH"
+
+      - name: prepare-workflow-handoff-directory
+        id: handoff
+        run: |
+          dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: prepare-issue-context
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.AGENT_LOGIN }}
+        run: |
+          python3 .github/scripts/prepare_issue_spec_context.py \
+            --repo "${{ github.repository }}" \
+            --issue "$ISSUE_NUMBER" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --agent-login "$AGENT_LOGIN" \
+            --output "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --comments-output "${{ steps.handoff.outputs.dir }}/issue_comments.txt" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: stop-when-issue-is-not-ready
+        if: steps.issue.outputs.should_run != 'true'
+        run: |
+          echo "${{ steps.issue.outputs.skip_reason }}"
+
+      - name: validate-ai-provider
+        if: steps.issue.outputs.should_run == 'true'
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: record-spec-checkout-sha
+        if: steps.issue.outputs.should_run == 'true'
+        id: checkout_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: create-specs-claude
         if: steps.issue.outputs.should_run == 'true' && vars.AI_PROVIDER == 'claude'
         uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
@@ -187,9 +327,127 @@ jobs:
         with:
           github_token: ${{ github.token }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit --disallowedTools Bash,WebFetch,WebSearch
           allowed_bots: "github-actions[bot]"
           prompt: *agent_prompt
+      - name: export-claude-specs
+        if: steps.issue.outputs.should_run == 'true'
+        run: |
+          output="$RUNNER_TEMP/claude-specs"
+          mkdir -p "$output"
+          git add -A -- specs
+          git diff --cached --binary --full-index > "$output/changes.patch"
+          if [ -f "${{ steps.handoff.outputs.dir }}/pr-metadata.json" ]; then
+            cp "${{ steps.handoff.outputs.dir }}/pr-metadata.json" "$output/pr-metadata.json"
+          fi
+
+      - uses: actions/upload-artifact@v7
+        if: steps.issue.outputs.should_run == 'true'
+        with:
+          name: create-spec-claude-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-specs/
+          if-no-files-found: error
+
+  publish_claude_spec:
+    needs: create_spec_claude
+    if: needs.create_spec_claude.result == 'success' && needs.create_spec_claude.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      issues: read
+      pull-requests: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: set-up-python-for-markdown-parser
+        if: github.event_name == 'issue_comment'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: install-markdown-parser
+        if: github.event_name == 'issue_comment'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-spec-venv"
+          "$RUNNER_TEMP/aicodingflow-spec-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-spec-venv/bin" >> "$GITHUB_PATH"
+
+      - name: prepare-workflow-handoff-directory
+        id: handoff
+        run: |
+          dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: prepare-issue-context
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.AGENT_LOGIN }}
+        run: |
+          python3 .github/scripts/prepare_issue_spec_context.py \
+            --repo "${{ github.repository }}" \
+            --issue "$ISSUE_NUMBER" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --agent-login "$AGENT_LOGIN" \
+            --output "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --comments-output "${{ steps.handoff.outputs.dir }}/issue_comments.txt" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: stop-when-issue-is-not-ready
+        if: steps.issue.outputs.should_run != 'true'
+        run: |
+          echo "${{ steps.issue.outputs.skip_reason }}"
+
+      - name: record-spec-checkout-sha
+        if: steps.issue.outputs.should_run == 'true'
+        id: checkout_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v7
+        if: steps.issue.outputs.should_run == 'true'
+        with:
+          name: create-spec-claude-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-specs
+
+      - name: verify-and-apply-claude-specs
+        if: steps.issue.outputs.should_run == 'true'
+        env:
+          EXPECTED_ISSUE: ${{ needs.create_spec_claude.outputs.issue_number }}
+          EXPECTED_BRANCH: ${{ needs.create_spec_claude.outputs.target_branch }}
+          EXPECTED_CHECKOUT: ${{ needs.create_spec_claude.outputs.checkout_sha }}
+          CURRENT_ISSUE: ${{ steps.issue.outputs.issue_number }}
+          CURRENT_BRANCH: ${{ steps.issue.outputs.target_branch }}
+          CURRENT_CHECKOUT: ${{ steps.checkout_sha.outputs.sha }}
+        run: |
+          test -n "$EXPECTED_ISSUE"
+          test "$EXPECTED_ISSUE" = "$CURRENT_ISSUE"
+          test -n "$EXPECTED_BRANCH"
+          test "$EXPECTED_BRANCH" = "$CURRENT_BRANCH"
+          test -n "$EXPECTED_CHECKOUT"
+          test "$EXPECTED_CHECKOUT" = "$CURRENT_CHECKOUT"
+          output="$RUNNER_TEMP/claude-specs"
+          patch="$output/changes.patch"
+          test -f "$patch"
+          test ! -L "$patch"
+          test -f "$output/pr-metadata.json"
+          test ! -L "$output/pr-metadata.json"
+          git apply --check "$patch"
+          git apply "$patch"
+          git diff --check
+          cp "$output/pr-metadata.json" "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
+
       - name: validate-spec-output
         if: steps.issue.outputs.should_run == 'true'
         run: |

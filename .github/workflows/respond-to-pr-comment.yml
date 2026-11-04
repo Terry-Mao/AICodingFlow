@@ -749,6 +749,7 @@ jobs:
           test "$EXPECTED_PR" = "$CURRENT_PR"
           patch="$RUNNER_TEMP/claude-response/changes.patch"
           test -f "$patch"
+          test ! -L "$patch"
           if [ -s "$patch" ]; then
             git -C pr-worktree apply --check "$patch"
             git -C pr-worktree apply "$patch"
@@ -756,6 +757,7 @@ jobs:
           fi
           for file in implementation_summary.md pr-metadata.json resolved_review_comments.json; do
             if [ -f "$RUNNER_TEMP/claude-response/$file" ]; then
+              test ! -L "$RUNNER_TEMP/claude-response/$file"
               cp "$RUNNER_TEMP/claude-response/$file" "${{ steps.handoff.outputs.dir }}/$file"
             fi
           done

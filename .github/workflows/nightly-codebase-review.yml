@@ -158,7 +158,7 @@ jobs:
           claude_args: >-
             --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto
             --allowedTools Read,Glob,Grep
-            --disallowedTools Bash,Write,Edit
+            --disallowedTools Bash,Write,Edit,WebFetch,WebSearch
             --json-schema '{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","additionalProperties":true}}},"required":["findings"],"additionalProperties":false}'
           allowed_bots: "github-actions[bot]"
           prompt: *agent_prompt

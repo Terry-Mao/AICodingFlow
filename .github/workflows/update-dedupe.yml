@@ -28,6 +28,7 @@ concurrency:
 
 jobs:
   update:
+    if: vars.AI_PROVIDER != 'claude'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -116,6 +117,153 @@ jobs:
             Do not modify core dedupe-issue rules, workflows, scripts, tests, specs, or product code.
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
 
+      - name: apply-guidance-output
+        run: python3 .github/skills/update-dedupe/scripts/apply_guidance_output.py
+
+      - name: capture-dedupe-guidance-summary
+        id: guidance
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import uuid
+          from pathlib import Path
+
+          status = json.loads(Path("update-dedupe-output/status.json").read_text(encoding="utf-8"))
+          reason = str(status.get("reason") or "No evidence summary provided.").strip()
+          delimiter = f"dedupe_summary_{uuid.uuid4().hex}"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print(f"reason<<{delimiter}", file=output)
+              print(reason, file=output)
+              print(delimiter, file=output)
+          PY
+
+      - name: remove-temporary-feedback
+        run: rm -rf dedupe-feedback.json update-dedupe-output
+
+      - name: validate-write-surface
+        run: python3 .github/skills/update-dedupe/scripts/validate_write_surface.py
+
+      - name: check-for-guidance-changes
+        id: changes
+        run: |
+          if [ -z "$(git status --porcelain -- .github/skills/dedupe-issue-repo)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: create-or-update-pull-request
+        if: steps.changes.outputs.changed == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GUIDANCE_REASON: ${{ steps.guidance.outputs.reason }}
+          SOURCE_DAYS: ${{ inputs.days }}
+          SOURCE_ISSUE: ${{ inputs.issue || 'all recent duplicate closures' }}
+          SOURCE_REPO: ${{ inputs.repo || github.repository }}
+        run: |
+          branch="feat/update-dedupe"
+
+          repo_input="${{ inputs.repo }}"
+          if [ -z "$repo_input" ]; then
+            repo_input="${{ github.repository }}"
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
+          git switch -C "$branch"
+          git add .github/skills/dedupe-issue-repo
+          git commit -m "docs(skill): update dedupe guidance"
+          git push --force-with-lease origin "$branch"
+
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          python3 .github/scripts/write_update_dedupe_pr_body.py --output "$body_file"
+          python3 .github/scripts/complete_automated_pr_body.py --body-file "$body_file" --workflow-name "Update Dedupe Guidance" --risk 中
+
+          existing_pr="$(
+            gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
+              --repo "${{ github.repository }}" \
+              --title "Update dedupe guidance" \
+              --body-file "$body_file"
+          else
+            gh pr create \
+              --repo "${{ github.repository }}" \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$branch" \
+              --title "Update dedupe guidance" \
+              --body-file "$body_file"
+          fi
+
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --head-branch "feat/update-dedupe"
+
+  update_claude:
+    if: vars.AI_PROVIDER == 'claude'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: aggregate-duplicate-feedback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          repo_input="${{ inputs.repo }}"
+          if [ -z "$repo_input" ]; then
+            repo_input="${{ github.repository }}"
+          fi
+
+          args=(
+            --repo "$repo_input"
+            --days "${{ inputs.days }}"
+            --output dedupe-feedback.json
+          )
+
+          if [ -n "${{ inputs.issue }}" ]; then
+            args+=(--issue "${{ inputs.issue }}")
+          fi
+
+          python3 .github/skills/update-dedupe/scripts/aggregate_dedupe_feedback.py "${args[@]}"
+          python3 -m json.tool dedupe-feedback.json >/dev/null
+
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: prepare-guidance-output-directory
+        run: |
+          rm -rf update-dedupe-output
+          mkdir -p update-dedupe-output
+
       - name: update-local-dedupe-guidance-claude
         if: vars.AI_PROVIDER == 'claude'
         uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
@@ -123,9 +271,54 @@ jobs:
         with:
           github_token: ${{ github.token }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit --disallowedTools Bash,WebFetch,WebSearch
           allowed_bots: "github-actions[bot]"
           prompt: *agent_prompt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: update-dedupe-claude-${{ github.run_id }}
+          path: update-dedupe-output/
+          if-no-files-found: error
+
+  publish_claude:
+    needs: update_claude
+    if: needs.update_claude.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      issues: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: update-dedupe-claude-${{ github.run_id }}
+          path: update-dedupe-output
+
+      - name: validate-claude-guidance-artifact
+        run: |
+          python3 - <<'PYVALIDATE'
+          from pathlib import Path
+
+          root = Path("update-dedupe-output")
+          allowed = {'status.json', 'dedupe-issue-repo/SKILL.md'}
+          if not (root / "status.json").is_file():
+              raise SystemExit("Claude guidance status.json is missing")
+          for path in root.rglob("*"):
+              if path.is_symlink():
+                  raise SystemExit(f"Claude guidance contains a symlink: {path}")
+              if path.is_file():
+                  relative = path.relative_to(root).as_posix()
+                  if relative not in allowed or path.stat().st_size > 1_000_000:
+                      raise SystemExit(f"Unexpected Claude guidance file: {relative}")
+          PYVALIDATE
+
       - name: apply-guidance-output
         run: python3 .github/skills/update-dedupe/scripts/apply_guidance_output.py
 
