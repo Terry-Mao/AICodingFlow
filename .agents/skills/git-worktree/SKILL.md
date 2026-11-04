@@ -9,14 +9,33 @@ Use this when work should not disturb the current worktree. The new worktree
 does not copy uncommitted changes, and it does not change the user's shell
 directory.
 
+## Repository root
+
+Resolve the repository root first and build every path from it. Never rely on
+the caller's working directory: in a monorepo this skill is invoked from
+arbitrary subdirectories, and a relative path would nest `.worktrees/` under the
+subdirectory instead of the repository root.
+
+```bash
+repo_root=$(git rev-parse --show-toplevel) || {
+  echo "Not inside a Git repository; run this from a repository checkout." >&2
+  exit 1
+}
+target="$repo_root/.worktrees/<branch-name>"
+```
+
+Stop with a non-zero exit when `git rev-parse --show-toplevel` fails — do not
+invent a relative path as a fallback.
+
 ## Naming
 
 Use the `git-branch` naming rules: issue work is
 `<type>/<short-desc>-<issueID>`, other work uses a user-provided name, and no
 issue ID is invented. When an issue ID is provided, use one `gh issue view`
 call for naming context and continue from the request if it fails. Store the
-worktree at `.worktrees/<branch-name>` so branch path segments are preserved.
-The repository should ignore `.worktrees/`.
+worktree at `"$repo_root/.worktrees/<branch-name>"` so branch path segments are
+preserved and a subdirectory call still lands under the repository root. The
+repository should ignore `.worktrees/`.
 
 ## Base
 
@@ -77,18 +96,40 @@ to a `main` branch that does not exist.
 ## Create
 
 Before creating, check current status, existing worktrees/branches, and the
-target path. Stop if any target already exists or dirty-work intent is unclear.
-Validate the branch with `git check-ref-format --branch <branch-name>`, create
-parent directories as needed, resolve the base as shown above, then run the
-equivalent of:
+target path. Stop if the target already exists: never overwrite, reset, or
+reuse an existing worktree directory. Validate the branch with
+`git check-ref-format --branch <branch-name>`, resolve the base as shown above,
+then run the equivalent of:
 
 ```bash
-git worktree add --no-track -b <branch-name> .worktrees/<branch-name> "$base_ref"
+if [ -e "$target" ]; then
+  echo "Worktree target already exists: $target" >&2
+  echo "Pick another branch name, or remove the existing worktree yourself; this skill never overwrites." >&2
+  exit 1
+fi
+
+if ! git check-ignore -q "$target"; then
+  echo "warning: $target is not covered by .gitignore" >&2
+  echo "Add '.worktrees/' to the repository root .gitignore before creating the worktree." >&2
+fi
+
+mkdir -p "$(dirname "$target")"
+git worktree add --no-track -b <branch-name> "$target" "$base_ref"
 ```
 
-Verify the new worktree's branch, status, and `pwd`. Report its path, base,
-whether dirty changes were excluded, and the user's next step:
-`cd .worktrees/<branch-name>`.
+The ignore check only reports: this skill does not edit `.gitignore` itself.
+
+## Report
+
+Verify the new worktree's branch, status, and `pwd`. Report its absolute path,
+the base, whether dirty changes were excluded, and the user's next step:
+
+```bash
+cd "$repo_root/.worktrees/<branch-name>"
+```
+
+The worktree always lives at the repository root, no matter which subdirectory
+of the repository the skill was invoked from.
 
 Do not remove, prune, overwrite, reset, stash, push, or force anything unless
 explicitly asked. Do not create protected/shared base branches as targets.
