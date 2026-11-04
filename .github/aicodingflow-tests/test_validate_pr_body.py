@@ -94,6 +94,12 @@ class ValidatePrBodyTests(unittest.TestCase):
         self.assertEqual(validator.normalize_heading("Summary ## extra"), "summary ## extra")
         self.assertIsNone(validator.normalize_heading(""))
 
+    def test_empty_h2_does_not_fill_previous_section(self) -> None:
+        body = "## Summary\n##   \n## Testing\nPassed.\n## Risk\nLow.\n## How to revert\nRevert."
+        self.assertEqual(validator.section_contents(body)["summary"], "")
+        with self.assertRaisesRegex(SystemExit, "Summary"):
+            validator.validate_body(body)
+
 
 if __name__ == "__main__":
     unittest.main()

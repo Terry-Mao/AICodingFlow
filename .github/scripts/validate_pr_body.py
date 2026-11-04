@@ -66,11 +66,11 @@ def parse_sections(body: str) -> tuple[dict[str, str], dict[str, int]]:
             fence_length = len(opening.group(1))
             continue
         heading = HEADING.fullmatch(line)
-        name = normalize_heading(heading.group(1)) if heading else None
-        if name:
-            current_section = name
-            sections[current_section] = []
-            headings[current_section] = line_number
+        if heading:
+            current_section = normalize_heading(heading.group(1))
+            if current_section is not None:
+                sections[current_section] = []
+                headings[current_section] = line_number
         elif current_section is not None:
             sections[current_section].append(line)
     return {name: "\n".join(lines).strip() for name, lines in sections.items()}, headings
