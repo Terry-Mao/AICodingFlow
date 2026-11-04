@@ -102,6 +102,12 @@ class CodexModelProviderConfigTest(unittest.TestCase):
         self.assertLess(publisher["steps"].index(preserve), publisher["steps"].index(apply))
         self.assertIn('$RUNNER_TEMP/trusted-scripts/apply_implementation_output.py', apply["run"])
         self.assertIn('$RUNNER_TEMP/trusted-scripts/validate_implementation_output.py', validate["run"])
+        for job in (workflow["jobs"]["create-implementation"], publisher):
+            checkout_branch = next(step for step in job["steps"] if step.get("name") == "checkout-implementation-target-branch")
+            commit = next(step for step in job["steps"] if step.get("name") == "commit-and-push-implementation-branch")
+            self.assertEqual(checkout_branch["env"]["GH_TOKEN"], "${{ github.token }}")
+            self.assertIn('GIT_CONFIG_VALUE_0="!gh auth git-credential"', checkout_branch["run"])
+            self.assertEqual(commit["env"]["GITHUB_TOKEN"], "${{ github.token }}")
         self.assertNotIn(PINNED_CLAUDE_ACTION, str(publisher))
 
     def test_every_claude_action_runs_without_repository_write_permissions(self) -> None:

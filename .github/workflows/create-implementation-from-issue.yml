@@ -147,7 +147,11 @@ jobs:
         env:
           TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
           DEFAULT_BRANCH: ${{ steps.issue.outputs.default_branch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.helper
+          export GIT_CONFIG_VALUE_0="!gh auth git-credential"
           branch="$TARGET_BRANCH"
           default_branch="$DEFAULT_BRANCH"
 
@@ -332,6 +336,7 @@ jobs:
         id: implementation_branch
         env:
           WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/commit_implementation_branch.py \
             --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
@@ -683,7 +688,11 @@ jobs:
         env:
           TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
           DEFAULT_BRANCH: ${{ steps.issue.outputs.default_branch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.helper
+          export GIT_CONFIG_VALUE_0="!gh auth git-credential"
           branch="$TARGET_BRANCH"
           default_branch="$DEFAULT_BRANCH"
 
@@ -837,6 +846,7 @@ jobs:
         id: implementation_branch
         env:
           WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 "$RUNNER_TEMP/trusted-scripts/commit_implementation_branch.py" \
             --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
