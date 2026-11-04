@@ -43,6 +43,8 @@ jobs:
       number: ${{ steps.pr.outputs.number }}
       draft: ${{ steps.pr.outputs.draft }}
       head_repo: ${{ steps.pr.outputs.head_repo }}
+      head_sha: ${{ steps.pr.outputs.head_sha }}
+      base_sha: ${{ steps.pr.outputs.base_sha }}
       skip_reason: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head and base' || steps.pr.outputs.skip_reason }}
 
     steps:
@@ -101,6 +103,19 @@ jobs:
         run: |
           echo "PR #${{ steps.pr.outputs.number }}: ${{ steps.seen.outputs.already_reviewed == 'true' && 'already reviewed this head and base' || steps.pr.outputs.skip_reason }}; skipping AI review."
 
+      - name: mark-pr-review-status-pending
+        if: steps.pr.outputs.reviewable == 'true' && steps.seen.outputs.already_reviewed != 'true' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
+            -f state="pending" \
+            -f context="ai-pr-review" \
+            -f description="AI PR review is running" \
+            -f target_url="$RUN_URL"
+
       - name: restore-status-for-an-already-reviewed-snapshot
         if: steps.seen.outputs.already_reviewed == 'true' && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
         env:
@@ -118,6 +133,11 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.reviewable == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      diff_sha256: ${{ steps.diff_snapshot.outputs.sha256 }}
+    permissions:
+      contents: read
+      pull-requests: read
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -126,6 +146,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: set-up-python-for-markdown-parser
         if: github.event_name == 'issue_comment'
@@ -156,19 +177,6 @@ jobs:
             --output "$RUNNER_TEMP/pr_event.json" \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: mark-pr-review-status-pending
-        if: steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
-            -f state="pending" \
-            -f context="ai-pr-review" \
-            -f description="AI PR review is running" \
-            -f target_url="$RUN_URL"
-
       - name: checkout-pr-head
         uses: actions/checkout@v6
         with:
@@ -184,6 +192,7 @@ jobs:
         run: python3 .github/scripts/write_pr_description.py --output pr-worktree/pr_description.txt
 
       - name: snapshot-pr-diff
+        id: diff_snapshot
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -196,6 +205,7 @@ jobs:
             --head-sha "${{ steps.pr.outputs.head_sha }}" \
             --base-sha "${{ steps.pr.outputs.base_sha }}" \
             --output pr_diff.txt
+          echo "sha256=$(sha256sum pr_diff.txt | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
 
       - name: prepare-cross-run-review-round
         env:
@@ -249,11 +259,21 @@ jobs:
           cp -R .github/skills pr-worktree/.github/skills
 
       - name: install-codex-sandbox-prerequisites
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
       - name: configure-codex-api-endpoint
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -270,6 +290,7 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: run-ai-review
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1.11
         timeout-minutes: 20
         with:
@@ -277,9 +298,9 @@ jobs:
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
           allow-bots: true
-          prompt: |
-            First change directory to pr-worktree and do all file inspection from there.
-            Read ${{ steps.review_skill.outputs.path }} in pr-worktree and follow it exactly.
+          prompt: &agent_prompt |
+            Inspect files under pr-worktree. Read
+            pr-worktree/${{ steps.review_skill.outputs.path }} and follow it exactly.
             Read .agents/contracts/review.md in pr-worktree and treat it as the
             shared review contract. The selected skill may add review focus but
             must not override the contract.
@@ -306,6 +327,16 @@ jobs:
             Do not run git commands, call GitHub APIs, post reviews, or modify files
             other than review.json.
 
+      - name: run-ai-review-claude
+        if: vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit --disallowedTools Bash,WebFetch,WebSearch
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
       - name: normalize-review-output-path
         run: |
           if [ ! -f pr-worktree/review.json ] && [ -f review.json ]; then
@@ -314,13 +345,6 @@ jobs:
 
       - name: validate-review-output
         run: python3 .github/scripts/validate_review_json.py pr-worktree/pr_diff.txt pr-worktree/review.json
-
-      - name: post-pr-review
-        env:
-          PR_EVENT_PATH: ${{ steps.pr.outputs.event_path }}
-          GITHUB_TOKEN: ${{ github.token }}
-          REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
-        run: python3 .github/scripts/post_pr_review.py --review pr-worktree/review.json --diff pr-worktree/pr_diff.txt
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -335,14 +359,58 @@ jobs:
             pr-worktree/review_incremental_diff.txt
             pr-worktree/review.json
 
-      - name: mark-pr-review-status-complete
-        if: always() && steps.pr.outputs.head_sha != '' && steps.pr.outputs.head_repo == github.repository
+  publish:
+    needs: [preflight, review]
+    if: always() && needs.preflight.outputs.reviewable == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v7
+        if: needs.review.result == 'success'
+        with:
+          name: pr-review-${{ github.run_id }}
+          path: pr-worktree
+
+      - name: verify-review-snapshot
+        if: needs.review.result == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          PR_NUMBER: ${{ needs.preflight.outputs.number }}
+          HEAD_SHA: ${{ needs.preflight.outputs.head_sha }}
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          DIFF_SHA256: ${{ needs.review.outputs.diff_sha256 }}
+        run: |
+          echo "$DIFF_SHA256  pr-worktree/pr_diff.txt" | sha256sum --check
+          gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" > "$RUNNER_TEMP/pr.json"
+          jq -e --arg head "$HEAD_SHA" --arg base "$BASE_SHA" \
+            '.head.sha == $head and .base.sha == $base' "$RUNNER_TEMP/pr.json"
+          jq -n --slurpfile pr "$RUNNER_TEMP/pr.json" '{pull_request: $pr[0]}' > "$RUNNER_TEMP/pr_event.json"
+
+      - name: post-pr-review
+        if: needs.review.result == 'success'
+        env:
+          PR_EVENT_PATH: ${{ runner.temp }}/pr_event.json
+          GITHUB_TOKEN: ${{ github.token }}
+          REVIEW_BOT_LOGIN: ${{ vars.REVIEW_BOT_LOGIN }}
+        run: |
+          python3 .github/scripts/validate_review_json.py pr-worktree/pr_diff.txt pr-worktree/review.json
+          python3 .github/scripts/post_pr_review.py --review pr-worktree/review.json --diff pr-worktree/pr_diff.txt
+
+      - name: mark-pr-review-status-complete
+        if: always() && needs.preflight.outputs.head_sha != '' && needs.preflight.outputs.head_repo == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ needs.preflight.outputs.head_sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
-          DESCRIPTION: ${{ job.status == 'success' && 'AI PR review completed' || 'AI PR review failed' }}
+          STATE: ${{ needs.review.result == 'success' && job.status == 'success' && 'success' || 'failure' }}
+          DESCRIPTION: ${{ needs.review.result == 'success' && job.status == 'success' && 'AI PR review completed' || 'AI PR review failed' }}
         run: |
           gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" \
             -f state="$STATE" \

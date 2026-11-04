@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import unittest
 
+import yaml
+
 from script_imports import ROOT
 
 
@@ -14,8 +16,10 @@ CODEX_WORKFLOWS = (
     ".github/workflows/update-dedupe.yml",
     ".github/workflows/update-pr-review.yml",
     ".github/workflows/update-triage.yml",
+    ".github/workflows/nightly-codebase-review.yml",
 )
 PINNED_REVIEW_ACTION = "uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56"
+PINNED_CLAUDE_ACTION = "anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c"
 
 
 class CodexModelProviderConfigTest(unittest.TestCase):
@@ -37,6 +41,135 @@ class CodexModelProviderConfigTest(unittest.TestCase):
                 self.assertIn("*/responses", contents)
                 self.assertIn("$endpoint/responses", contents)
                 self.assertIn("CODEX_API_ENDPOINT is not set", contents)
+                self.assertIn(f"uses: {PINNED_CLAUDE_ACTION}", contents)
+                self.assertIn("anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}", contents)
+                self.assertIn("claude_args:", contents)
+                self.assertIn("prompt: &agent_prompt |", contents)
+                self.assertIn("prompt: *agent_prompt", contents)
+                self.assertIn("vars.AI_PROVIDER == 'claude'", contents)
+                self.assertIn("vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'", contents)
+                self.assertIn(".github/scripts/validate_ai_provider.py", contents)
+
+    def test_nightly_review_normalizes_both_provider_outputs(self) -> None:
+        contents = (ROOT / ".github/workflows/nightly-codebase-review.yml").read_text(encoding="utf-8")
+        self.assertIn("steps.codex.outputs.final-message || steps.claude.outputs.structured_output", contents)
+        self.assertIn("--json-schema", contents)
+        self.assertIn("--allowedTools Read,Glob,Grep", contents)
+
+    def test_both_actions_receive_the_same_prompt_and_exclusive_gates(self) -> None:
+        for path in CODEX_WORKFLOWS:
+            with self.subTest(path=path):
+                workflow = yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
+                all_steps = [step for job in workflow["jobs"].values() for step in job.get("steps", [])]
+                claude = next(step for step in all_steps if step.get("uses") == PINNED_CLAUDE_ACTION)
+                for job in workflow["jobs"].values():
+                    steps = job.get("steps", [])
+                    codex = next((step for step in steps if str(step.get("uses", "")).startswith("openai/codex-action@")), None)
+                    if codex is None:
+                        continue
+                    self.assertEqual(codex["with"]["prompt"], claude["with"]["prompt"])
+                    self.assertIn("AI_PROVIDER == 'codex'", codex["if"])
+                    self.assertIn("AI_PROVIDER == 'claude'", claude["if"])
+
+    def test_pr_comment_claude_uses_read_only_job_and_validated_publisher(self) -> None:
+        workflow = yaml.safe_load((ROOT / ".github/workflows/respond-to-pr-comment.yml").read_text(encoding="utf-8"))
+        reader = workflow["jobs"]["respond_claude"]
+        publisher = workflow["jobs"]["publish_claude"]
+        self.assertEqual(reader["permissions"], {"contents": "read", "issues": "read", "pull-requests": "read"})
+        self.assertEqual(publisher["permissions"]["contents"], "write")
+        self.assertEqual(publisher["needs"], ["preflight", "respond_claude"])
+        claude = next(step for step in reader["steps"] if step.get("uses") == PINNED_CLAUDE_ACTION)
+        self.assertIn("--disallowedTools Bash,WebFetch,WebSearch", claude["with"]["claude_args"])
+        self.assertNotIn("gh auth setup-git", str(reader))
+        self.assertIn("git -C pr-worktree apply --check", str(publisher))
+        self.assertIn("validate_pr_comment_result.py", str(publisher))
+        self.assertNotIn(PINNED_CLAUDE_ACTION, str(publisher))
+
+    def test_implementation_claude_uses_read_only_job_and_validated_publisher(self) -> None:
+        workflow = yaml.safe_load((ROOT / ".github/workflows/create-implementation-from-issue.yml").read_text(encoding="utf-8"))
+        reader = workflow["jobs"]["implement_claude"]
+        publisher = workflow["jobs"]["publish_claude_implementation"]
+        self.assertEqual(reader["permissions"], {"contents": "read", "issues": "read", "pull-requests": "read"})
+        self.assertEqual(publisher["permissions"]["contents"], "write")
+        self.assertEqual(publisher["needs"], "implement_claude")
+        claude = next(step for step in reader["steps"] if step.get("uses") == PINNED_CLAUDE_ACTION)
+        self.assertIn("--disallowedTools Bash,WebFetch,WebSearch", claude["with"]["claude_args"])
+        self.assertIn("git diff --cached --binary", str(reader))
+        self.assertIn("git apply --check", str(publisher))
+        preserve = next(step for step in publisher["steps"] if step.get("name") == "preserve-trusted-implementation-scripts")
+        apply = next(step for step in publisher["steps"] if step.get("name") == "apply-implementation-output")
+        validate = next(step for step in publisher["steps"] if step.get("name") == "validate-implementation-output")
+        self.assertLess(publisher["steps"].index(preserve), publisher["steps"].index(apply))
+        self.assertIn('$RUNNER_TEMP/trusted-scripts/apply_implementation_output.py', apply["run"])
+        self.assertIn('$RUNNER_TEMP/trusted-scripts/validate_implementation_output.py', validate["run"])
+        for job in (workflow["jobs"]["create-implementation"], publisher):
+            checkout_branch = next(step for step in job["steps"] if step.get("name") == "checkout-implementation-target-branch")
+            commit = next(step for step in job["steps"] if step.get("name") == "commit-and-push-implementation-branch")
+            self.assertEqual(checkout_branch["env"]["GH_TOKEN"], "${{ github.token }}")
+            self.assertIn('GIT_CONFIG_VALUE_0="!gh auth git-credential"', checkout_branch["run"])
+            self.assertEqual(commit["env"]["GITHUB_TOKEN"], "${{ github.token }}")
+        self.assertNotIn(PINNED_CLAUDE_ACTION, str(publisher))
+
+    def test_every_claude_action_runs_without_repository_write_permissions(self) -> None:
+        for path in CODEX_WORKFLOWS:
+            with self.subTest(path=path):
+                workflow = yaml.safe_load((ROOT / path).read_text(encoding="utf-8"))
+                agents = [
+                    (job, step)
+                    for job in workflow["jobs"].values()
+                    for step in job.get("steps", [])
+                    if step.get("uses") == PINNED_CLAUDE_ACTION
+                ]
+                self.assertEqual(len(agents), 1)
+                job, step = agents[0]
+                permissions = job.get("permissions", workflow.get("permissions", {}))
+                self.assertFalse(any(value == "write" for value in permissions.values()))
+                self.assertIn("Bash", step["with"]["claude_args"].split("--disallowedTools ", 1)[1])
+                checkouts = [
+                    item for item in job["steps"]
+                    if str(item.get("uses", "")).startswith("actions/checkout@")
+                ]
+                self.assertTrue(checkouts)
+                for checkout in checkouts:
+                    self.assertIs(checkout.get("with", {}).get("persist-credentials"), False)
+
+    def test_guidance_update_claude_jobs_publish_validated_artifacts(self) -> None:
+        for name in ("update-dedupe", "update-pr-review", "update-triage"):
+            with self.subTest(name=name):
+                workflow = yaml.safe_load((ROOT / ".github/workflows" / f"{name}.yml").read_text(encoding="utf-8"))
+                reader = workflow["jobs"]["update_claude"]
+                publisher = workflow["jobs"]["publish_claude"]
+                checkout = reader["steps"][0]
+                self.assertIs(checkout["with"]["persist-credentials"], False)
+                self.assertEqual(publisher["needs"], "update_claude")
+                self.assertIn("apply_guidance_output.py", str(publisher))
+                self.assertIn("validate_write_surface.py", str(publisher))
+                self.assertNotIn(PINNED_CLAUDE_ACTION, str(publisher))
+
+    def test_spec_claude_uses_read_only_job_and_validated_publisher(self) -> None:
+        workflow = yaml.safe_load((ROOT / ".github/workflows/create-spec-from-issue.yml").read_text(encoding="utf-8"))
+        reader = workflow["jobs"]["create_spec_claude"]
+        publisher = workflow["jobs"]["publish_claude_spec"]
+        self.assertEqual(reader["permissions"], {"contents": "read", "issues": "read", "pull-requests": "read"})
+        self.assertEqual(publisher["permissions"]["contents"], "write")
+        self.assertIs(reader["steps"][0]["with"]["persist-credentials"], False)
+        self.assertIn("git add -A -- specs", str(reader))
+        self.assertIn("git apply --check", str(publisher))
+        self.assertIn("validate_spec_output.py", str(publisher))
+        self.assertNotIn(PINNED_CLAUDE_ACTION, str(publisher))
+
+    def test_triage_publisher_verifies_context_from_before_agent_run(self) -> None:
+        workflow = yaml.safe_load((ROOT / ".github/workflows/triage-issue.yml").read_text(encoding="utf-8"))
+        generator = workflow["jobs"]["generate"]
+        publisher = workflow["jobs"]["apply"]
+        self.assertEqual(generator["outputs"]["context_sha256"], "${{ steps.context_snapshot.outputs.sha256 }}")
+        snapshot = next(step for step in generator["steps"] if step.get("name") == "snapshot-triage-context")
+        agent = next(step for step in generator["steps"] if step.get("uses") == PINNED_CLAUDE_ACTION)
+        verify = next(step for step in publisher["steps"] if step.get("name") == "verify-triage-context")
+        apply = next(step for step in publisher["steps"] if step.get("name") == "apply-triage-result")
+        self.assertLess(generator["steps"].index(snapshot), generator["steps"].index(agent))
+        self.assertLess(publisher["steps"].index(verify), publisher["steps"].index(apply))
+        self.assertIn("sha256sum --check", verify["run"])
 
     def test_workflows_do_not_read_the_legacy_endpoint_environment_directly(self) -> None:
         for path in CODEX_WORKFLOWS:

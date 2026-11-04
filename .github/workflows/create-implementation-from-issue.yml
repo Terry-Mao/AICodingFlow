@@ -28,17 +28,19 @@ concurrency:
 jobs:
   create-implementation:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
       (
-        github.event.issue.pull_request == null &&
+        github.event_name == 'workflow_dispatch' ||
         (
-          (github.event_name == 'issue_comment' && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
-          (github.event.action == 'labeled' && github.event.label.name == 'ready-to-implement' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
-          (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-implement'))
+          github.event.issue.pull_request == null &&
+          (
+            (github.event_name == 'issue_comment' && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
+            (github.event.action == 'labeled' && github.event.label.name == 'ready-to-implement' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
+            (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-implement'))
+          )
+          &&
+          contains(github.event.issue.labels.*.name, 'ready-to-implement')
         )
-        &&
-        contains(github.event.issue.labels.*.name, 'ready-to-implement')
-      )
+      ) && vars.AI_PROVIDER != 'claude'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -49,6 +51,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
 
       - name: prepare-workflow-handoff-directory
         id: handoff
@@ -95,13 +98,22 @@ jobs:
             --message "${{ steps.issue.outputs.noop_reason }}"
 
       - name: install-codex-sandbox-prerequisites
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: configure-codex-api-endpoint
+      - name: validate-ai-provider
         if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: configure-codex-api-endpoint
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -135,7 +147,11 @@ jobs:
         env:
           TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
           DEFAULT_BRANCH: ${{ steps.issue.outputs.default_branch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.helper
+          export GIT_CONFIG_VALUE_0="!gh auth git-credential"
           branch="$TARGET_BRANCH"
           default_branch="$DEFAULT_BRANCH"
 
@@ -154,13 +170,13 @@ jobs:
           mkdir -p "${{ steps.handoff.outputs.dir }}/implementation-output"
 
       - name: implement-issue
-        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
-          prompt: |
+          prompt: &agent_prompt |
             Implement the GitHub issue from the stable local context files.
 
             This workflow is the implementation phase of the spec-driven
@@ -320,6 +336,7 @@ jobs:
         id: implementation_branch
         env:
           WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/commit_implementation_branch.py \
             --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
@@ -382,6 +399,516 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/update_implementation_progress.py \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --status "ready for review" \
+            --message "Review the implementation changes in the PR. Complete any manual verification needed before merging." \
+            --pr-url "${{ steps.pr.outputs.pr_url }}"
+
+      - name: fail-after-reporting-invalid-implementation-output
+        if: steps.validate.outcome == 'failure'
+        run: exit 1
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: create-implementation-from-issue-${{ github.run_id }}
+          path: |
+            ${{ steps.handoff.outputs.dir }}/issue_context.json
+            ${{ steps.handoff.outputs.dir }}/issue_comments.txt
+            ${{ steps.handoff.outputs.dir }}/spec_context.md
+            ${{ steps.handoff.outputs.dir }}/branch-start-shas.json
+            ${{ steps.handoff.outputs.dir }}/implementation_summary.md
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json
+            ${{ steps.handoff.outputs.dir }}/implementation-output
+            ${{ steps.handoff.outputs.dir }}/validation-output.txt
+            ${{ steps.handoff.outputs.dir }}/validation-error.txt
+
+  implement_claude:
+    if: >-
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.issue.pull_request == null &&
+          (
+            (github.event_name == 'issue_comment' && (inputs.agent_login != '' || vars.AGENT_LOGIN != '') && contains(github.event.comment.body, format('@{0}', inputs.agent_login || vars.AGENT_LOGIN))) ||
+            (github.event.action == 'labeled' && github.event.label.name == 'ready-to-implement' && contains(github.event.issue.assignees.*.login, inputs.agent_login || vars.AGENT_LOGIN)) ||
+            (github.event.action == 'assigned' && github.event.assignee.login == (inputs.agent_login || vars.AGENT_LOGIN) && contains(github.event.issue.labels.*.name, 'ready-to-implement'))
+          ) &&
+          contains(github.event.issue.labels.*.name, 'ready-to-implement')
+        )
+      ) && vars.AI_PROVIDER == 'claude'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      should_run: ${{ steps.issue.outputs.should_run }}
+      should_noop: ${{ steps.issue.outputs.should_noop }}
+      issue_number: ${{ steps.issue.outputs.issue_number }}
+      target_branch: ${{ steps.issue.outputs.target_branch }}
+      branch_start_sha: ${{ steps.branch_start.outputs.sha }}
+      checkout_sha: ${{ steps.checkout_sha.outputs.sha }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: prepare-workflow-handoff-directory
+        id: handoff
+        run: |
+          dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: prepare-implementation-context
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.AGENT_LOGIN }}
+        run: |
+          python3 .github/scripts/prepare_issue_implementation_context.py \
+            --repo "${{ github.repository }}" \
+            --issue "$ISSUE_NUMBER" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --agent-login "$AGENT_LOGIN" \
+            --output "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --comments-output "${{ steps.handoff.outputs.dir }}/issue_comments.txt" \
+            --spec-context-output "${{ steps.handoff.outputs.dir }}/spec_context.md" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: stop-when-issue-is-not-ready
+        if: steps.issue.outputs.should_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "${{ steps.issue.outputs.skip_reason }}"
+
+      - name: validate-ai-provider
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: capture-implementation-branch-start-shas
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        id: branch_start
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
+        run: |
+          python3 .github/scripts/read_branch_sha.py \
+            --repo "${{ github.repository }}" \
+            --branch "$TARGET_BRANCH" \
+            --snapshot-output "${{ steps.handoff.outputs.dir }}/branch-start-shas.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: checkout-implementation-target-branch
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        env:
+          TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
+          DEFAULT_BRANCH: ${{ steps.issue.outputs.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.helper
+          export GIT_CONFIG_VALUE_0="!gh auth git-credential"
+          branch="$TARGET_BRANCH"
+          default_branch="$DEFAULT_BRANCH"
+
+          git fetch origin "+refs/heads/$default_branch:refs/remotes/origin/$default_branch"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch"
+            git switch -C "$branch" "origin/$branch"
+          else
+            git switch -C "$branch" "origin/$default_branch"
+          fi
+
+      - name: prepare-implementation-output-directory
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        run: |
+          rm -rf "${{ steps.handoff.outputs.dir }}/implementation-output"
+          mkdir -p "${{ steps.handoff.outputs.dir }}/implementation-output"
+
+      - name: record-implementation-checkout-sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        id: checkout_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: implement-issue-claude
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit --disallowedTools Bash,WebFetch,WebSearch
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
+      - name: export-claude-implementation
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        run: |
+          output="$RUNNER_TEMP/claude-implementation"
+          mkdir -p "$output"
+          git add -A -- . ':(exclude).codex-runtime/**'
+          git diff --cached --binary --full-index > "$output/changes.patch"
+          for file in implementation_summary.md pr-metadata.json; do
+            if [ -f "${{ steps.handoff.outputs.dir }}/$file" ]; then
+              cp "${{ steps.handoff.outputs.dir }}/$file" "$output/$file"
+            fi
+          done
+          if [ -d "${{ steps.handoff.outputs.dir }}/implementation-output" ]; then
+            cp -R "${{ steps.handoff.outputs.dir }}/implementation-output" "$output/implementation-output"
+          fi
+
+      - name: validate-claude-implementation-artifact
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        env:
+          OUTPUT_DIR: ${{ runner.temp }}/claude-implementation/implementation-output
+        run: |
+          python3 - <<'PYVALIDATE'
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["OUTPUT_DIR"])
+          if root.exists():
+              for path in root.rglob("*"):
+                  if path.is_symlink():
+                      raise SystemExit(f"Claude output contains a symlink: {path}")
+                  if path.is_file():
+                      parts = path.relative_to(root).parts
+                      if not (parts[0] == ".agents" or parts[:2] == (".github", "skills")):
+                          raise SystemExit(f"Unexpected Claude output file: {path}")
+                      if path.stat().st_size > 1_000_000:
+                          raise SystemExit(f"Claude output file is too large: {path}")
+          PYVALIDATE
+
+      - uses: actions/upload-artifact@v7
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        with:
+          name: create-implementation-claude-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-implementation/
+          include-hidden-files: true
+          if-no-files-found: error
+
+  publish_claude_implementation:
+    needs: implement_claude
+    if: needs.implement_claude.result == 'success' && needs.implement_claude.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: prepare-workflow-handoff-directory
+        id: handoff
+        run: |
+          dir="$GITHUB_WORKSPACE/.codex-runtime/handoff"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: prepare-implementation-context
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
+          AGENT_LOGIN: ${{ inputs.agent_login || vars.AGENT_LOGIN }}
+        run: |
+          python3 .github/scripts/prepare_issue_implementation_context.py \
+            --repo "${{ github.repository }}" \
+            --issue "$ISSUE_NUMBER" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --agent-login "$AGENT_LOGIN" \
+            --output "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --comments-output "${{ steps.handoff.outputs.dir }}/issue_comments.txt" \
+            --spec-context-output "${{ steps.handoff.outputs.dir }}/spec_context.md" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: stop-when-issue-is-not-ready
+        if: steps.issue.outputs.should_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "${{ steps.issue.outputs.skip_reason }}"
+
+      - name: stop-when-approved-plan-is-missing
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/update_implementation_progress.py \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --status "blocked" \
+            --message "${{ steps.issue.outputs.noop_reason }}"
+
+      - name: preserve-trusted-implementation-scripts
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        run: cp -R .github/scripts "$RUNNER_TEMP/trusted-scripts"
+
+      - name: capture-implementation-branch-start-shas
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        id: branch_start
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
+        run: |
+          python3 .github/scripts/read_branch_sha.py \
+            --repo "${{ github.repository }}" \
+            --branch "$TARGET_BRANCH" \
+            --snapshot-output "${{ steps.handoff.outputs.dir }}/branch-start-shas.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: checkout-implementation-target-branch
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        env:
+          TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
+          DEFAULT_BRANCH: ${{ steps.issue.outputs.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.helper
+          export GIT_CONFIG_VALUE_0="!gh auth git-credential"
+          branch="$TARGET_BRANCH"
+          default_branch="$DEFAULT_BRANCH"
+
+          git fetch origin "+refs/heads/$default_branch:refs/remotes/origin/$default_branch"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch"
+            git switch -C "$branch" "origin/$branch"
+          else
+            git switch -C "$branch" "origin/$default_branch"
+          fi
+
+      - name: prepare-implementation-output-directory
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        run: |
+          rm -rf "${{ steps.handoff.outputs.dir }}/implementation-output"
+          mkdir -p "${{ steps.handoff.outputs.dir }}/implementation-output"
+
+      - name: record-implementation-checkout-sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        id: checkout_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v7
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        with:
+          name: create-implementation-claude-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-implementation
+
+      - name: verify-and-apply-claude-implementation
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        env:
+          EXPECTED_ISSUE: ${{ needs.implement_claude.outputs.issue_number }}
+          EXPECTED_BRANCH: ${{ needs.implement_claude.outputs.target_branch }}
+          EXPECTED_START: ${{ needs.implement_claude.outputs.branch_start_sha }}
+          EXPECTED_CHECKOUT: ${{ needs.implement_claude.outputs.checkout_sha }}
+          CURRENT_ISSUE: ${{ steps.issue.outputs.issue_number }}
+          CURRENT_BRANCH: ${{ steps.issue.outputs.target_branch }}
+          CURRENT_START: ${{ steps.branch_start.outputs.sha }}
+          CURRENT_CHECKOUT: ${{ steps.checkout_sha.outputs.sha }}
+        run: |
+          test -n "$EXPECTED_ISSUE"
+          test "$EXPECTED_ISSUE" = "$CURRENT_ISSUE"
+          test -n "$EXPECTED_BRANCH"
+          test "$EXPECTED_BRANCH" = "$CURRENT_BRANCH"
+          test "$EXPECTED_START" = "$CURRENT_START"
+          test -n "$EXPECTED_CHECKOUT"
+          test "$EXPECTED_CHECKOUT" = "$CURRENT_CHECKOUT"
+          output="$RUNNER_TEMP/claude-implementation"
+          patch="$output/changes.patch"
+          test -f "$patch"
+          test ! -L "$patch"
+          if [ -s "$patch" ]; then
+            git apply --check "$patch"
+            git apply "$patch"
+            git diff --check
+          fi
+          for file in implementation_summary.md pr-metadata.json; do
+            if [ -f "$output/$file" ]; then
+              test ! -L "$output/$file"
+              cp "$output/$file" "${{ steps.handoff.outputs.dir }}/$file"
+            fi
+          done
+          if [ -d "$output/implementation-output" ]; then
+            test ! -L "$output/implementation-output"
+            if [ -n "$(find "$output/implementation-output" -type l -print -quit)" ]; then
+              echo "Claude implementation output contains a symlink" >&2
+              exit 1
+            fi
+            cp -R "$output/implementation-output/." "${{ steps.handoff.outputs.dir }}/implementation-output/"
+          fi
+
+      - name: apply-implementation-output
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/apply_implementation_output.py" \
+            --output-dir "${{ steps.handoff.outputs.dir }}/implementation-output" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json"
+
+      - name: check-implementation-worktree-changes
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true'
+        id: worktree
+        run: |
+          changed="$(git status --porcelain=v1 --untracked-files=all -- \
+            ':!.codex-runtime' \
+            ':!.codex-runtime/**')"
+          if [ -n "$changed" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: stop-when-implementation-produced-no-diff
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/update_implementation_progress.py" \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --status "no changes" \
+            --message "I analyzed this issue but did not produce an implementation diff."
+
+      - name: validate-implementation-output
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true'
+        id: validate
+        continue-on-error: true
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/validate_implementation_output.py" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            > "${{ steps.handoff.outputs.dir }}/validation-output.txt" \
+            2> "${{ steps.handoff.outputs.dir }}/validation-error.txt"
+
+      - name: update-progress-comment-for-invalid-implementation-output
+        if: steps.validate.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/update_implementation_progress.py" \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --status "failed" \
+            --message-file "${{ steps.handoff.outputs.dir }}/validation-error.txt"
+
+      - name: check-whether-workflow-update-token-is-required
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
+        id: workflow_update
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+
+          with open("${{ steps.handoff.outputs.dir }}/pr-metadata.json", encoding="utf-8") as handle:
+              metadata = json.load(handle)
+          intended_files = metadata.get("intended_files") or []
+          required = any(str(path).startswith(".github/workflows/") for path in intended_files)
+          print(f"required={str(required).lower()}")
+          PY
+
+      - name: create-github-app-token-for-workflow-updates
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.workflow_update.outputs.required == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+
+      - name: commit-and-push-implementation-branch
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
+        id: implementation_branch
+        env:
+          WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/commit_implementation_branch.py" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: stop-when-implementation-produced-no-committable-diff
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/update_implementation_progress.py" \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --status "no changes" \
+            --message "I analyzed this issue but did not produce a committable implementation diff."
+
+      - name: capture-target-branch-end-sha
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'
+        id: branch_end
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ steps.issue.outputs.target_branch }}
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/read_branch_sha.py" \
+            --repo "${{ github.repository }}" \
+            --branch "$TARGET_BRANCH" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --snapshot "${{ steps.handoff.outputs.dir }}/branch-start-shas.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: create-or-update-implementation-pull-request
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/finalize_implementation_pr.py" \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outputs.pr_url != '' && (steps.pr.outputs.created == 'true' || steps.workflow_update.outputs.required != 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+          PR_CREATED: ${{ steps.pr.outputs.created }}
+        run: |
+          args=(--repo "${{ github.repository }}" --pr-url "$PR_URL")
+          if [ "$PR_CREATED" = true ]; then
+            args+=(--allow-draft)
+          fi
+          python3 "$RUNNER_TEMP/trusted-scripts/dispatch_pr_review.py" "${args[@]}"
+
+      - name: update-progress-comment
+        if: steps.issue.outputs.should_run == 'true' && steps.issue.outputs.should_noop != 'true' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.implementation_branch.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 "$RUNNER_TEMP/trusted-scripts/update_implementation_progress.py" \
             --repo "${{ github.repository }}" \
             --context "${{ steps.handoff.outputs.dir }}/issue_context.json" \
             --status "ready for review" \

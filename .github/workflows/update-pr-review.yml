@@ -32,6 +32,7 @@ concurrency:
 
 jobs:
   update:
+    if: vars.AI_PROVIDER != 'claude'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -74,11 +75,21 @@ jobs:
           python3 .github/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
 
       - name: install-codex-sandbox-prerequisites
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
       - name: configure-codex-api-endpoint
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -100,12 +111,13 @@ jobs:
           mkdir -p update-pr-review-output
 
       - name: update-local-review-guidance
+        if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
-          prompt: |
+          prompt: &agent_prompt |
             Read .github/skills/update-pr-review/SKILL.md and follow it exactly.
             Use feedback.json as the aggregated review feedback.
             Do not edit .agents directly; it may be read-only in this sandbox.
@@ -117,6 +129,206 @@ jobs:
             Use agent_comments only as context. Do not update guidance from agent_comments alone.
             Do not run git commands, commit, push, create PRs, or invoke GitHub APIs.
             Do not modify core skills, workflow files, scripts, tests, or product code.
+
+      - name: apply-guidance-output
+        run: python3 .github/skills/update-pr-review/scripts/apply_guidance_output.py
+
+      - name: remove-temporary-feedback
+        run: rm -rf feedback.json update-pr-review-output
+
+      - name: validate-write-surface
+        run: python3 .github/skills/update-pr-review/scripts/validate_write_surface.py
+
+      - name: check-for-guidance-changes
+        id: changes
+        run: |
+          if [ -z "$(git status --porcelain -- .github/skills/review-pr-repo .github/skills/review-spec-repo)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: create-or-update-pull-request
+        if: steps.changes.outputs.changed == 'true'
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="feat/update-pr-review"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch" || true
+          git switch -C "$branch"
+          for path in \
+            .github/skills/review-pr-repo/SKILL.md \
+            .github/skills/review-spec-repo/SKILL.md; do
+            if [ -f "$path" ]; then
+              git add -- "$path"
+            fi
+          done
+          git commit -m "docs(skill): update PR review guidance"
+          git push --force-with-lease origin "$branch"
+
+          body="$(cat <<'EOF'
+          Updates repo-local PR review guidance from recent human review feedback.
+
+          Source:
+          - days: ${{ inputs.days }}
+          - pr: ${{ inputs.pr || 'all recent PRs' }}
+          - agent_login: ${{ inputs.agent_login || 'default' }}
+          - include_bots: ${{ inputs.include_bots }}
+          EOF
+          )"
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          printf '%s\n' "$body" > "$body_file"
+          python3 .github/scripts/complete_automated_pr_body.py --body-file "$body_file" --workflow-name "Update PR Review Guidance" --risk 中
+
+          existing_pr="$(
+            gh pr list \
+              --repo "${{ github.repository }}" \
+              --head "$branch" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" \
+              --repo "${{ github.repository }}" \
+              --title "Update PR review guidance" \
+              --body-file "$body_file"
+          else
+            gh pr create \
+              --repo "${{ github.repository }}" \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$branch" \
+              --title "Update PR review guidance" \
+              --body-file "$body_file"
+          fi
+
+      - name: dispatch-ai-pr-review
+        if: steps.pr.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --head-branch "feat/update-pr-review"
+
+  update_claude:
+    if: vars.AI_PROVIDER == 'claude'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: aggregate-review-feedback
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(
+            --repo "${{ github.repository }}"
+            --days "${{ inputs.days }}"
+            --output feedback.json
+          )
+
+          agent_login_input="${{ inputs.agent_login }}"
+          if [ -n "$agent_login_input" ]; then
+            IFS=',' read -ra agent_logins <<< "$agent_login_input"
+            for login in "${agent_logins[@]}"; do
+              login="${login#"${login%%[![:space:]]*}"}"
+              login="${login%"${login##*[![:space:]]}"}"
+              if [ -n "$login" ]; then
+                args+=(--agent-login "$login")
+              fi
+            done
+          fi
+
+          if [ -n "${{ inputs.pr }}" ]; then
+            args+=(--pr "${{ inputs.pr }}")
+          fi
+
+          if [ "${{ inputs.include_bots }}" = "true" ]; then
+            args+=(--include-bots)
+          fi
+
+          python3 .github/skills/update-pr-review/scripts/aggregate_review_feedback.py "${args[@]}"
+
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: prepare-guidance-output-directory
+        run: |
+          rm -rf update-pr-review-output
+          mkdir -p update-pr-review-output
+
+      - name: update-local-review-guidance-claude
+        if: vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit --disallowedTools Bash,WebFetch,WebSearch
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: update-pr-review-claude-${{ github.run_id }}
+          path: update-pr-review-output/
+          if-no-files-found: error
+
+  publish_claude:
+    needs: update_claude
+    if: needs.update_claude.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      issues: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: update-pr-review-claude-${{ github.run_id }}
+          path: update-pr-review-output
+
+      - name: validate-claude-guidance-artifact
+        run: |
+          python3 - <<'PYVALIDATE'
+          from pathlib import Path
+
+          root = Path("update-pr-review-output")
+          allowed = {'status.json', 'review-pr-repo/SKILL.md', 'review-spec-repo/SKILL.md'}
+          if not (root / "status.json").is_file():
+              raise SystemExit("Claude guidance status.json is missing")
+          for path in root.rglob("*"):
+              if path.is_symlink():
+                  raise SystemExit(f"Claude guidance contains a symlink: {path}")
+              if path.is_file():
+                  relative = path.relative_to(root).as_posix()
+                  if relative not in allowed or path.stat().st_size > 1_000_000:
+                      raise SystemExit(f"Unexpected Claude guidance file: {relative}")
+          PYVALIDATE
 
       - name: apply-guidance-output
         run: python3 .github/skills/update-pr-review/scripts/apply_guidance_output.py

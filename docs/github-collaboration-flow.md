@@ -15,6 +15,9 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 | `CODEX_API_KEY` | Actions secret | Codex action 使用的模型服务 API key。 |
 | `CODEX_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL。 |
 | `CODEX_MODEL` | Actions variable | Codex 使用的模型名称；为空时使用 Codex 默认模型。 |
+| `AI_PROVIDER` | Actions variable | `codex`（默认）或 `claude`。 |
+| `ANTHROPIC_API_KEY` | Actions secret | 选择 Claude 时使用的 API key。 |
+| `CLAUDE_MODEL` | Actions variable | 选择 Claude 时使用的模型 ID。 |
 | `AGENT_LOGIN` | Actions variable | issue / PR comment 中被分配或 mention 的 agent 登录名。 |
 | `REVIEW_BOT_LOGIN` | Actions variable | 可选。发布 PR review 的 bot 登录名；默认 `github-actions[bot]`。如果 `review-pr.yml` 改用其他 token / bot 账号发 review，需要设置为实际 review 作者。 |
 | `APP_ID` | Actions variable | GitHub App ID；需要提交 workflow 文件更新时使用。 |
@@ -23,7 +26,7 @@ issue -> triage/spec -> implement -> pr -> review -> comments -> merge
 目标仓库已有自己的 CI 时，不要在 CI 成功路径中再次 dispatch `review-pr.yml`。自动审查由该 workflow 的 `pull_request_target` 入口直接触发；CI 保持自己的测试编排。若需要测试通过后才审查，应先关闭直接触发入口，再设计单独的 CI 分发路径，避免两个入口同时运行。
 使用 `GITHUB_TOKEN` 创建或更新 PR 的工作流在 PR 操作完成后显式 dispatch `review-pr.yml`；默认跳过 draft PR。implementation 工作流新建 PR 时，即使之前使用 GitHub App token 推送 workflow 文件，也显式分发并允许审查新建的 draft PR。仅更新已有 PR 且使用 App token 推送时，依靠推送产生的 `pull_request_target` 事件，跳过显式分发。常规 PR 仍由 `pull_request_target` 触发。
 
-所有 Codex workflow 使用同一组模型配置。`CODEX_API_KEY` 和 `CODEX_API_ENDPOINT` 必须配置；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入，`CODEX_MODEL` 填写网关支持的模型名称。
+所有 AI workflow 使用同一组后端选择配置。未设置 `AI_PROVIDER` 时沿用 Codex：`CODEX_API_KEY` 和 `CODEX_API_ENDPOINT` 必须配置，`CODEX_MODEL` 可选。`CODEX_API_ENDPOINT` 必须提供 Responses API；仅提供 Chat Completions 的模型服务（例如 DeepSeek 原生 endpoint）需要通过 LiteLLM、OneAPI 或其他协议转换网关接入。设置 `AI_PROVIDER=claude` 时，配置 `ANTHROPIC_API_KEY` 和 `CLAUDE_MODEL`，通过 Claude Code Action 直接使用 Anthropic 协议。两种后端复用相同的上下文、输出和后续校验流程。
 
 ## Label 和触发规则
 

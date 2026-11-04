@@ -39,6 +39,9 @@ cd AICodingFlow
 | `CODEX_API_KEY` | Actions secret | Codex action 使用的模型服务 API key。 |
 | `CODEX_API_ENDPOINT` | Actions variable | Responses API endpoint，可以是 base URL 或 `/responses` URL。 |
 | `CODEX_MODEL` | Actions variable | Codex 使用的模型名称，例如网关暴露的 `deepseek-chat`；为空时使用 Codex 默认模型。 |
+| `AI_PROVIDER` | Actions variable | 模型执行后端：`codex` 或 `claude`；未设置时使用 `codex`。 |
+| `ANTHROPIC_API_KEY` | Actions secret | `AI_PROVIDER=claude` 时使用的 Anthropic API key。 |
+| `CLAUDE_MODEL` | Actions variable | `AI_PROVIDER=claude` 时使用的 Claude 模型 ID。 |
 | `AGENT_LOGIN` | Actions variable | GitHub issue / PR comment 中被分配或 mention 的 agent 登录名。 |
 | `REVIEW_BOT_LOGIN` | Actions variable | 可选。发布 PR review 的 bot 登录名；默认 `github-actions[bot]`。如果 review workflow 改用其他 token / bot 账号发 review，需要设置为实际 review 作者，用于后续 `APPROVE` 清理旧的 bot `REQUEST_CHANGES`。 |
 | `NIGHTLY_REVIEW_CYCLE_DAYS` | Actions variable | 可选。夜间存量代码审查的轮巡周期，取值 1–90；默认 7。 |
@@ -55,9 +58,11 @@ $bootstrap-issue-config
 
 ### 使用其他模型服务
 
-所有 Codex workflow 共享同一组模型配置，必须设置 `CODEX_API_KEY` 和 `CODEX_API_ENDPOINT`；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。
+所有 AI workflow 共享 `AI_PROVIDER` 选择。默认的 `codex` 路径必须设置 `CODEX_API_KEY` 和 `CODEX_API_ENDPOINT`；`CODEX_MODEL` 可选，为空时使用 Codex 默认模型。选择 `claude` 时必须设置 `ANTHROPIC_API_KEY` 和 `CLAUDE_MODEL`；Codex 专用的 endpoint 和 key 不再需要。各 workflow 的上下文、输出文件及校验流程沿用原有实现。
 
 `openai/codex-action` 通过 Responses API 调用模型，因此 `CODEX_API_ENDPOINT` 必须指向支持 Responses API 的服务。DeepSeek 原生 API 目前使用 Chat Completions 协议，不能直接填入其 `/chat/completions` 地址；请先使用 LiteLLM、OneAPI 或其他协议转换网关，并把网关的 Responses API 地址和网关暴露的模型名称配置到上述变量中。
+
+Claude 路径使用 `anthropics/claude-code-action` 直接调用 Anthropic 协议，不应把 Messages API 地址填入 `CODEX_API_ENDPOINT`。一次运行只选择一种后端；不会在失败时自动切换。
 
 ## 工作流概览
 

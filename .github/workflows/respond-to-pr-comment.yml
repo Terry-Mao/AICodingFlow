@@ -112,7 +112,7 @@ jobs:
 
   respond:
     needs: preflight
-    if: needs.preflight.outputs.should_run == 'true' && needs.preflight.outputs.branch_strategy != 'blocked'
+    if: needs.preflight.outputs.should_run == 'true' && needs.preflight.outputs.branch_strategy != 'blocked' && vars.AI_PROVIDER != 'claude'
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -216,13 +216,22 @@ jobs:
             --output "${{ steps.handoff.outputs.dir }}/spec_context.md"
 
       - name: install-codex-sandbox-prerequisites
-        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         run: |
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      - name: configure-codex-api-endpoint
+      - name: validate-ai-provider
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: configure-codex-api-endpoint
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         id: codex_endpoint
         env:
           CODEX_API_ENDPOINT: ${{ vars.CODEX_API_ENDPOINT }}
@@ -239,13 +248,13 @@ jobs:
           echo "url=$endpoint" >> "$GITHUB_OUTPUT"
 
       - name: respond-to-pr-comment
-        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && (vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex')
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
           responses-api-endpoint: ${{ steps.codex_endpoint.outputs.url }}
-          prompt: |
+          prompt: &agent_prompt |
             First change directory to pr-worktree and do all file inspection from there.
 
             Respond to the PR comment request using these stable local inputs:
@@ -332,6 +341,426 @@ jobs:
             pull requests, post comments, resolve review threads, or call
             GitHub APIs. The outer workflow validates outputs and performs all
             GitHub writes.
+
+      - name: check-pr-comment-response-worktree-changes
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        id: worktree
+        working-directory: pr-worktree
+        run: |
+          changed="$(git status --porcelain=v1 --untracked-files=all -- \
+            ':!.codex-runtime' \
+            ':!.codex-runtime/**')"
+          if [ -n "$changed" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: report-no-pr-comment-response-diff
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.context.outputs.pr_number }}
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --body "I analyzed the request but did not produce a PR comment response diff."
+
+      - name: validate-pr-comment-response-output
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true'
+        id: validate
+        continue-on-error: true
+        working-directory: pr-worktree
+        run: |
+          python3 ../.github/scripts/validate_pr_comment_result.py \
+            --context "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --resolved "${{ steps.handoff.outputs.dir }}/resolved_review_comments.json" \
+            --review-comment-ids "${{ steps.handoff.outputs.dir }}/review_comment_ids.json" \
+            > "${{ steps.handoff.outputs.dir }}/validation-output.txt" \
+            2> "${{ steps.handoff.outputs.dir }}/validation-error.txt"
+
+      - name: check-whether-workflow-update-token-is-required
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
+        id: workflow_update
+        working-directory: pr-worktree
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+
+          with open("${{ steps.handoff.outputs.dir }}/pr-metadata.json", encoding="utf-8") as handle:
+              metadata = json.load(handle)
+          intended_files = metadata.get("intended_files") or []
+          required = any(str(path).startswith(".github/workflows/") for path in intended_files)
+          print(f"required={str(required).lower()}")
+          PY
+
+      - name: create-github-app-token-for-workflow-updates
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.workflow_update.outputs.required == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+
+      - name: commit-and-push-pr-comment-response-branch
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success'
+        id: response_branch
+        working-directory: pr-worktree
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WORKFLOW_UPDATE_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          python3 ../.github/scripts/commit_implementation_branch.py \
+            --context "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: apply-pr-comment-response-result
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.response_branch.outputs.changed == 'true'
+        id: apply
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/apply_pr_comment_result.py \
+            --repo "${{ github.repository }}" \
+            --context "${{ steps.handoff.outputs.dir }}/pr_comment_context.json" \
+            --metadata "${{ steps.handoff.outputs.dir }}/pr-metadata.json" \
+            --resolved "${{ steps.handoff.outputs.dir }}/resolved_review_comments.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: dispatch-ai-pr-review
+        if: steps.apply.outputs.pr_url != '' && steps.workflow_update.outputs.required != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.apply.outputs.pr_url }}
+        run: python3 .github/scripts/dispatch_pr_review.py --repo "${{ github.repository }}" --pr-url "$PR_URL"
+
+      - name: report-no-committable-pr-comment-response-diff
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && steps.worktree.outputs.changed == 'true' && steps.validate.outcome == 'success' && steps.response_branch.outputs.changed != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.context.outputs.pr_number }}
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --body "I analyzed the request but did not produce a committable PR comment response diff."
+
+      - name: fail-after-reporting-invalid-pr-comment-response-output
+        if: steps.validate.outcome == 'failure'
+        run: exit 1
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: respond-to-pr-comment-${{ github.run_id }}
+          path: |
+            ${{ steps.handoff.outputs.dir }}/pr_comment_context.json
+            ${{ steps.handoff.outputs.dir }}/pr_event.json
+            ${{ steps.handoff.outputs.dir }}/review_comment_ids.json
+            ${{ steps.handoff.outputs.dir }}/pr_diff.txt
+            ${{ steps.handoff.outputs.dir }}/spec_context.md
+            ${{ steps.handoff.outputs.dir }}/implementation_summary.md
+            ${{ steps.handoff.outputs.dir }}/pr-metadata.json
+            ${{ steps.handoff.outputs.dir }}/resolved_review_comments.json
+            ${{ steps.handoff.outputs.dir }}/validation-output.txt
+            ${{ steps.handoff.outputs.dir }}/validation-error.txt
+
+  respond_claude:
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true' && needs.preflight.outputs.branch_strategy != 'blocked' && vars.AI_PROVIDER == 'claude'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      should_run: ${{ steps.context.outputs.should_run }}
+      branch_strategy: ${{ steps.context.outputs.branch_strategy }}
+      agent_push_branch: ${{ steps.context.outputs.agent_push_branch }}
+      head_sha: ${{ steps.context.outputs.head_sha }}
+      base_sha: ${{ steps.context.outputs.base_sha }}
+      pr_number: ${{ steps.context.outputs.pr_number }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: checkout-workflow-scripts
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: set-up-python-for-markdown-parser
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: install-markdown-parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-pr-comment-venv"
+          "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin" >> "$GITHUB_PATH"
+
+      - name: prepare-workflow-handoff-directory
+        id: handoff
+        run: |
+          temp_dir="$RUNNER_TEMP/aicodingflow-pr-comment-response"
+          dir="$GITHUB_WORKSPACE/pr-worktree/.codex-runtime/handoff"
+          rm -rf "$temp_dir"
+          mkdir -p "$temp_dir"
+          echo "temp_dir=$temp_dir" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: prepare-pr-comment-context
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/prepare_pr_comment_context.py \
+            --repo "${{ github.repository }}" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --agent-login "${{ vars.AGENT_LOGIN }}" \
+            --output "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" \
+            --pr-event-output "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" \
+            --review-comment-ids-output "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: checkout-pr-head
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          repository: ${{ steps.context.outputs.head_repo }}
+          ref: ${{ steps.context.outputs.head_sha }}
+          path: pr-worktree
+
+      - name: prepare-implementation-workspace
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        run: |
+          rm -rf pr-worktree/.codex-runtime
+          mkdir -p "${{ steps.handoff.outputs.dir }}"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" "${{ steps.handoff.outputs.dir }}/pr_comment_context.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" "${{ steps.handoff.outputs.dir }}/pr_event.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" "${{ steps.handoff.outputs.dir }}/review_comment_ids.json"
+          cp -R .agents/skills pr-worktree/.codex-runtime/skills
+          cp -R .github/skills/implement-specs .github/skills/implement-issue pr-worktree/.codex-runtime/skills/
+
+      - name: snapshot-pr-diff
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        working-directory: pr-worktree
+        run: |
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.helper
+          export GIT_CONFIG_VALUE_0="!gh auth git-credential"
+          python3 ../.github/scripts/build_pr_diff.py \
+            --repo "${{ github.repository }}" \
+            --pr-number "${{ steps.context.outputs.pr_number }}" \
+            --head-sha "${{ steps.context.outputs.head_sha }}" \
+            --base-sha "${{ steps.context.outputs.base_sha }}" \
+            --output "${{ steps.handoff.outputs.dir }}/pr_diff.txt"
+
+      - name: snapshot-spec-context
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        env:
+          PR_EVENT_PATH: ${{ steps.handoff.outputs.dir }}/pr_event.json
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/write_spec_context.py \
+            --changed-files-from-diff "${{ steps.handoff.outputs.dir }}/pr_diff.txt" \
+            --output "${{ steps.handoff.outputs.dir }}/spec_context.md"
+
+      - name: validate-ai-provider
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER }}
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: python3 .github/scripts/validate_ai_provider.py
+
+      - name: respond-to-pr-comment-claude
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked' && vars.AI_PROVIDER == 'claude'
+        uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
+        timeout-minutes: 20
+        with:
+          github_token: ${{ github.token }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --model ${{ vars.CLAUDE_MODEL }} --permission-mode auto --allowedTools Read,Glob,Grep,Write,Edit --disallowedTools Bash,WebFetch,WebSearch
+          allowed_bots: "github-actions[bot]"
+          prompt: *agent_prompt
+      - name: export-claude-response
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        run: |
+          output="$RUNNER_TEMP/claude-response"
+          mkdir -p "$output"
+          git -C pr-worktree add -A -- . ':(exclude).codex-runtime/**'
+          git -C pr-worktree diff --cached --binary --full-index > "$output/changes.patch"
+          for file in implementation_summary.md pr-metadata.json resolved_review_comments.json; do
+            if [ -f "${{ steps.handoff.outputs.dir }}/$file" ]; then
+              cp "${{ steps.handoff.outputs.dir }}/$file" "$output/$file"
+            fi
+          done
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: respond-to-pr-comment-claude-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-response/
+          if-no-files-found: error
+
+  publish_claude:
+    needs: [preflight, respond_claude]
+    if: needs.respond_claude.result == 'success' && needs.respond_claude.outputs.should_run == 'true' && needs.respond_claude.outputs.branch_strategy != 'blocked'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: checkout-workflow-scripts
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: set-up-python-for-markdown-parser
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: install-markdown-parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-pr-comment-venv"
+          "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-pr-comment-venv/bin" >> "$GITHUB_PATH"
+
+      - name: prepare-workflow-handoff-directory
+        id: handoff
+        run: |
+          temp_dir="$RUNNER_TEMP/aicodingflow-pr-comment-response"
+          dir="$GITHUB_WORKSPACE/pr-worktree/.codex-runtime/handoff"
+          rm -rf "$temp_dir"
+          mkdir -p "$temp_dir"
+          echo "temp_dir=$temp_dir" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: prepare-pr-comment-context
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/prepare_pr_comment_context.py \
+            --repo "${{ github.repository }}" \
+            --event-name "${{ github.event_name }}" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --agent-login "${{ vars.AGENT_LOGIN }}" \
+            --output "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" \
+            --pr-event-output "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" \
+            --review-comment-ids-output "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: checkout-pr-head
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          repository: ${{ steps.context.outputs.head_repo }}
+          ref: ${{ steps.context.outputs.head_sha }}
+          path: pr-worktree
+
+      - name: prepare-implementation-workspace
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        run: |
+          rm -rf pr-worktree/.codex-runtime
+          mkdir -p "${{ steps.handoff.outputs.dir }}"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_comment_context.json" "${{ steps.handoff.outputs.dir }}/pr_comment_context.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/pr_event.json" "${{ steps.handoff.outputs.dir }}/pr_event.json"
+          cp "${{ steps.handoff.outputs.temp_dir }}/review_comment_ids.json" "${{ steps.handoff.outputs.dir }}/review_comment_ids.json"
+          cp -R .agents/skills pr-worktree/.codex-runtime/skills
+          cp -R .github/skills/implement-specs .github/skills/implement-issue pr-worktree/.codex-runtime/skills/
+
+      - name: snapshot-pr-diff
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        working-directory: pr-worktree
+        run: |
+          gh auth setup-git --hostname github.com --force
+          python3 ../.github/scripts/build_pr_diff.py \
+            --repo "${{ github.repository }}" \
+            --pr-number "${{ steps.context.outputs.pr_number }}" \
+            --head-sha "${{ steps.context.outputs.head_sha }}" \
+            --base-sha "${{ steps.context.outputs.base_sha }}" \
+            --output "${{ steps.handoff.outputs.dir }}/pr_diff.txt"
+
+      - name: snapshot-spec-context
+        if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
+        env:
+          PR_EVENT_PATH: ${{ steps.handoff.outputs.dir }}/pr_event.json
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/write_spec_context.py \
+            --changed-files-from-diff "${{ steps.handoff.outputs.dir }}/pr_diff.txt" \
+            --output "${{ steps.handoff.outputs.dir }}/spec_context.md"
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: respond-to-pr-comment-claude-${{ github.run_id }}
+          path: ${{ runner.temp }}/claude-response
+
+      - name: verify-and-apply-claude-response
+        env:
+          EXPECTED_BRANCH: ${{ needs.respond_claude.outputs.agent_push_branch }}
+          CURRENT_BRANCH: ${{ steps.context.outputs.agent_push_branch }}
+          CURRENT_SHOULD_RUN: ${{ steps.context.outputs.should_run }}
+          CURRENT_STRATEGY: ${{ steps.context.outputs.branch_strategy }}
+          EXPECTED_HEAD: ${{ needs.respond_claude.outputs.head_sha }}
+          EXPECTED_BASE: ${{ needs.respond_claude.outputs.base_sha }}
+          EXPECTED_PR: ${{ needs.respond_claude.outputs.pr_number }}
+          CURRENT_HEAD: ${{ steps.context.outputs.head_sha }}
+          CURRENT_BASE: ${{ steps.context.outputs.base_sha }}
+          CURRENT_PR: ${{ steps.context.outputs.pr_number }}
+        run: |
+          test "$CURRENT_SHOULD_RUN" = true
+          test "$CURRENT_STRATEGY" != blocked
+          test -n "$EXPECTED_BRANCH"
+          test "$EXPECTED_BRANCH" = "$CURRENT_BRANCH"
+          test -n "$EXPECTED_HEAD"
+          test "$EXPECTED_HEAD" = "$CURRENT_HEAD"
+          test "$EXPECTED_BASE" = "$CURRENT_BASE"
+          test "$EXPECTED_PR" = "$CURRENT_PR"
+          patch="$RUNNER_TEMP/claude-response/changes.patch"
+          test -f "$patch"
+          test ! -L "$patch"
+          if [ -s "$patch" ]; then
+            git -C pr-worktree apply --check "$patch"
+            git -C pr-worktree apply "$patch"
+            git -C pr-worktree diff --check
+          fi
+          for file in implementation_summary.md pr-metadata.json resolved_review_comments.json; do
+            if [ -f "$RUNNER_TEMP/claude-response/$file" ]; then
+              test ! -L "$RUNNER_TEMP/claude-response/$file"
+              cp "$RUNNER_TEMP/claude-response/$file" "${{ steps.handoff.outputs.dir }}/$file"
+            fi
+          done
 
       - name: check-pr-comment-response-worktree-changes
         if: steps.context.outputs.should_run == 'true' && steps.context.outputs.branch_strategy != 'blocked'
