@@ -30,7 +30,7 @@ NEEDS_INFO_LABEL = "needs-info"
 
 
 class _VisibleTriageHtml(HTMLParser):
-    HIDDEN_TAGS = {"code", "pre", "blockquote", "script", "style"}
+    HIDDEN_TAGS = {"code", "pre", "blockquote", "script", "style", "textarea"}
 
     def __init__(self) -> None:
         super().__init__()
@@ -79,25 +79,32 @@ def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTr
         html.feed(line)
         # Some Python versions defer short feed() calls. Flush complete close
         # markers while preserving incomplete comments and tags across blocks.
-        cdata_closed = html.cdata_elem and re.search(
-            r"</" + re.escape(html.cdata_elem) + r"\s*>", line, re.IGNORECASE
+        hidden_tag_closed = html.hidden_tags and re.search(
+            r"</" + re.escape(html.hidden_tags[-1]) + r"\s*>", line, re.IGNORECASE
         )
-        if comment_closed or cdata_closed:
+        if comment_closed or hidden_tag_closed:
             html.close()
         stripped = line.strip()
+        fence_source = stripped
+        while True:
+            remainder = re.sub(r"^(?:[-+*]|[0-9]{1,9}[.)])\s+", "", fence_source, count=1)
+            if remainder == fence_source:
+                break
+            fence_source = remainder
+        fence_marker = re.match(r"(`{3,}|~{3,})(.*)$", fence_source)
         candidate = stripped == expected or stripped.startswith(f"{expected} ")
-        if candidate and not html.comment_open:
+        if (candidate or fence_marker) and not html.comment_open:
             html.close()
         visible = "".join(html.text[previous_text_count:]).strip()
         if not visible:
             continue
         if fence_char:
             if visible == stripped and re.fullmatch(
-                re.escape(fence_char) + "{" + str(fence_length) + r",}", stripped
+                re.escape(fence_char) + "{" + str(fence_length) + r",}", fence_source
             ):
                 fence_char = ""
             continue
-        opening = re.match(r"(`{3,}|~{3,})(.*)$", stripped)
+        opening = fence_marker
         if visible == stripped and opening and (opening.group(1)[0] == "~" or "`" not in opening.group(2)):
             fence_char = opening.group(1)[0]
             fence_length = len(opening.group(1))
