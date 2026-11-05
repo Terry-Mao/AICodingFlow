@@ -102,6 +102,29 @@ class ApplyIssueTriageResultTest(unittest.TestCase):
             check=True,
         )
 
+    def test_find_triage_comment_skips_unowned_and_quoted_markers(self) -> None:
+        marker = apply_triage.MARKER
+        comments = [
+            {"id": 1, "user": {"login": "reporter"}, "body": f"{marker}\nCopied triage"},
+            {"id": 2, "user": {"login": "other[bot]"}, "body": f"{marker}\nOther bot"},
+            {"id": 3, "user": {"login": "github-actions[bot]"}, "body": f"Quote: {marker}"},
+            {"id": 4, "user": {"login": "github-actions[bot]"}, "body": f"{marker}\nActual triage"},
+        ]
+        with mock.patch.object(apply_triage, "run_gh_json", return_value=[comments]):
+            self.assertEqual(apply_triage.find_triage_comment("owner/repo", 19), comments[3])
+
+    def test_upsert_triage_comment_creates_when_only_user_comment_has_marker(self) -> None:
+        comment = {"id": 123, "user": {"login": "reporter"}, "body": apply_triage.MARKER}
+        with (
+            mock.patch.object(apply_triage, "run_gh_json", return_value=[[comment]]),
+            mock.patch.object(apply_triage.subprocess, "run") as run,
+        ):
+            apply_triage.upsert_triage_comment("owner/repo", 19, "body")
+
+        run.assert_called_once_with(
+            ["gh", "api", "repos/owner/repo/issues/19/comments", "-f", "body=body"], check=True,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,6 +14,7 @@ from github_api import run_gh_json
 
 
 MARKER = "<!-- aicodingflow:triage-issue -->"
+TRIAGE_COMMENT_AUTHOR = "github-actions[bot]"
 PROTECTED_LABELS = {"plan-approved", "ready-to-implement", "ready-to-spec"}
 
 
@@ -55,6 +56,12 @@ def sync_labels(
         )
 
 
+def is_triage_comment(comment: dict[str, Any]) -> bool:
+    user = comment.get("user") or {}
+    body = comment.get("body") or ""
+    return user.get("login") == TRIAGE_COMMENT_AUTHOR and isinstance(body, str) and body.startswith(MARKER)
+
+
 def find_triage_comment(repo: str, issue_number: int) -> dict[str, Any] | None:
     pages = run_gh_json(
         [
@@ -65,7 +72,7 @@ def find_triage_comment(repo: str, issue_number: int) -> dict[str, Any] | None:
         ]
     )
     for comment in flatten_pages(pages):
-        if MARKER in (comment.get("body") or ""):
+        if is_triage_comment(comment):
             return comment
     return None
 

@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from apply_issue_triage_result import MARKER as TRIAGE_COMMENT_MARKER
+from apply_issue_triage_result import is_triage_comment
 from github_api import flatten_gh_pages, run_gh_json
 from prepare_nightly_review import focus_files, issue_snapshot, parse_cycle_days
 
@@ -181,7 +181,7 @@ def has_triage_comment(repo: str, issue_number: int) -> bool:
         "api", f"repos/{repo}/issues/{issue_number}/comments?per_page=100",
         "--paginate", "--slurp",
     ])
-    return any(TRIAGE_COMMENT_MARKER in str(item.get("body") or "") for item in flatten_gh_pages(pages))
+    return any(is_triage_comment(item) for item in flatten_gh_pages(pages))
 
 
 def dispatch_triage(repo: str, default_branch: str, issue_number: int) -> None:
