@@ -67,6 +67,18 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
+      - name: set-up-python-for-markdown-parser
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: install-markdown-parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/aicodingflow-triage-venv"
+          "$RUNNER_TEMP/aicodingflow-triage-venv/bin/python" -m pip install \
+            --disable-pip-version-check -r .github/scripts/requirements-spec-context.txt
+          echo "$RUNNER_TEMP/aicodingflow-triage-venv/bin" >> "$GITHUB_PATH"
+
       - name: prepare-triage-context
         id: issue
         env:

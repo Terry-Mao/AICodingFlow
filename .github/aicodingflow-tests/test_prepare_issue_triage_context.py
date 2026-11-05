@@ -157,6 +157,62 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
             (False, "issue comment did not contain @codex /triage command"),
         )
 
+    def test_triage_command_ignores_code_examples(self) -> None:
+        code_only = (
+            "~~~\n@codex /triage\n~~~",
+            "~~~~log\n@codex /triage\n~~~~",
+            "````\n@codex /triage\n```\n@codex /triage\n````",
+            "~~~\n```\n@codex /triage\n```\n~~~",
+            "    @codex /triage",
+            "\t@codex /triage",
+            "Intro\n\n    @codex /triage",
+            "    ~~~\n    @codex /triage\n    ~~~",
+            "- ```\n  @codex /triage\n  ```",
+            "1. ~~~\n   @codex /triage\n   ~~~",
+            "- item\n\n        @codex /triage",
+            "`@codex /triage`",
+            "\\@codex /triage",
+            "<details>\n<pre>\n@codex /triage\n</pre>\n</details>",
+            "<details>\n<!--\n@codex /triage\n-->\n</details>",
+            "<details>\n```\n@codex /triage\n```\n</details>",
+            "<details>\n<blockquote>\n@codex /triage\n</blockquote>\n</details>",
+            "<details>\n<code>@codex /triage</code>\n</details>",
+            "<details>\n<blockquote>\n\n@codex /triage\n</blockquote>\n</details>",
+            "<details>\n<code>\n\n@codex /triage\n</code>\n</details>",
+            "- - ```\n    @codex /triage\n    ```",
+            "`example\n@codex /triage\ncontinued`",
+        )
+        for comment in code_only:
+            with self.subTest(comment=comment):
+                self.assertFalse(prepare.comment_has_triage_command(comment, "codex"))
+
+    def test_triage_command_runs_after_code_examples(self) -> None:
+        for comment in (
+            "~~~\n@codex /triage example\n~~~\n@codex /triage real request",
+            "````\n@codex /triage example\n````\n@codex /triage",
+            "    @codex /triage example\n@codex /triage",
+            "Please\n    @codex /triage",
+            "- item\n    @codex /triage",
+            "- item\n\n    @codex /triage",
+            "- @codex /triage",
+            "1. @codex /triage",
+            "- ```\n  @codex /triage example\n  ```\n@codex /triage",
+            "<details>\n@codex /triage\n</details>",
+            "<details>\n<pre>\n@codex /triage example\n</pre>\n@codex /triage\n</details>",
+            "<details>\n```\n@codex /triage example\n```\n@codex /triage\n</details>",
+            "<details>\n@codex /triage please <b>now</b>\n</details>",
+            "- - @codex /triage",
+            "1. - @codex /triage",
+            "@codex /triage\n`example\ncontinued`",
+            "`example\ncontinued`\n@codex /triage",
+            "prefix `example\ncontinued`\n@codex /triage",
+            "[link](https://e.test/`a`)\n`code\nend`\n@codex /triage",
+            "[link](https://e.test/`code end`)\n`code\nend`\n@codex /triage",
+            "<details>\n<code>\n\n@codex /triage example\n</code>\n@codex /triage\n</details>",
+        ):
+            with self.subTest(comment=comment):
+                self.assertTrue(prepare.comment_has_triage_command(comment, "codex"))
+
     def test_should_not_run_for_pull_request_comment(self) -> None:
         event = {
             "action": "created",

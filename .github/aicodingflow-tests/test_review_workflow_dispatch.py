@@ -347,6 +347,17 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         data = workflow(".github/workflows/triage-issue.yml")
         triggers = data[True]
 
+        triage_steps = steps(data, "generate")
+        parser_setup = next(step for step in triage_steps if step.get("name") == "set-up-python-for-markdown-parser")
+        parser_install = next(step for step in triage_steps if step.get("name") == "install-markdown-parser")
+        self.assertEqual(parser_setup["uses"], "actions/setup-python@v6")
+        self.assertIn("-r .github/scripts/requirements-spec-context.txt", parser_install["run"])
+        self.assertLess(triage_steps.index(parser_setup), triage_steps.index(parser_install))
+        self.assertLess(
+            triage_steps.index(parser_install),
+            next(index for index, step in enumerate(triage_steps) if step.get("name") == "prepare-triage-context"),
+        )
+
         self.assertEqual(triggers["issues"]["types"], ["opened", "reopened"])
         self.assertEqual(triggers["issue_comment"]["types"], ["created"])
 
