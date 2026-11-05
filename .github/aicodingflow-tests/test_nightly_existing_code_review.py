@@ -258,9 +258,16 @@ class NightlyExistingCodeReviewTest(unittest.TestCase):
             dispatch.assert_not_called()
 
     def test_triage_comment_lookup_and_dispatch_command(self) -> None:
-        with mock.patch.object(publish, "run_gh_json", return_value=[[{"body": publish.TRIAGE_COMMENT_MARKER}]]) as fetch:
+        marker = "<!-- aicodingflow:triage-issue -->"
+        comments = [
+            {"user": {"login": "reporter"}, "body": marker},
+            {"user": {"login": "github-actions[bot]"}, "body": marker},
+        ]
+        with mock.patch.object(publish, "run_gh_json", return_value=[comments]) as fetch:
             self.assertTrue(publish.has_triage_comment("owner/repo", 7))
             fetch.assert_called_once()
+        with mock.patch.object(publish, "run_gh_json", return_value=[comments[:1]]):
+            self.assertFalse(publish.has_triage_comment("owner/repo", 7))
         with mock.patch.object(publish.subprocess, "run") as run:
             publish.dispatch_triage("owner/repo", "main", 7)
             run.assert_called_once_with([
