@@ -49,6 +49,57 @@ class ValidatePrBodyTests(unittest.TestCase):
         body = "## Summary\nChange.\n## Testing\n```html\n<!-- test fixture -->\n```\n## Risk\nLow.\n## How to revert\nRevert."
         validator.validate_body(body)
 
+    def test_accepts_plain_atx_h2(self) -> None:
+        body = "## Summary\nChange.\n## Testing\nPassed.\n## Risk\nLow.\n## How to revert\nRevert."
+        validator.validate_body(body)
+        self.assertEqual(
+            sorted(validator.section_contents(body)),
+            ["how to revert", "risk", "summary", "testing"],
+        )
+
+    def test_accepts_closing_hashes(self) -> None:
+        body = "## Summary ##\nChange.\n## Testing ##\nPassed.\n## Risk ##\nLow.\n## How to revert ##\nRevert."
+        validator.validate_body(body)
+        self.assertNotIn("summary ##", validator.section_contents(body))
+
+    def test_accepts_up_to_three_leading_spaces(self) -> None:
+        for indent in ("", " ", "  ", "   "):
+            with self.subTest(indent=len(indent)):
+                body = (
+                    f"{indent}## Summary\nChange.\n"
+                    f"{indent}## Testing\nPassed.\n"
+                    f"{indent}## Risk\nLow.\n"
+                    f"{indent}## How to revert\nRevert."
+                )
+                validator.validate_body(body)
+
+    def test_rejects_four_space_indented_heading(self) -> None:
+        body = "    ## Summary\nChange.\n## Testing\nPassed.\n## Risk\nLow.\n## How to revert\nRevert."
+        with self.assertRaisesRegex(SystemExit, "Summary"):
+            validator.validate_body(body)
+
+    def test_rejects_third_level_heading(self) -> None:
+        body = "### Summary\nChange.\n## Testing\nPassed.\n## Risk\nLow.\n## How to revert\nRevert."
+        with self.assertRaisesRegex(SystemExit, "Summary"):
+            validator.validate_body(body)
+
+    def test_rejects_heading_without_space(self) -> None:
+        body = "##Summary\nChange.\n## Testing\nPassed.\n## Risk\nLow.\n## How to revert\nRevert."
+        with self.assertRaisesRegex(SystemExit, "Summary"):
+            validator.validate_body(body)
+
+    def test_hash_inside_heading_is_not_a_closing_sequence(self) -> None:
+        self.assertEqual(validator.normalize_heading("C#"), "c#")
+        self.assertEqual(validator.normalize_heading("Summary ##"), "summary")
+        self.assertEqual(validator.normalize_heading("Summary ## extra"), "summary ## extra")
+        self.assertIsNone(validator.normalize_heading(""))
+
+    def test_empty_h2_does_not_fill_previous_section(self) -> None:
+        body = "## Summary\n##   \n## Testing\nPassed.\n## Risk\nLow.\n## How to revert\nRevert."
+        self.assertEqual(validator.section_contents(body)["summary"], "")
+        with self.assertRaisesRegex(SystemExit, "Summary"):
+            validator.validate_body(body)
+
 
 if __name__ == "__main__":
     unittest.main()
