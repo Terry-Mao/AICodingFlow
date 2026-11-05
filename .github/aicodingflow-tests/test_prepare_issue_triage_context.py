@@ -225,6 +225,29 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
                     )
                 )
 
+    def test_triage_command_tracks_html_comments_across_blocks(self) -> None:
+        self.assertFalse(
+            prepare.comment_has_triage_command("<div>\n<!--\n\n@codex /triage\n</div>", "codex")
+        )
+        self.assertTrue(
+            prepare.comment_has_triage_command(
+                "<div>\n<!--\n@codex /triage example\n-->\n@codex /triage\n</div>", "codex"
+            )
+        )
+        self.assertTrue(
+            prepare.comment_has_triage_command(
+                "<div>\n<!--\n\n@codex /triage example\n-->\n\n@codex /triage\n</div>", "codex"
+            )
+        )
+        example_then_code = (
+            "<div>\n<!--\n\n@codex /triage example\n--> <code>\n"
+            "@codex /triage example\n</code>\n"
+        )
+        self.assertFalse(prepare.comment_has_triage_command(f"{example_then_code}</div>", "codex"))
+        self.assertTrue(
+            prepare.comment_has_triage_command(f"{example_then_code}@codex /triage\n</div>", "codex")
+        )
+
     def test_should_not_run_for_pull_request_comment(self) -> None:
         event = {
             "action": "created",

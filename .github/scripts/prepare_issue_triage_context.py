@@ -35,7 +35,27 @@ class _VisibleTriageHtml(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.hidden_tags: list[str] = []
+        self.comment_open = False
         self.text: list[str] = []
+
+    def track_comments(self, source: str) -> bool:
+        position = 0
+        closed = False
+        while position < len(source):
+            if self.comment_open:
+                end = source.find("-->", position)
+                if end < 0:
+                    break
+                self.comment_open = False
+                closed = True
+                position = end + 3
+            else:
+                start = source.find("<!--", position)
+                if start < 0:
+                    break
+                self.comment_open = True
+                position = start + 4
+        return closed
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in self.HIDDEN_TAGS:
@@ -55,14 +75,19 @@ def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTr
     fence_length = 0
     for line in content.splitlines(keepends=True):
         previous_text_count = len(html.text)
+        comment_closed = html.track_comments(line) if not html.cdata_elem else False
         html.feed(line)
-        # Some Python versions defer parsing short feed() calls. Flush after a
-        # complete script/style close, preserving incomplete HTML across blocks.
-        if html.cdata_elem and re.search(
+        # Some Python versions defer short feed() calls. Flush complete close
+        # markers while preserving incomplete comments and tags across blocks.
+        cdata_closed = html.cdata_elem and re.search(
             r"</" + re.escape(html.cdata_elem) + r"\s*>", line, re.IGNORECASE
-        ):
+        )
+        if comment_closed or cdata_closed:
             html.close()
         stripped = line.strip()
+        candidate = stripped == expected or stripped.startswith(f"{expected} ")
+        if candidate and not html.comment_open:
+            html.close()
         visible = "".join(html.text[previous_text_count:]).strip()
         if not visible:
             continue
@@ -77,7 +102,7 @@ def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTr
             fence_char = opening.group(1)[0]
             fence_length = len(opening.group(1))
             continue
-        if (stripped == expected or stripped.startswith(f"{expected} ")) and (
+        if candidate and (
             visible == expected or visible.startswith(f"{expected} ")
         ):
             return True
@@ -149,17 +174,32 @@ def comment_has_triage_command(comment: object, login: str) -> bool:
             if _html_block_has_triage_command(block.content, expected, html):
                 return True
         elif block.type == "inline" and not quote_depth and block.map:
+            paragraph_lines = source_lines[block.map[0] : block.map[1]]
+            comment_hidden_lines = []
+            for source_line in paragraph_lines:
+                was_in_comment = html.comment_open
+                if was_in_comment:
+                    end = source_line.find("-->")
+                    html.feed(source_line[: end + 3] if end >= 0 else source_line + "\n")
+                comment_closed = html.track_comments(source_line)
+                if comment_closed:
+                    html.close()
+                comment_hidden_lines.append(was_in_comment)
+
             visible_lines = [""]
             safe_line_count = None
             for inline in block.children or []:
                 if inline.type == "text":
                     parts = inline.content.split("\n")
-                    visible_lines[-1] += parts[0] if not html.hidden_tags else "\0"
-                    visible_lines.extend(parts[1:] if not html.hidden_tags else ["\0"] * (len(parts) - 1))
+                    visible = not html.hidden_tags
+                    visible_lines[-1] += parts[0] if visible else "\0"
+                    visible_lines.extend(parts[1:] if visible else ["\0"] * (len(parts) - 1))
                 elif inline.type in {"softbreak", "hardbreak"}:
                     visible_lines.append("")
                 elif inline.type == "html_inline":
                     html.feed(inline.content)
+                    if not html.comment_open or "-->" in inline.content:
+                        html.close()
                     visible_lines[-1] += "\0"
                     visible_lines.extend(["\0"] * inline.content.count("\n"))
                 elif inline.type == "code_inline":
@@ -172,11 +212,14 @@ def comment_has_triage_command(comment: object, login: str) -> bool:
                 else:
                     visible_lines[-1] += "\0"
 
-            paragraph_lines = source_lines[block.map[0] : block.map[1]]
             line_count = min(len(visible_lines), len(paragraph_lines))
             if len(visible_lines) != len(paragraph_lines):
                 line_count = min(line_count, safe_line_count or 0)
-            for source, visible in zip(paragraph_lines[:line_count], visible_lines[:line_count]):
+            for source, visible, in_comment in zip(
+                paragraph_lines[:line_count], visible_lines[:line_count], comment_hidden_lines[:line_count]
+            ):
+                if in_comment:
+                    continue
                 source = source.strip()
                 for _ in range(list_depth):
                     source = re.sub(r"^(?:[-+*]|[0-9]{1,9}[.)])\s+", "", source, count=1)
