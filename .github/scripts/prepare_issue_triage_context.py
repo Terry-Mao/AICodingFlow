@@ -56,6 +56,12 @@ def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTr
     for line in content.splitlines(keepends=True):
         previous_text_count = len(html.text)
         html.feed(line)
+        # Some Python versions defer parsing short feed() calls. Flush after a
+        # complete script/style close, preserving incomplete HTML across blocks.
+        if html.cdata_elem and re.search(
+            r"</" + re.escape(html.cdata_elem) + r"\s*>", line, re.IGNORECASE
+        ):
+            html.close()
         stripped = line.strip()
         visible = "".join(html.text[previous_text_count:]).strip()
         if not visible:
