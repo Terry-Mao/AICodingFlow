@@ -213,6 +213,18 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
             with self.subTest(comment=comment):
                 self.assertTrue(prepare.comment_has_triage_command(comment, "codex"))
 
+    def test_triage_command_tracks_script_and_style_across_html_blocks(self) -> None:
+        for tag in ("script", "style"):
+            example = f"<details>\n<{tag}>\n@codex /triage example\n\n</{tag}>"
+            with self.subTest(tag=tag, command_after=False):
+                self.assertFalse(prepare.comment_has_triage_command(f"{example}\n</details>", "codex"))
+            with self.subTest(tag=tag, command_after=True):
+                self.assertTrue(
+                    prepare.comment_has_triage_command(
+                        f"{example}\n\n@codex /triage\n</details>", "codex"
+                    )
+                )
+
     def test_should_not_run_for_pull_request_comment(self) -> None:
         event = {
             "action": "created",
