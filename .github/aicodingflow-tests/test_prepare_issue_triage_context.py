@@ -183,6 +183,8 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
             "<details>\n<textarea>\n\n@codex /triage\n</textarea>\n</details>",
             "<details>\n- ```\n  @codex /triage\n  ```\n</details>",
             "<details>\n- - ~~~\n    @codex /triage\n    ~~~\n</details>",
+            "<details>\n```\n@codex /triage example\n\n@codex /triage\n```\n</details>",
+            "<details>\n- ~~~\n  @codex /triage example\n\n  @codex /triage\n  ~~~\n</details>",
             "- - ```\n    @codex /triage\n    ```",
             "`example\n@codex /triage\ncontinued`",
         )
@@ -215,6 +217,8 @@ class PrepareIssueTriageContextTest(unittest.TestCase):
             "<details>\n<code>\n\n@codex /triage example\n</code>\n@codex /triage\n</details>",
             "<details>\n<textarea>\n@codex /triage example\n</textarea>\n@codex /triage\n</details>",
             "<details>\n- ```\n  @codex /triage example\n  ```\n@codex /triage\n</details>",
+            "<details>\n```\n@codex /triage example\n\n@codex /triage example\n```\n@codex /triage\n</details>",
+            "<details>\n```\n<code>\n\n@codex /triage example\n```\n@codex /triage\n</details>",
         ):
             with self.subTest(comment=comment):
                 self.assertTrue(prepare.comment_has_triage_command(comment, "codex"))

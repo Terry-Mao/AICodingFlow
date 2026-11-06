@@ -36,6 +36,8 @@ class _VisibleTriageHtml(HTMLParser):
         super().__init__()
         self.hidden_tags: list[str] = []
         self.comment_open = False
+        self.fence_char = ""
+        self.fence_length = 0
         self.text: list[str] = []
 
     def track_comments(self, source: str) -> bool:
@@ -70,10 +72,31 @@ class _VisibleTriageHtml(HTMLParser):
             self.text.append(data)
 
 
+def _html_fence_source(line: str) -> str:
+    source = line.strip()
+    while True:
+        remainder = re.sub(r"^(?:[-+*]|[0-9]{1,9}[.)])\s+", "", source, count=1)
+        if remainder == source:
+            return source
+        source = remainder
+
+
+def _html_fence_closes(line: str, html: _VisibleTriageHtml) -> bool:
+    return bool(
+        html.fence_char
+        and re.fullmatch(
+            re.escape(html.fence_char) + "{" + str(html.fence_length) + r",}",
+            _html_fence_source(line),
+        )
+    )
+
+
 def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTriageHtml) -> bool:
-    fence_char = ""
-    fence_length = 0
     for line in content.splitlines(keepends=True):
+        if html.fence_char:
+            if _html_fence_closes(line, html):
+                html.fence_char = ""
+            continue
         previous_text_count = len(html.text)
         comment_closed = html.track_comments(line) if not html.cdata_elem else False
         html.feed(line)
@@ -85,12 +108,7 @@ def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTr
         if comment_closed or hidden_tag_closed:
             html.close()
         stripped = line.strip()
-        fence_source = stripped
-        while True:
-            remainder = re.sub(r"^(?:[-+*]|[0-9]{1,9}[.)])\s+", "", fence_source, count=1)
-            if remainder == fence_source:
-                break
-            fence_source = remainder
+        fence_source = _html_fence_source(stripped)
         fence_marker = re.match(r"(`{3,}|~{3,})(.*)$", fence_source)
         candidate = stripped == expected or stripped.startswith(f"{expected} ")
         if (candidate or fence_marker) and not html.comment_open:
@@ -98,16 +116,10 @@ def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTr
         visible = "".join(html.text[previous_text_count:]).strip()
         if not visible:
             continue
-        if fence_char:
-            if visible == stripped and re.fullmatch(
-                re.escape(fence_char) + "{" + str(fence_length) + r",}", fence_source
-            ):
-                fence_char = ""
-            continue
         opening = fence_marker
         if visible == stripped and opening and (opening.group(1)[0] == "~" or "`" not in opening.group(2)):
-            fence_char = opening.group(1)[0]
-            fence_length = len(opening.group(1))
+            html.fence_char = opening.group(1)[0]
+            html.fence_length = len(opening.group(1))
             continue
         if candidate and (
             visible == expected or visible.startswith(f"{expected} ")
@@ -169,6 +181,17 @@ def comment_has_triage_command(comment: object, login: str) -> bool:
     list_depth = 0
     html = _VisibleTriageHtml()
     for block in markdown.parse(comment):
+        if html.fence_char and block.type in {"inline", "fence", "code_block"} and block.map:
+            block_lines = source_lines[block.map[0] : block.map[1]]
+            for index, source_line in enumerate(block_lines):
+                if _html_fence_closes(source_line, html):
+                    html.fence_char = ""
+                    if _html_block_has_triage_command(
+                        "\n".join(block_lines[index + 1 :]), expected, html
+                    ):
+                        return True
+                    break
+            continue
         if block.type == "blockquote_open":
             quote_depth += 1
         elif block.type == "blockquote_close":
