@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 from datetime import datetime, timedelta, timezone
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,105 @@ from github_event import (
 
 TRUSTED_COMMENT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 NEEDS_INFO_LABEL = "needs-info"
+
+
+class _VisibleTriageHtml(HTMLParser):
+    HIDDEN_TAGS = {"code", "pre", "blockquote", "script", "style", "textarea"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.hidden_tags: list[str] = []
+        self.comment_open = False
+        self.fence_char = ""
+        self.fence_length = 0
+        self.text: list[str] = []
+
+    def track_comments(self, source: str) -> bool:
+        position = 0
+        closed = False
+        while position < len(source):
+            if self.comment_open:
+                end = source.find("-->", position)
+                if end < 0:
+                    break
+                self.comment_open = False
+                closed = True
+                position = end + 3
+            else:
+                start = source.find("<!--", position)
+                if start < 0:
+                    break
+                self.comment_open = True
+                position = start + 4
+        return closed
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in self.HIDDEN_TAGS:
+            self.hidden_tags.append(tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self.hidden_tags and self.hidden_tags[-1] == tag:
+            self.hidden_tags.pop()
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden_tags:
+            self.text.append(data)
+
+
+def _html_fence_source(line: str) -> str:
+    source = line.strip()
+    while True:
+        remainder = re.sub(r"^(?:[-+*]|[0-9]{1,9}[.)])\s+", "", source, count=1)
+        if remainder == source:
+            return source
+        source = remainder
+
+
+def _html_fence_closes(line: str, html: _VisibleTriageHtml) -> bool:
+    return bool(
+        html.fence_char
+        and re.fullmatch(
+            re.escape(html.fence_char) + "{" + str(html.fence_length) + r",}",
+            _html_fence_source(line),
+        )
+    )
+
+
+def _html_block_has_triage_command(content: str, expected: str, html: _VisibleTriageHtml) -> bool:
+    for line in content.splitlines(keepends=True):
+        if html.fence_char:
+            if _html_fence_closes(line, html):
+                html.fence_char = ""
+            continue
+        previous_text_count = len(html.text)
+        comment_closed = html.track_comments(line) if not html.cdata_elem else False
+        html.feed(line)
+        # Some Python versions defer short feed() calls. Flush complete close
+        # markers while preserving incomplete comments and tags across blocks.
+        hidden_tag_closed = html.hidden_tags and re.search(
+            r"</" + re.escape(html.hidden_tags[-1]) + r"\s*>", line, re.IGNORECASE
+        )
+        if comment_closed or hidden_tag_closed:
+            html.close()
+        stripped = line.strip()
+        fence_source = _html_fence_source(stripped)
+        fence_marker = re.match(r"(`{3,}|~{3,})(.*)$", fence_source)
+        candidate = stripped == expected or stripped.startswith(f"{expected} ")
+        if (candidate or fence_marker) and not html.comment_open:
+            html.close()
+        visible = "".join(html.text[previous_text_count:]).strip()
+        if not visible:
+            continue
+        opening = fence_marker
+        if visible == stripped and opening and (opening.group(1)[0] == "~" or "`" not in opening.group(2)):
+            html.fence_char = opening.group(1)[0]
+            html.fence_length = len(opening.group(1))
+            continue
+        if candidate and (
+            visible == expected or visible.startswith(f"{expected} ")
+        ):
+            return True
+    return False
 
 
 def load_event(path: str | None) -> dict[str, Any]:
@@ -59,21 +160,99 @@ def comment_has_triage_command(comment: object, login: str) -> bool:
     if not isinstance(comment, str) or not comment.strip() or not login.strip():
         return False
 
-    expected = f"@{login.strip()} /triage"
-    in_fenced_code = False
-    for line in comment.splitlines():
-        stripped_left = line.lstrip()
-        if stripped_left.startswith(">"):
-            continue
-        if stripped_left.startswith("```"):
-            in_fenced_code = not in_fenced_code
-            continue
-        if in_fenced_code:
-            continue
+    from markdown_it import MarkdownIt
+    from markdown_it.rules_inline.backticks import backtick
 
-        stripped = line.strip()
-        if stripped == expected or stripped.startswith(f"{expected} "):
-            return True
+    markdown = MarkdownIt("commonmark")
+
+    def backtick_with_source_lines(state: Any, silent: bool) -> bool:
+        start = state.pos
+        previous_tokens = len(state.tokens)
+        parsed = backtick(state, silent)
+        if not silent and len(state.tokens) > previous_tokens and state.tokens[-1].type == "code_inline":
+            state.tokens[-1].meta["source_newlines"] = state.src[start : state.pos].count("\n")
+        return parsed
+
+    markdown.inline.ruler.at("backticks", backtick_with_source_lines)
+
+    expected = f"@{login.strip()} /triage"
+    source_lines = comment.splitlines()
+    quote_depth = 0
+    list_depth = 0
+    html = _VisibleTriageHtml()
+    for block in markdown.parse(comment):
+        if html.fence_char and block.type in {"inline", "fence", "code_block"} and block.map:
+            block_lines = source_lines[block.map[0] : block.map[1]]
+            for source_line in block_lines:
+                if _html_fence_closes(source_line, html):
+                    html.fence_char = ""
+                    break
+            continue
+        if block.type == "blockquote_open":
+            quote_depth += 1
+        elif block.type == "blockquote_close":
+            quote_depth -= 1
+        elif block.type in {"bullet_list_open", "ordered_list_open"}:
+            list_depth += 1
+        elif block.type in {"bullet_list_close", "ordered_list_close"}:
+            list_depth -= 1
+        elif block.type == "html_block" and not quote_depth:
+            if _html_block_has_triage_command(block.content, expected, html):
+                return True
+        elif block.type == "inline" and not quote_depth and block.map:
+            paragraph_lines = source_lines[block.map[0] : block.map[1]]
+            comment_hidden_lines = []
+            for source_line in paragraph_lines:
+                was_in_comment = html.comment_open
+                if was_in_comment:
+                    end = source_line.find("-->")
+                    html.feed(source_line[: end + 3] if end >= 0 else source_line + "\n")
+                comment_closed = html.track_comments(source_line)
+                if comment_closed:
+                    html.close()
+                comment_hidden_lines.append(was_in_comment)
+
+            visible_lines = [""]
+            safe_line_count = None
+            for inline in block.children or []:
+                if inline.type == "text":
+                    parts = inline.content.split("\n")
+                    visible = not html.hidden_tags
+                    visible_lines[-1] += parts[0] if visible else "\0"
+                    visible_lines.extend(parts[1:] if visible else ["\0"] * (len(parts) - 1))
+                elif inline.type in {"softbreak", "hardbreak"}:
+                    visible_lines.append("")
+                elif inline.type == "html_inline":
+                    html.feed(inline.content)
+                    if not html.comment_open or "-->" in inline.content:
+                        html.close()
+                    visible_lines[-1] += "\0"
+                    visible_lines.extend(["\0"] * inline.content.count("\n"))
+                elif inline.type == "code_inline":
+                    newlines = inline.meta.get("source_newlines")
+                    if newlines is None and safe_line_count is None:
+                        safe_line_count = len(visible_lines)
+                    visible_lines[-1] += "\0"
+                    if newlines is not None:
+                        visible_lines.extend(["\0"] * newlines)
+                else:
+                    visible_lines[-1] += "\0"
+
+            line_count = min(len(visible_lines), len(paragraph_lines))
+            if len(visible_lines) != len(paragraph_lines):
+                line_count = min(line_count, safe_line_count or 0)
+            for source, visible, in_comment in zip(
+                paragraph_lines[:line_count], visible_lines[:line_count], comment_hidden_lines[:line_count]
+            ):
+                if in_comment:
+                    continue
+                source = source.strip()
+                for _ in range(list_depth):
+                    source = re.sub(r"^(?:[-+*]|[0-9]{1,9}[.)])\s+", "", source, count=1)
+                if (source == expected or source.startswith(f"{expected} ")) and (
+                    visible.strip() == expected or visible.strip().startswith(f"{expected} ")
+                ):
+                    return True
     return False
 
 
