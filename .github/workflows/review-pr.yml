@@ -292,7 +292,7 @@ jobs:
       - name: run-ai-review
         if: vars.AI_PROVIDER == '' || vars.AI_PROVIDER == 'codex'
         uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1.11
-        timeout-minutes: 20
+        timeout-minutes: 60
         with:
           openai-api-key: ${{ secrets.CODEX_API_KEY }}
           model: ${{ vars.CODEX_MODEL }}
@@ -330,7 +330,7 @@ jobs:
       - name: run-ai-review-claude
         if: vars.AI_PROVIDER == 'claude'
         uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1 (2026-11-04)
-        timeout-minutes: 20
+        timeout-minutes: 60
         with:
           github_token: ${{ github.token }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

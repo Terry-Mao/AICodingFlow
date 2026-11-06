@@ -306,7 +306,7 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
             ai_step["uses"],
             "openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56",
         )
-        self.assertEqual(ai_step["timeout-minutes"], 20)
+        self.assertEqual(ai_step["timeout-minutes"], 60)
         self.assertIs(ai_step["with"]["allow-bots"], True)
         self.assertIn("Inspect files under pr-worktree", ai_step["with"]["prompt"])
         self.assertIn("Read .agents/contracts/review.md", ai_step["with"]["prompt"])
@@ -316,6 +316,9 @@ class ReviewWorkflowDispatchTest(unittest.TestCase):
         self.assertIn("target pr-worktree/review.json explicitly", ai_step["with"]["prompt"])
         self.assertIn("review_discussion_context.json", ai_step["with"]["prompt"])
         self.assertIn("duplicate suppression only", ai_step["with"]["prompt"])
+
+        claude_step = next(step for step in review_steps if step.get("name") == "run-ai-review-claude")
+        self.assertEqual(claude_step["timeout-minutes"], 60)
 
         normalize_step = next(step for step in review_steps if step.get("name") == "normalize-review-output-path")
         self.assertIn("[ ! -f pr-worktree/review.json ] && [ -f review.json ]", normalize_step["run"])
