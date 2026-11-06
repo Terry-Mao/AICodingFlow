@@ -183,13 +183,9 @@ def comment_has_triage_command(comment: object, login: str) -> bool:
     for block in markdown.parse(comment):
         if html.fence_char and block.type in {"inline", "fence", "code_block"} and block.map:
             block_lines = source_lines[block.map[0] : block.map[1]]
-            for index, source_line in enumerate(block_lines):
+            for source_line in block_lines:
                 if _html_fence_closes(source_line, html):
                     html.fence_char = ""
-                    if _html_block_has_triage_command(
-                        "\n".join(block_lines[index + 1 :]), expected, html
-                    ):
-                        return True
                     break
             continue
         if block.type == "blockquote_open":
